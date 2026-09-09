@@ -164,7 +164,7 @@ export default function Register() {
        * considered logged in.
        */
       if (result?.token) {
-        localStorage.setItem('token', result.token);
+        localStorage.setItem('honeychain_token', result.token);
       }
 
       /*
@@ -172,7 +172,7 @@ export default function Register() {
        */
       if (result?.keeper) {
         localStorage.setItem(
-          'keeper',
+          'honeychain_keeper',
           JSON.stringify(result.keeper)
         );
       }
