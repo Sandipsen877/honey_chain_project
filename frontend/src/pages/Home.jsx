@@ -48,7 +48,7 @@ export default function Home() {
 
         {/* Honey background — hero only */}
         <div
-          className="absolute inset-0 z-0 opacity-[0.85] dark:opacity-[0.085]"
+          className="absolute inset-0 z-0 opacity-[0.85] dark:opacity-[0.2]"
           style={{
             backgroundImage: `url(${drippingHoney})`,
             backgroundSize: 'cover',
@@ -66,8 +66,7 @@ export default function Home() {
             <div className="max-w-2xl">
 
               <div className="inline-flex items-center gap-2 mb-7 text-xs uppercase tracking-[0.22em] text-gold">
-                <span className="w-7 h-px bg-gold" />
-                SIH 2026 · Traceability
+                
               </div>
 
               <h1 className="text-[clamp(3.5rem,7vw,5.2rem)] leading-[0.88] tracking-[-0.055em] font-semibold text-black dark:text-cream">

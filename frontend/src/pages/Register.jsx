@@ -5,28 +5,34 @@ import {
   Mail,
   Phone,
   MapPin,
-  KeyRound,
   ArrowRight,
+  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 
-import { registerUser } from '../services/authService';
+import {
+  registerKeeper,
+  verifyRegistrationOtp,
+} from '../services/authService';
+
 import honeychainLogo from '../assets/logo_project.png';
 
 export default function Register() {
   const navigate = useNavigate();
 
+  const [step, setStep] = useState(1);
+
   const [formData, setFormData] = useState({
-    keeperCode: '',
+    keeperCode: `KPR-${Date.now()}`,
     name: '',
     phone: '',
     email: '',
     address: '',
   });
 
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  /* ================= HANDLE INPUT ================= */
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,20 +47,23 @@ export default function Register() {
     }
   };
 
-  /* ================= VALIDATION ================= */
+  const handleOtpChange = (e) => {
+    const value = e.target.value
+      .replace(/\D/g, '')
+      .slice(0, 6);
+
+    setOtp(value);
+
+    if (error) {
+      setError('');
+    }
+  };
 
   const validateForm = () => {
-    // Keeper Code
-    if (!formData.keeperCode.trim()) {
-      return 'Please enter your Keeper Code.';
-    }
-
-    // Name
     if (!formData.name.trim()) {
       return 'Please enter your name.';
     }
 
-    // Phone
     if (!formData.phone.trim()) {
       return 'Please enter your phone number.';
     }
@@ -65,7 +74,6 @@ export default function Register() {
       return 'Please enter a valid 10-digit phone number.';
     }
 
-    // Email is optional
     if (
       formData.email.trim() &&
       !/\S+@\S+\.\S+/.test(formData.email.trim())
@@ -76,9 +84,11 @@ export default function Register() {
     return '';
   };
 
-  /* ================= SUBMIT ================= */
+  // ============================================
+  // STEP 1 — REGISTER KEEPER + SEND OTP
+  // ============================================
 
-  const handleSubmit = async (e) => {
+  const handleSendOtp = async (e) => {
     e.preventDefault();
 
     const validationError = validateForm();
@@ -92,25 +102,107 @@ export default function Register() {
       setLoading(true);
       setError('');
 
-      const response = await registerUser({
-        keeperCode: formData.keeperCode.trim(),
+      await registerKeeper({
+        keeperCode: formData.keeperCode,
         name: formData.name.trim(),
-        phone: formData.phone.trim(),
+        phone: String(formData.phone).trim(),
         email: formData.email.trim(),
         address: formData.address.trim(),
       });
 
-      console.log('Registration successful:', response);
-
-      navigate('/login');
+      // Move to OTP verification
+      setStep(2);
     } catch (err) {
       setError(
         err.message ||
-          'Unable to create your account. Please try again.'
+          'Unable to send OTP. Please check your details and try again.'
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  // ============================================
+  // STEP 2 — VERIFY REGISTRATION OTP
+  // ============================================
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+
+    if (!otp.trim()) {
+      setError('Please enter the OTP.');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('Please enter the 6-digit OTP.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      /*
+       * Backend expects:
+       *
+       * {
+       *   phone: "9876543210",
+       *   code: "123456"
+       * }
+       *
+       * authService converts otp → code.
+       */
+      const result = await verifyRegistrationOtp({
+        phone: String(formData.phone).trim(),
+        otp: String(otp).trim(),
+      });
+
+      /*
+       * If backend returns an authentication token,
+       * save it so the newly registered user is
+       * considered logged in.
+       */
+      if (result?.token) {
+        localStorage.setItem('token', result.token);
+      }
+
+      /*
+       * Save keeper information if returned by backend.
+       */
+      if (result?.keeper) {
+        localStorage.setItem(
+          'keeper',
+          JSON.stringify(result.keeper)
+        );
+      }
+
+      /*
+       * NEW USER:
+       *
+       * Registration + OTP verification is successful,
+       * so go directly to the Dashboard.
+       */
+      navigate('/dashboard');
+
+    } catch (err) {
+      setError(
+        err.message ||
+          'Invalid OTP. Please check the OTP and try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // GO BACK TO STEP 1
+  // ============================================
+
+  const handleBack = () => {
+    setStep(1);
+    setOtp('');
+    setError('');
   };
 
   return (
@@ -143,20 +235,24 @@ export default function Register() {
           </p>
 
           <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-cream">
-            Create account
+            {step === 1
+              ? 'Create account'
+              : 'Verify phone'}
           </h1>
 
           <p className="mt-3 text-sm text-gray dark:text-muted">
-            Register as a HoneyChain keeper
+            {step === 1
+              ? 'Register as a HoneyChain keeper'
+              : `Enter the OTP sent to ${formData.phone}`}
           </p>
 
         </div>
 
-        {/* ================= FORM CARD ================= */}
+        {/* ================= CARD ================= */}
 
         <div className="bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 p-7">
 
-          {/* Error */}
+          {/* ================= ERROR ================= */}
 
           {error && (
             <div className="mb-5 px-4 py-3 border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 text-sm">
@@ -164,217 +260,305 @@ export default function Register() {
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-4"
-          >
+          {/* ================================================== */}
+          {/* STEP 1 — REGISTRATION FORM */}
+          {/* ================================================== */}
 
-            {/* ================= KEEPER CODE ================= */}
+          {step === 1 && (
+            <form
+              onSubmit={handleSendOtp}
+              className="space-y-4"
+            >
 
-            <div>
+              {/* Keeper Code */}
 
-              <label
-                htmlFor="keeperCode"
-                className="block text-sm font-medium text-black dark:text-cream mb-2"
-              >
-                Keeper Code
-                <span className="text-gold ml-1">*</span>
-              </label>
-
-              <div className="relative">
-
-                <KeyRound
-                  size={17}
-                  strokeWidth={1.7}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                />
+              <div>
+                <label
+                  htmlFor="keeperCode"
+                  className="block text-sm font-medium text-black dark:text-cream mb-2"
+                >
+                  Keeper Code
+                </label>
 
                 <input
                   id="keeperCode"
                   name="keeperCode"
                   type="text"
                   value={formData.keeperCode}
-                  onChange={handleChange}
-                  placeholder="Enter your keeper code"
-                  autoComplete="off"
-                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                  readOnly
+                  className="w-full h-12 px-4 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-cream outline-none cursor-not-allowed"
                 />
+
+                <p className="mt-2 text-xs text-gray dark:text-muted">
+                  Your Keeper Code is generated automatically.
+                </p>
+              </div>
+
+              {/* Name */}
+
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-black dark:text-cream mb-2"
+                >
+                  Name
+                  <span className="text-gold ml-1">*</span>
+                </label>
+
+                <div className="relative">
+
+                  <User
+                    size={17}
+                    strokeWidth={1.7}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                  />
+
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                  />
+
+                </div>
+              </div>
+
+              {/* Phone */}
+
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-black dark:text-cream mb-2"
+                >
+                  Phone
+                  <span className="text-gold ml-1">*</span>
+                </label>
+
+                <div className="relative">
+
+                  <Phone
+                    size={17}
+                    strokeWidth={1.7}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                  />
+
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="10-digit phone number"
+                    autoComplete="tel"
+                    maxLength={10}
+                    inputMode="numeric"
+                    className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                  />
+
+                </div>
+              </div>
+
+              {/* Email */}
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-black dark:text-cream mb-2"
+                >
+                  Email
+
+                  <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
+                    Optional
+                  </span>
+                </label>
+
+                <div className="relative">
+
+                  <Mail
+                    size={17}
+                    strokeWidth={1.7}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                  />
+
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                  />
+
+                </div>
+              </div>
+
+              {/* Address */}
+
+              <div>
+                <label
+                  htmlFor="address"
+                  className="block text-sm font-medium text-black dark:text-cream mb-2"
+                >
+                  Address
+
+                  <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
+                    Optional
+                  </span>
+                </label>
+
+                <div className="relative">
+
+                  <MapPin
+                    size={17}
+                    strokeWidth={1.7}
+                    className="absolute left-4 top-4 text-gray dark:text-muted"
+                  />
+
+                  <textarea
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Your address"
+                    rows="3"
+                    className="w-full min-h-[84px] pl-11 pr-4 py-3 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none resize-none focus:border-gold transition-colors"
+                  />
+
+                </div>
+              </div>
+
+              {/* Send OTP */}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group w-full h-12 mt-2 flex items-center justify-center gap-3 bg-black dark:bg-cream text-cream dark:text-black font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
+              >
+
+                {loading
+                  ? 'Sending OTP...'
+                  : 'Send OTP'}
+
+                {!loading && (
+                  <ArrowRight
+                    size={17}
+                    className="group-hover:translate-x-1 transition-transform duration-300"
+                  />
+                )}
+
+              </button>
+
+            </form>
+          )}
+
+          {/* ================================================== */}
+          {/* STEP 2 — OTP VERIFICATION */}
+          {/* ================================================== */}
+
+          {step === 2 && (
+            <form onSubmit={handleVerifyOtp}>
+
+              {/* Shield Icon */}
+
+              <div className="flex justify-center mb-6">
+
+                <div className="w-14 h-14 flex items-center justify-center bg-gold/10 border border-gold/30">
+
+                  <ShieldCheck
+                    size={28}
+                    strokeWidth={1.6}
+                    className="text-gold"
+                  />
+
+                </div>
 
               </div>
 
-            </div>
+              {/* Phone */}
 
-            {/* ================= NAME ================= */}
+              <div className="text-center mb-6">
 
-            <div>
+                <p className="text-sm text-gray dark:text-muted">
+                  We've sent a verification code to
+                </p>
+
+                <p className="mt-1 font-medium text-black dark:text-cream">
+                  {formData.phone}
+                </p>
+
+              </div>
+
+              {/* OTP Label */}
 
               <label
-                htmlFor="name"
+                htmlFor="otp"
                 className="block text-sm font-medium text-black dark:text-cream mb-2"
               >
-                Name
-                <span className="text-gold ml-1">*</span>
+                Enter OTP
               </label>
 
-              <div className="relative">
+              {/* OTP Input */}
 
-                <User
-                  size={17}
-                  strokeWidth={1.7}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                />
+              <input
+                id="otp"
+                name="otp"
+                type="text"
+                value={otp}
+                onChange={handleOtpChange}
+                placeholder="Enter 6-digit OTP"
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
+                autoFocus
+                className="w-full h-12 px-4 text-center tracking-[0.5em] text-lg bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+              />
 
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Your full name"
-                  autoComplete="name"
-                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
-                />
+              {/* Verify */}
 
-              </div>
-
-            </div>
-
-            {/* ================= PHONE ================= */}
-
-            <div>
-
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              <button
+                type="submit"
+                disabled={loading}
+                className="group w-full h-12 mt-5 flex items-center justify-center gap-3 bg-black dark:bg-cream text-cream dark:text-black font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
               >
-                Phone
-                <span className="text-gold ml-1">*</span>
-              </label>
 
-              <div className="relative">
+                {loading
+                  ? 'Verifying...'
+                  : 'Verify & Continue'}
 
-                <Phone
-                  size={17}
-                  strokeWidth={1.7}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                />
+                {!loading && (
+                  <ArrowRight
+                    size={17}
+                    className="group-hover:translate-x-1 transition-transform duration-300"
+                  />
+                )}
 
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="10-digit phone number"
-                  autoComplete="tel"
-                  maxLength="10"
-                  inputMode="numeric"
-                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
-                />
+              </button>
 
-              </div>
+              {/* Back */}
 
-            </div>
-
-            {/* ================= EMAIL ================= */}
-
-            <div>
-
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={loading}
+                className="w-full mt-4 h-11 flex items-center justify-center gap-2 text-sm text-gray dark:text-muted hover:text-gold transition-colors"
               >
-                Email
 
-                <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
-                  Optional
-                </span>
-              </label>
+                <ArrowLeft size={15} />
 
-              <div className="relative">
+                Change phone or details
 
-                <Mail
-                  size={17}
-                  strokeWidth={1.7}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                />
+              </button>
 
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
-                />
+            </form>
+          )}
 
-              </div>
-
-            </div>
-
-            {/* ================= ADDRESS ================= */}
-
-            <div>
-
-              <label
-                htmlFor="address"
-                className="block text-sm font-medium text-black dark:text-cream mb-2"
-              >
-                Address
-
-                <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
-                  Optional
-                </span>
-              </label>
-
-              <div className="relative">
-
-                <MapPin
-                  size={17}
-                  strokeWidth={1.7}
-                  className="absolute left-4 top-4 text-gray dark:text-muted"
-                />
-
-                <textarea
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Your address"
-                  rows="3"
-                  className="w-full min-h-[84px] pl-11 pr-4 py-3 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none resize-none focus:border-gold transition-colors"
-                />
-
-              </div>
-
-            </div>
-
-            {/* ================= SUBMIT ================= */}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="group w-full h-12 mt-2 flex items-center justify-center gap-3 bg-black dark:bg-cream text-cream dark:text-black font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
-            >
-
-              {loading
-                ? 'Creating account...'
-                : 'Create Account'}
-
-              {!loading && (
-                <ArrowRight
-                  size={17}
-                  className="group-hover:translate-x-1 transition-transform duration-300"
-                />
-              )}
-
-            </button>
-
-          </form>
-
-          {/* ================= LOGIN ================= */}
+          {/* ================= SIGN IN ================= */}
 
           <div className="mt-7 pt-6 border-t border-black/10 dark:border-white/10 text-center">
 
@@ -395,14 +579,13 @@ export default function Register() {
 
         </div>
 
-        {/* ================= FOOTER ================= */}
+        {/* ================= FOOTER TEXT ================= */}
 
         <p className="text-center text-xs text-gray dark:text-muted mt-8">
           Honey Chain · SIH26021
         </p>
 
       </div>
-
     </div>
   );
 }

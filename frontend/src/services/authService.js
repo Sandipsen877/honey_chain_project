@@ -34,22 +34,25 @@ const apiRequest = async (endpoint, options = {}) => {
 };
 
 /**
- * Register a new user
+ * Register keeper
+ *
+ * POST /api/keepers
+ *
+ * The backend sends an OTP to the provided phone number.
  */
-export const registerUser = async ({
+export const registerKeeper = async ({
   keeperCode,
   name,
   phone,
   email,
   address,
 }) => {
-  return apiRequest('/api/auth/register', {
+  return apiRequest('/api/keepers', {
     method: 'POST',
-
     body: JSON.stringify({
       keeperCode,
       name,
-      phone,
+      phone: String(phone).trim(),
       email,
       address,
     }),
@@ -57,15 +60,45 @@ export const registerUser = async ({
 };
 
 /**
- * Login existing user
- * Phone number is sent as a String
+ * Verify registration OTP
+ *
+ * POST /api/keepers/verify-registration
  */
-export const loginUser = async ({ phone }) => {
-  return apiRequest('/api/auth/login', {
+export const verifyRegistrationOtp = async ({ phone, otp }) => {
+  return apiRequest('/api/keepers/verify-registration', {
     method: 'POST',
-
     body: JSON.stringify({
       phone: String(phone).trim(),
+      code: String(otp).trim(),
+    }),
+  });
+};
+
+/**
+ * Request login OTP
+ *
+ * POST /api/auth/request-otp
+ */
+export const requestLoginOtp = async ({ phone }) => {
+  return apiRequest('/api/auth/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      phone: String(phone).trim(),
+    }),
+  });
+};
+
+/**
+ * Verify login OTP
+ *
+ * POST /api/auth/verify-otp
+ */
+export const verifyLoginOtp = async ({ phone, otp }) => {
+  return apiRequest('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      phone: String(phone).trim(),
+      code: String(otp).trim(),
     }),
   });
 };
