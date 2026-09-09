@@ -16,10 +16,10 @@
   --color-yellow: #FACC15;
 
   /* Light Theme */
-  --color-cream: #FAFAF9;
+  --color-cream: #FFF4D6;
   --color-cream-card: #FFFFFF;
-  --color-gray: #737373;
-  --color-muted: #A3A3A3;
+  --color-gray: #252525;
+  --color-muted: #FFFFFF;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }

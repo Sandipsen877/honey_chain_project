@@ -627,7 +627,7 @@ export default function About() {
       {/* =====================================================
           MISSION
       ===================================================== */}
-      <section className="py-24 md:py-32 bg-black text-cream">
+      <section className="py-24 md:py-32 bg-cream-card dark:bg-black text-cream ">
 
         <div className="max-w-7xl mx-auto px-6">
 
@@ -637,7 +637,7 @@ export default function About() {
               10 · Mission
             </p>
 
-            <h2 className="mt-5 text-4xl md:text-5xl font-semibold tracking-tight">
+            <h2 className="mt-5 text-4xl md:text-5xl font-semibold tracking-tight text-gray dark:text-muted">
               Turning the vision
               <br />
               <span className="text-gold">into a connected system.</span>
