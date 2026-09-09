@@ -36,26 +36,36 @@ const apiRequest = async (endpoint, options = {}) => {
 /**
  * Register a new user
  */
-export const registerUser = async ({ name, email, password }) => {
+export const registerUser = async ({
+  keeperCode,
+  name,
+  phone,
+  email,
+  address,
+}) => {
   return apiRequest('/api/auth/register', {
     method: 'POST',
+
     body: JSON.stringify({
+      keeperCode,
       name,
+      phone,
       email,
-      password,
+      address,
     }),
   });
 };
 
 /**
  * Login existing user
+ * Phone number is sent as a String
  */
-export const loginUser = async ({ email, password }) => {
+export const loginUser = async ({ phone }) => {
   return apiRequest('/api/auth/login', {
     method: 'POST',
+
     body: JSON.stringify({
-      email,
-      password,
+      phone: String(phone).trim(),
     }),
   });
 };

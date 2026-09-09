@@ -1,64 +1,58 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Hexagon,
-  Mail,
-  Lock,
-  ArrowUpRight,
-  ShieldCheck,
-  Eye,
-  EyeOff,
+  Phone,
+  ArrowRight,
 } from 'lucide-react';
+
 import { loginUser } from '../services/authService';
+import honeychainLogo from '../assets/logo_project.png';
 
 export default function Login() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  // Phone is intentionally stored as a STRING
+  const [phone, setPhone] = useState('');
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  /* ================= HANDLE PHONE INPUT ================= */
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handlePhoneChange = (e) => {
+    // Keep phone as a string
+    // Remove anything that isn't a number
+    const value = e.target.value.replace(/\D/g, '');
 
+    // Keep maximum 10 digits
+    setPhone(value.slice(0, 10));
+
+    // Clear previous error
     if (error) {
       setError('');
     }
   };
 
+  /* ================= VALIDATION ================= */
+
   const validateForm = () => {
-    const email = formData.email.trim();
-    const password = formData.password;
-
-    if (!email) {
-      return 'Email is required.';
+    // Required field
+    if (!phone.trim()) {
+      return 'Please enter your mobile number.';
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return 'Please enter a valid email address.';
-    }
-
-    if (!password) {
-      return 'Password is required.';
+    // Must contain exactly 10 digits
+    if (!/^[0-9]{10}$/.test(phone)) {
+      return 'Please enter a valid 10-digit mobile number.';
     }
 
     return '';
   };
 
+  /* ================= SUBMIT ================= */
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    setError('');
 
     const validationError = validateForm();
 
@@ -69,38 +63,26 @@ export default function Login() {
 
     try {
       setLoading(true);
+      setError('');
 
+      // Phone is sent as a STRING
       const response = await loginUser({
-        email: formData.email.trim(),
-        password: formData.password,
+        phone: phone.trim(),
       });
-
-      /*
-       * Backend response handling will depend on your team's API.
-       *
-       * Example expected response:
-       *
-       * {
-       *   success: true,
-       *   message: "Login successful",
-       *   token: "...",
-       *   user: {
-       *     id: "...",
-       *     name: "...",
-       *     email: "..."
-       *   }
-       * }
-       */
 
       console.log('Login successful:', response);
 
-      // Temporary navigation target.
-      // Change this to your actual authenticated dashboard route.
+      /*
+       * Temporary navigation.
+       * Change this when the actual dashboard route
+       * is provided by your team.
+       */
       navigate('/dashboard');
+
     } catch (err) {
       setError(
-        err?.message ||
-          'Unable to sign in. Please check your credentials and try again.'
+        err.message ||
+        'Unable to sign in. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -108,215 +90,166 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-72px)] flex items-center overflow-hidden bg-cream dark:bg-black">
-      {/* Background decoration */}
-      <div className="absolute -right-32 -top-32 w-[520px] h-[520px] border border-gold/10 rotate-30 pointer-events-none" />
+    <div className="min-h-[calc(100vh-72px)] bg-cream dark:bg-black flex items-center justify-center px-6 py-12">
 
-      <div className="absolute -left-40 -bottom-40 w-[500px] h-[500px] border border-gold/5 rotate-30 pointer-events-none" />
+      <div className="w-full max-w-md">
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gold/5 blur-[120px] rounded-full pointer-events-none" />
+        {/* ================= LOGO ================= */}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-16">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-          {/* Left side */}
-          <div className="hidden lg:block">
-            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-gold mb-8">
-              <span className="w-8 h-px bg-gold" />
-              HoneyChain
-            </div>
+        <div className="flex justify-center mb-8">
 
-            <h1 className="text-6xl xl:text-7xl font-semibold tracking-[-0.05em] leading-[0.9] text-black dark:text-cream">
-              Welcome
-              <br />
-              <span className="text-gold">back.</span>
-            </h1>
+          <div className="relative group">
 
-            <p className="mt-8 max-w-md text-base leading-relaxed text-gray dark:text-muted">
-              Continue your journey through a more connected and transparent
-              honey ecosystem.
-            </p>
+            {/* Logo Glow */}
+            <div className="absolute inset-0 bg-gold/25 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <div className="mt-14 flex items-start gap-4">
-              <div className="w-11 h-11 border border-gold/30 flex items-center justify-center text-gold shrink-0">
-                <ShieldCheck size={20} strokeWidth={1.5} />
-              </div>
+            {/* Logo */}
+            <img
+              src={honeychainLogo}
+              alt="HoneyChain"
+              className="relative w-20 h-20 object-contain"
+            />
 
-              <div>
-                <p className="text-sm font-medium text-black dark:text-cream">
-                  Built around trust
-                </p>
-
-                <p className="mt-1 text-xs leading-relaxed text-gray dark:text-muted max-w-xs">
-                  Connect hive intelligence, honey traceability and consumer
-                  verification through one ecosystem.
-                </p>
-              </div>
-            </div>
           </div>
 
-          {/* Login form */}
-          <div className="w-full max-w-md mx-auto lg:ml-auto">
-            {/* Mobile heading */}
-            <div className="lg:hidden mb-10">
-              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-gold mb-6">
-                <span className="w-7 h-px bg-gold" />
-                HoneyChain
-              </div>
-
-              <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-cream">
-                Welcome <span className="text-gold">back.</span>
-              </h1>
-            </div>
-
-            <div className="mb-8">
-              <div className="w-12 h-12 bg-gold flex items-center justify-center text-black mb-6">
-                <Hexagon size={25} strokeWidth={1.7} />
-              </div>
-
-              <h2 className="text-2xl font-semibold tracking-tight text-black dark:text-cream">
-                Sign in
-              </h2>
-
-              <p className="mt-2 text-sm text-gray dark:text-muted">
-                Access your Honey Chain account
-              </p>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card"
-            >
-              <div className="p-7 md:p-8 space-y-5">
-                {/* Error */}
-                {error && (
-                  <div
-                    role="alert"
-                    className="border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                {/* Email */}
-                <div>
-                  <label
-                    htmlFor="login-email"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Email
-                  </label>
-
-                  <div className="relative">
-                    <Mail
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="login-email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      disabled={loading}
-                      className="w-full pl-11 pr-4 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label
-                    htmlFor="login-password"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Password
-                  </label>
-
-                  <div className="relative">
-                    <Lock
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="login-password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      disabled={loading}
-                      className="w-full pl-11 pr-12 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      disabled={loading}
-                      aria-label={
-                        showPassword ? 'Hide password' : 'Show password'
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted hover:text-gold transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff size={17} />
-                      ) : (
-                        <Eye size={17} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group w-full flex items-center justify-center gap-2 py-3.5 bg-black dark:bg-cream text-cream dark:text-black text-sm font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                  {loading ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      Sign In
-                      <ArrowUpRight
-                        size={15}
-                        className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
-                      />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Register */}
-              <div className="border-t border-black/10 dark:border-white/10 px-7 md:px-8 py-5">
-                <p className="text-center text-sm text-gray dark:text-muted">
-                  Don't have an account?{' '}
-                  <Link
-                    to="/register"
-                    className="text-gold font-medium hover:underline underline-offset-4"
-                  >
-                    Register
-                  </Link>
-                </p>
-              </div>
-            </form>
-
-            <p className="mt-6 text-center text-[11px] uppercase tracking-[0.14em] text-gray/60 dark:text-muted/60">
-              Honey Chain · SIH26021
-            </p>
-          </div>
         </div>
+
+
+        {/* ================= HEADING ================= */}
+
+        <div className="text-center mb-8">
+
+          <p className="text-xs uppercase tracking-[0.25em] text-gold font-medium mb-3">
+            HoneyChain
+          </p>
+
+          <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-cream">
+            Welcome back
+          </h1>
+
+          <p className="mt-3 text-sm text-gray dark:text-muted">
+            Sign in using your mobile number
+          </p>
+
+        </div>
+
+
+        {/* ================= FORM CARD ================= */}
+
+        <div className="bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 p-7">
+
+          {/* ================= ERROR ================= */}
+
+          {error && (
+            <div className="mb-5 px-4 py-3 border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+
+          {/* ================= FORM ================= */}
+
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
+
+            {/* ================= PHONE ================= */}
+
+            <div>
+
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Mobile Number
+                <span className="text-gold ml-1">*</span>
+              </label>
+
+              <div className="relative">
+
+                {/* Phone Icon */}
+                <Phone
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                />
+
+                {/* Phone Input */}
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  placeholder="Enter 10-digit mobile number"
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* ================= SUBMIT ================= */}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group w-full h-12 flex items-center justify-center gap-3 bg-black dark:bg-cream text-cream dark:text-black font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
+            >
+
+              {loading
+                ? 'Signing in...'
+                : 'Continue'
+              }
+
+              {!loading && (
+                <ArrowRight
+                  size={17}
+                  className="group-hover:translate-x-1 transition-transform duration-300"
+                />
+              )}
+
+            </button>
+
+          </form>
+
+
+          {/* ================= REGISTER ================= */}
+
+          <div className="mt-7 pt-6 border-t border-black/10 dark:border-white/10 text-center">
+
+            <p className="text-sm text-gray dark:text-muted">
+
+              Don't have an account?{' '}
+
+              <Link
+                to="/register"
+                className="text-gold font-medium hover:underline"
+              >
+                Register
+              </Link>
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* ================= FOOTER ================= */}
+
+        <p className="text-center text-xs text-gray dark:text-muted mt-8">
+          Honey Chain · SIH26021
+        </p>
+
       </div>
+
     </div>
   );
 }

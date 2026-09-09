@@ -1,32 +1,32 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Hexagon,
   User,
   Mail,
-  Lock,
-  ArrowUpRight,
-  ShieldCheck,
-  Eye,
-  EyeOff,
+  Phone,
+  MapPin,
+  KeyRound,
+  ArrowRight,
 } from 'lucide-react';
+
 import { registerUser } from '../services/authService';
+import honeychainLogo from '../assets/logo_project.png';
 
 export default function Register() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    keeperCode: '',
     name: '',
+    phone: '',
     email: '',
-    password: '',
-    confirmPassword: '',
+    address: '',
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  /* ================= HANDLE INPUT ================= */
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,47 +41,45 @@ export default function Register() {
     }
   };
 
+  /* ================= VALIDATION ================= */
+
   const validateForm = () => {
-    const name = formData.name.trim();
-    const email = formData.email.trim();
-    const password = formData.password;
-    const confirmPassword = formData.confirmPassword;
-
-    if (!name) {
-      return 'Full name is required.';
+    // Keeper Code
+    if (!formData.keeperCode.trim()) {
+      return 'Please enter your Keeper Code.';
     }
 
-    if (name.length < 2) {
-      return 'Please enter a valid name.';
+    // Name
+    if (!formData.name.trim()) {
+      return 'Please enter your name.';
     }
 
-    if (!email) {
-      return 'Email is required.';
+    // Phone
+    if (!formData.phone.trim()) {
+      return 'Please enter your phone number.';
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const phoneRegex = /^[0-9]{10}$/;
+
+    if (!phoneRegex.test(formData.phone.trim())) {
+      return 'Please enter a valid 10-digit phone number.';
+    }
+
+    // Email is optional
+    if (
+      formData.email.trim() &&
+      !/\S+@\S+\.\S+/.test(formData.email.trim())
+    ) {
       return 'Please enter a valid email address.';
-    }
-
-    if (!password) {
-      return 'Password is required.';
-    }
-
-    if (password.length < 8) {
-      return 'Password must contain at least 8 characters.';
-    }
-
-    if (password !== confirmPassword) {
-      return 'Passwords do not match.';
     }
 
     return '';
   };
 
+  /* ================= SUBMIT ================= */
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    setError('');
 
     const validationError = validateForm();
 
@@ -92,36 +90,22 @@ export default function Register() {
 
     try {
       setLoading(true);
+      setError('');
 
       const response = await registerUser({
+        keeperCode: formData.keeperCode.trim(),
         name: formData.name.trim(),
+        phone: formData.phone.trim(),
         email: formData.email.trim(),
-        password: formData.password,
+        address: formData.address.trim(),
       });
-
-      /*
-       * Example backend response:
-       *
-       * {
-       *   success: true,
-       *   message: "Account created successfully",
-       *   token: "...",
-       *   user: {
-       *     id: "...",
-       *     name: "...",
-       *     email: "..."
-       *   }
-       * }
-       */
 
       console.log('Registration successful:', response);
 
-      // Temporary navigation target.
-      // Change according to your backend/authentication flow.
       navigate('/login');
     } catch (err) {
       setError(
-        err?.message ||
+        err.message ||
           'Unable to create your account. Please try again.'
       );
     } finally {
@@ -130,295 +114,295 @@ export default function Register() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-72px)] flex items-center overflow-hidden bg-cream dark:bg-black">
-      {/* Background decoration */}
-      <div className="absolute -right-32 -top-32 w-[520px] h-[520px] border border-gold/10 rotate-30 pointer-events-none" />
+    <div className="min-h-[calc(100vh-72px)] bg-cream dark:bg-black flex items-center justify-center px-6 py-12">
 
-      <div className="absolute -left-40 -bottom-40 w-[500px] h-[500px] border border-gold/5 rotate-30 pointer-events-none" />
+      <div className="w-full max-w-md">
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gold/5 blur-[120px] rounded-full pointer-events-none" />
+        {/* ================= LOGO ================= */}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-16">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-          {/* Left */}
-          <div className="hidden lg:block">
-            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-gold mb-8">
-              <span className="w-8 h-px bg-gold" />
-              HoneyChain
-            </div>
+        <div className="flex justify-center mb-6">
+          <div className="relative group">
 
-            <h1 className="text-6xl xl:text-7xl font-semibold tracking-[-0.05em] leading-[0.9] text-black dark:text-cream">
-              Start your
-              <br />
-              <span className="text-gold">journey.</span>
-            </h1>
+            <div className="absolute inset-0 bg-gold/25 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <p className="mt-8 max-w-md text-base leading-relaxed text-gray dark:text-muted">
-              Create your HoneyChain account and become part of a more
-              connected and transparent honey ecosystem.
-            </p>
+            <img
+              src={honeychainLogo}
+              alt="HoneyChain"
+              className="relative w-20 h-20 object-contain"
+            />
 
-            <div className="mt-14 flex items-start gap-4">
-              <div className="w-11 h-11 border border-gold/30 flex items-center justify-center text-gold shrink-0">
-                <ShieldCheck size={20} strokeWidth={1.5} />
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-black dark:text-cream">
-                  Built around trust
-                </p>
-
-                <p className="mt-1 text-xs leading-relaxed text-gray dark:text-muted max-w-xs">
-                  Connect hive intelligence, honey traceability and consumer
-                  verification through one ecosystem.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Form */}
-          <div className="w-full max-w-md mx-auto lg:ml-auto">
-            {/* Mobile heading */}
-            <div className="lg:hidden mb-10">
-              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-gold mb-6">
-                <span className="w-7 h-px bg-gold" />
-                HoneyChain
-              </div>
-
-              <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-cream">
-                Start your <span className="text-gold">journey.</span>
-              </h1>
-            </div>
-
-            <div className="mb-8">
-              <div className="w-12 h-12 bg-gold flex items-center justify-center text-black mb-6">
-                <Hexagon size={25} strokeWidth={1.7} />
-              </div>
-
-              <h2 className="text-2xl font-semibold tracking-tight text-black dark:text-cream">
-                Create account
-              </h2>
-
-              <p className="mt-2 text-sm text-gray dark:text-muted">
-                Register for your Honey Chain account
-              </p>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card"
-            >
-              <div className="p-7 md:p-8 space-y-5">
-                {/* Error */}
-                {error && (
-                  <div
-                    role="alert"
-                    className="border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                {/* Name */}
-                <div>
-                  <label
-                    htmlFor="register-name"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Full Name
-                  </label>
-
-                  <div className="relative">
-                    <User
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="register-name"
-                      name="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Your name"
-                      autoComplete="name"
-                      disabled={loading}
-                      className="w-full pl-11 pr-4 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label
-                    htmlFor="register-email"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Email
-                  </label>
-
-                  <div className="relative">
-                    <Mail
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="register-email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      disabled={loading}
-                      className="w-full pl-11 pr-4 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label
-                    htmlFor="register-password"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Password
-                  </label>
-
-                  <div className="relative">
-                    <Lock
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="register-password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      disabled={loading}
-                      className="w-full pl-11 pr-12 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      disabled={loading}
-                      aria-label={
-                        showPassword ? 'Hide password' : 'Show password'
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted hover:text-gold transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff size={17} />
-                      ) : (
-                        <Eye size={17} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm password */}
-                <div>
-                  <label
-                    htmlFor="register-confirm-password"
-                    className="block text-xs uppercase tracking-[0.12em] font-medium text-gray dark:text-muted mb-3"
-                  >
-                    Confirm Password
-                  </label>
-
-                  <div className="relative">
-                    <Lock
-                      size={17}
-                      strokeWidth={1.5}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
-                    />
-
-                    <input
-                      id="register-confirm-password"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      disabled={loading}
-                      className="w-full pl-11 pr-12 py-3.5 bg-cream dark:bg-black-soft border border-black/10 dark:border-white/10 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 text-sm focus:outline-none focus:border-gold disabled:opacity-60 transition-colors duration-300"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword((prev) => !prev)
-                      }
-                      disabled={loading}
-                      aria-label={
-                        showConfirmPassword
-                          ? 'Hide password'
-                          : 'Show password'
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted hover:text-gold transition-colors"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={17} />
-                      ) : (
-                        <Eye size={17} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group w-full flex items-center justify-center gap-2 py-3.5 bg-black dark:bg-cream text-cream dark:text-black text-sm font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                  {loading ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    <>
-                      Create Account
-                      <ArrowUpRight
-                        size={15}
-                        className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
-                      />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Login */}
-              <div className="border-t border-black/10 dark:border-white/10 px-7 md:px-8 py-5">
-                <p className="text-center text-sm text-gray dark:text-muted">
-                  Already have an account?{' '}
-                  <Link
-                    to="/login"
-                    className="text-gold font-medium hover:underline underline-offset-4"
-                  >
-                    Sign In
-                  </Link>
-                </p>
-              </div>
-            </form>
-
-            <p className="mt-6 text-center text-[11px] uppercase tracking-[0.14em] text-gray/60 dark:text-muted/60">
-              Honey Chain · SIH26021
-            </p>
           </div>
         </div>
+
+        {/* ================= HEADING ================= */}
+
+        <div className="text-center mb-7">
+
+          <p className="text-xs uppercase tracking-[0.25em] text-gold font-medium mb-3">
+            HoneyChain
+          </p>
+
+          <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-cream">
+            Create account
+          </h1>
+
+          <p className="mt-3 text-sm text-gray dark:text-muted">
+            Register as a HoneyChain keeper
+          </p>
+
+        </div>
+
+        {/* ================= FORM CARD ================= */}
+
+        <div className="bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 p-7">
+
+          {/* Error */}
+
+          {error && (
+            <div className="mb-5 px-4 py-3 border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+
+            {/* ================= KEEPER CODE ================= */}
+
+            <div>
+
+              <label
+                htmlFor="keeperCode"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Keeper Code
+                <span className="text-gold ml-1">*</span>
+              </label>
+
+              <div className="relative">
+
+                <KeyRound
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                />
+
+                <input
+                  id="keeperCode"
+                  name="keeperCode"
+                  type="text"
+                  value={formData.keeperCode}
+                  onChange={handleChange}
+                  placeholder="Enter your keeper code"
+                  autoComplete="off"
+                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ================= NAME ================= */}
+
+            <div>
+
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Name
+                <span className="text-gold ml-1">*</span>
+              </label>
+
+              <div className="relative">
+
+                <User
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                />
+
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your full name"
+                  autoComplete="name"
+                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ================= PHONE ================= */}
+
+            <div>
+
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Phone
+                <span className="text-gold ml-1">*</span>
+              </label>
+
+              <div className="relative">
+
+                <Phone
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                />
+
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="10-digit phone number"
+                  autoComplete="tel"
+                  maxLength="10"
+                  inputMode="numeric"
+                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ================= EMAIL ================= */}
+
+            <div>
+
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Email
+
+                <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
+                  Optional
+                </span>
+              </label>
+
+              <div className="relative">
+
+                <Mail
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray dark:text-muted"
+                />
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="w-full h-12 pl-11 pr-4 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ================= ADDRESS ================= */}
+
+            <div>
+
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-black dark:text-cream mb-2"
+              >
+                Address
+
+                <span className="text-xs text-gray dark:text-muted ml-2 font-normal">
+                  Optional
+                </span>
+              </label>
+
+              <div className="relative">
+
+                <MapPin
+                  size={17}
+                  strokeWidth={1.7}
+                  className="absolute left-4 top-4 text-gray dark:text-muted"
+                />
+
+                <textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Your address"
+                  rows="3"
+                  className="w-full min-h-[84px] pl-11 pr-4 py-3 bg-transparent border border-black/15 dark:border-white/15 text-black dark:text-cream placeholder:text-gray/60 dark:placeholder:text-muted/60 outline-none resize-none focus:border-gold transition-colors"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ================= SUBMIT ================= */}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group w-full h-12 mt-2 flex items-center justify-center gap-3 bg-black dark:bg-cream text-cream dark:text-black font-semibold hover:bg-gold hover:text-black disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
+            >
+
+              {loading
+                ? 'Creating account...'
+                : 'Create Account'}
+
+              {!loading && (
+                <ArrowRight
+                  size={17}
+                  className="group-hover:translate-x-1 transition-transform duration-300"
+                />
+              )}
+
+            </button>
+
+          </form>
+
+          {/* ================= LOGIN ================= */}
+
+          <div className="mt-7 pt-6 border-t border-black/10 dark:border-white/10 text-center">
+
+            <p className="text-sm text-gray dark:text-muted">
+
+              Already have an account?{' '}
+
+              <Link
+                to="/login"
+                className="text-gold font-medium hover:underline"
+              >
+                Sign In
+              </Link>
+
+            </p>
+
+          </div>
+
+        </div>
+
+        {/* ================= FOOTER ================= */}
+
+        <p className="text-center text-xs text-gray dark:text-muted mt-8">
+          Honey Chain · SIH26021
+        </p>
+
       </div>
+
     </div>
   );
 }
