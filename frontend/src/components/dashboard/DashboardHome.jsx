@@ -712,31 +712,29 @@ function getId(item) {
 
 
 function formatYield(value) {
-  if (value === null || value === undefined || value === '') {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
     return '—';
   }
 
-  if (typeof value === 'number') {
-    return `${value} kg`;
-  }
-
-  if (typeof value === 'string') {
-    return value.includes('kg') ? value : `${value} kg`;
-  }
-
-  if (typeof value === 'object') {
+  if (
+    typeof value ===
+    'object'
+  ) {
     const number =
-      value.estimatedYieldKg ??
-      value.estimatedYield ??
-      value.yieldEstimate ??
-      value.predictedYield ??
-      value.yield ??
-      value.value ??
-      value.amount ??
-      value.kg ??
-      value.quantity;
+      value?.value ??
+      value?.amount ??
+      value?.kg ??
+      value?.quantity;
 
-    if (number !== undefined && number !== null && number !== '') {
+    if (
+      number !==
+        undefined &&
+      number !== null
+    ) {
       return `${number} kg`;
     }
 
@@ -745,6 +743,7 @@ function formatYield(value) {
 
   return `${value} kg`;
 }
+
 
 function getFarmLocation(
   farm,

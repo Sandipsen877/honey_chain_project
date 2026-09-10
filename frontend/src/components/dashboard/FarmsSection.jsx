@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import {
+  Bell,
   ChevronRight,
   Hexagon,
   LoaderCircle,
@@ -20,6 +21,7 @@ import {
 } from './DashboardUI';
 
 import { HiveForm } from './HivesSection';
+import { AlertRow } from './AlertHistory';
 
 import { getId } from '../../services/dashboardApi';
 
@@ -31,6 +33,7 @@ import { getId } from '../../services/dashboardApi';
 function FarmsSection({
   farms,
   hives,
+  alerts,
   onCreate,
   onUpdate,
   onOpenFarm,
@@ -83,6 +86,12 @@ function FarmsSection({
                 hive?.farm === farmId,
             );
 
+            const farmAlerts = alerts.filter(
+              (alert) =>
+                getId(alert?.farm) === farmId ||
+                alert?.farm === farmId,
+            );
+
             return (
               <button
                 key={farmId}
@@ -129,6 +138,14 @@ function FarmsSection({
                       className="text-gold"
                     />
                     {farmHives.length} hives
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Bell
+                      size={14}
+                      className="text-gold"
+                    />
+                    {farmAlerts.length} active alerts
                   </div>
                 </div>
               </button>
@@ -350,9 +367,11 @@ function FarmDetail({
   farm,
   farms,
   hives,
+  alerts,
   onClose,
   onCreateHive,
   onUpdateFarm,
+  onResolveAlert,
   actionLoading,
 }) {
   const [showHiveForm, setShowHiveForm] =
@@ -369,6 +388,12 @@ function FarmDetail({
       hive?.farm === farmId,
   );
 
+  const farmAlerts = alerts.filter(
+    (alert) =>
+      getId(alert?.farm) === farmId ||
+      alert?.farm === farmId,
+  );
+
   return (
     <DetailOverlay
       title={
@@ -379,7 +404,7 @@ function FarmDetail({
       eyebrow="Farm Details"
       onClose={onClose}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-black/10 dark:bg-white/10 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10 dark:bg-white/10 mb-8">
         <DetailStat
           label="Farm Code"
           value={farm.farmCode || '—'}
@@ -388,6 +413,11 @@ function FarmDetail({
         <DetailStat
           label="Hives"
           value={farmHives.length}
+        />
+
+        <DetailStat
+          label="Active Alerts"
+          value={farmAlerts.length}
         />
       </div>
 
@@ -530,6 +560,38 @@ function FarmDetail({
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* FARM ALERTS */}
+
+      <div className="mt-6 border border-black/10 dark:border-white/10 p-6">
+        <div className="flex items-center gap-2">
+          <Bell
+            size={18}
+            className="text-gold"
+          />
+
+          <h3 className="font-semibold">
+            Farm Alerts
+          </h3>
+        </div>
+
+        <div className="mt-5">
+          {farmAlerts.length === 0 ? (
+            <p className="text-sm text-gray dark:text-muted">
+              No active alerts for this farm.
+            </p>
+          ) : (
+            farmAlerts.map((alert) => (
+              <AlertRow
+                key={getId(alert)}
+                alert={alert}
+                onResolve={onResolveAlert}
+                actionLoading={actionLoading}
+              />
+            ))
           )}
         </div>
       </div>
