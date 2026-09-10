@@ -1,28 +1,22 @@
+
 import { useMemo, useState } from 'react';
 
 import {
-  Bell,
-  ChevronRight,
   Hexagon,
   Plus,
   Search,
   ShieldAlert,
+  X,
 } from 'lucide-react';
 
 import {
   PageHeader,
-  DetailOverlay,
-  DetailStat,
-  InfoItem,
   EmptyState,
   FormField,
   RiskBadge,
 } from './DashboardUI';
 
-import { AlertRow } from './AlertHistory';
-
 import { getId } from '../../services/dashboardApi';
-
 
 /* ============================================================
    HIVES SECTION
@@ -31,24 +25,22 @@ import { getId } from '../../services/dashboardApi';
 function HivesSection({
   farms,
   hives,
-  alerts,
   risks,
   onCreate,
-  onOpenHive,
   actionLoading,
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [selectedHive, setSelectedHive] = useState(null);
 
   /* ==========================================================
      FILTER STATE
      ========================================================== */
 
-  // Search by Hive ID or Hive Code
   const [hiveSearch, setHiveSearch] = useState('');
-
-  // Filter by Farm ID
   const [selectedFarmId, setSelectedFarmId] = useState('');
 
+  const safeFarms = Array.isArray(farms) ? farms : [];
+  const safeHives = Array.isArray(hives) ? hives : [];
 
   /* ==========================================================
      FILTERED HIVES
@@ -57,8 +49,10 @@ function HivesSection({
   const filteredHives = useMemo(() => {
     const search = hiveSearch.trim().toLowerCase();
 
-    return hives.filter((hive) => {
-      const hiveId = String(getId(hive) || '').toLowerCase();
+    return safeHives.filter((hive) => {
+      const hiveId = String(
+        getId(hive) || '',
+      ).toLowerCase();
 
       const hiveCode = String(
         hive?.hiveCode || '',
@@ -73,38 +67,32 @@ function HivesSection({
        *
        * 2. { _id: "FARM_ID", name: "Farm Name" }
        */
+
       const hiveFarmId = String(
         getId(hive?.farm) ||
           hive?.farm ||
           '',
       );
 
-      /* --------------------------------------------------------
-         SEARCH FILTER
-         -------------------------------------------------------- */
-
       const matchesHiveSearch =
         !search ||
         hiveId.includes(search) ||
         hiveCode.includes(search);
 
-
-      /* --------------------------------------------------------
-         FARM FILTER
-         -------------------------------------------------------- */
-
       const matchesFarm =
         !selectedFarmId ||
         hiveFarmId === String(selectedFarmId);
-
 
       return (
         matchesHiveSearch &&
         matchesFarm
       );
     });
-  }, [hives, hiveSearch, selectedFarmId]);
-
+  }, [
+    safeHives,
+    hiveSearch,
+    selectedFarmId,
+  ]);
 
   /* ==========================================================
      CLEAR FILTERS
@@ -115,15 +103,31 @@ function HivesSection({
     setSelectedFarmId('');
   }
 
+  /* ==========================================================
+     CLOSE HIVE DETAILS
+     ========================================================== */
+
+  function closeHiveDetails() {
+    setSelectedHive(null);
+  }
+
+  /* ==========================================================
+     RETURN
+     ========================================================== */
 
   return (
     <div>
+      {/* ======================================================
+          PAGE HEADER
+          ====================================================== */}
+
       <PageHeader
         eyebrow="02 / Hives"
         title="Hives"
-        description="Monitor all registered hives across your farms."
+        description="View and manage all registered hives across your farms."
         action={
           <button
+            type="button"
             onClick={() =>
               setShowForm((value) => !value)
             }
@@ -135,14 +139,13 @@ function HivesSection({
         }
       />
 
-
-      {/* ========================================================
-         CREATE HIVE FORM
-         ======================================================== */}
+      {/* ======================================================
+          CREATE HIVE FORM
+          ====================================================== */}
 
       {showForm && (
         <HiveForm
-          farms={farms}
+          farms={safeFarms}
           onSubmit={async (data) => {
             await onCreate(data);
             setShowForm(false);
@@ -154,12 +157,11 @@ function HivesSection({
         />
       )}
 
+      {/* ======================================================
+          SEARCH & FILTER
+          ====================================================== */}
 
-      {/* ========================================================
-         HIVE FILTERS
-         ======================================================== */}
-
-      {hives.length > 0 && (
+      {safeHives.length > 0 && (
         <div className="mt-5 border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-5">
           <div className="flex items-center gap-2">
             <Search
@@ -172,12 +174,11 @@ function HivesSection({
             </h3>
           </div>
 
-
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* --------------------------------------------------
-               HIVE ID / CODE SEARCH
-               -------------------------------------------------- */}
+            {/* ==================================================
+                HIVE SEARCH
+                ================================================== */}
 
             <div>
               <label className="text-xs font-medium">
@@ -194,7 +195,9 @@ function HivesSection({
                   type="text"
                   value={hiveSearch}
                   onChange={(event) =>
-                    setHiveSearch(event.target.value)
+                    setHiveSearch(
+                      event.target.value,
+                    )
                   }
                   placeholder="Search hive ID or HV-TEST-001"
                   className="w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black pl-9 pr-3 py-3 text-sm outline-none focus:border-gold"
@@ -202,10 +205,9 @@ function HivesSection({
               </div>
             </div>
 
-
-            {/* --------------------------------------------------
-               FARM FILTER
-               -------------------------------------------------- */}
+            {/* ==================================================
+                FARM FILTER
+                ================================================== */}
 
             <div>
               <label className="text-xs font-medium">
@@ -215,7 +217,9 @@ function HivesSection({
               <select
                 value={selectedFarmId}
                 onChange={(event) =>
-                  setSelectedFarmId(event.target.value)
+                  setSelectedFarmId(
+                    event.target.value,
+                  )
                 }
                 className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm outline-none focus:border-gold"
               >
@@ -223,7 +227,7 @@ function HivesSection({
                   All Farms
                 </option>
 
-                {farms.map((farm) => {
+                {safeFarms.map((farm) => {
                   const farmId = getId(farm);
 
                   return (
@@ -241,13 +245,11 @@ function HivesSection({
             </div>
           </div>
 
-
-          {/* ----------------------------------------------------
-             FILTER STATUS
-             ---------------------------------------------------- */}
+          {/* ==================================================
+              FILTER STATUS
+              ================================================== */}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-
             <p className="text-xs text-gray dark:text-muted">
               Showing{' '}
               <span className="font-semibold text-black dark:text-cream">
@@ -255,13 +257,13 @@ function HivesSection({
               </span>{' '}
               of{' '}
               <span className="font-semibold text-black dark:text-cream">
-                {hives.length}
+                {safeHives.length}
               </span>{' '}
               hives
             </p>
 
-
-            {(hiveSearch || selectedFarmId) && (
+            {(hiveSearch ||
+              selectedFarmId) && (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -274,12 +276,11 @@ function HivesSection({
         </div>
       )}
 
+      {/* ======================================================
+          HIVE LIST
+          ====================================================== */}
 
-      {/* ========================================================
-         HIVE LIST
-         ======================================================== */}
-
-      {hives.length === 0 ? (
+      {safeHives.length === 0 ? (
         <EmptyState
           icon={Hexagon}
           title="No hives registered"
@@ -299,7 +300,8 @@ function HivesSection({
           </h3>
 
           <p className="mt-2 text-sm text-gray dark:text-muted">
-            No hive matches the selected Hive ID or Farm ID.
+            No hive matches the selected
+            Hive ID or Farm ID.
           </p>
 
           <button
@@ -316,141 +318,115 @@ function HivesSection({
           {filteredHives.map((hive) => {
             const hiveId = getId(hive);
 
-
-            /* --------------------------------------------------
-               HIVE ALERTS
-               -------------------------------------------------- */
-
-            const hiveAlerts = alerts.filter(
-              (alert) =>
-                getId(alert?.hive) === hiveId ||
-                alert?.hive === hiveId,
+            const hiveFarmId = String(
+              getId(hive?.farm) ||
+                hive?.farm ||
+                '',
             );
 
-
-            /* --------------------------------------------------
-               FIND FARM
-               -------------------------------------------------- */
-
-            const hiveFarmId = getId(hive?.farm);
-
-            const farm = farms.find(
+            const farm = safeFarms.find(
               (item) =>
-                getId(item) === hiveFarmId ||
-                getId(item) === hive?.farm,
+                String(getId(item)) ===
+                hiveFarmId,
             );
-
 
             return (
+              /* ==================================================
+                 HIVE CARD
+                 ================================================== */
+
               <button
+                type="button"
                 key={hiveId}
                 onClick={() =>
-                  onOpenHive(hive)
+                  setSelectedHive(hive)
                 }
-                className="text-left border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-6 hover:border-gold"
+                className="text-left w-full border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-6 hover:border-gold transition-colors focus:outline-none focus:border-gold"
               >
+                {/* ==================================================
+                    ICON
+                    ================================================== */}
 
-                {/* =================================================
-                   ICON
-                   ================================================= */}
-
-                <div className="flex items-start justify-between">
-
-                  <div className="w-11 h-11 border border-gold/40 flex items-center justify-center">
-                    <Hexagon
-                      size={20}
-                      className="text-gold"
-                    />
-                  </div>
-
-                  <ChevronRight
-                    size={18}
-                    className="text-gray dark:text-muted"
+                <div className="w-11 h-11 border border-gold/40 flex items-center justify-center">
+                  <Hexagon
+                    size={20}
+                    className="text-gold"
                   />
-
                 </div>
 
+                {/* ==================================================
+                    HIVE ID
+                    ================================================== */}
 
-                {/* =================================================
-                   HIVE NAME
-                   ================================================= */}
+                <div className="mt-5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+                    Hive ID
+                  </p>
 
-                <h3 className="mt-5 text-lg font-semibold">
-                  {hive.hiveCode ||
-                    'Unnamed Hive'}
-                </h3>
-
-
-                <p className="mt-1 text-xs text-gray dark:text-muted">
-                  {hive.hiveType ||
-                    'Type not specified'}
-                </p>
-
-
-                {/* =================================================
-                   HIVE ID
-                   ================================================= */}
-
-                <p className="mt-3 text-xs text-gray dark:text-muted">
-                  Hive ID:{' '}
-                  <span className="text-black dark:text-cream">
+                  <p className="mt-2 text-sm font-semibold break-all">
                     {hiveId || '—'}
-                  </span>
-                </p>
+                  </p>
+                </div>
 
+                {/* ==================================================
+                    FARM
+                    ================================================== */}
 
-                {/* =================================================
-                   FARM
-                   ================================================= */}
+                <div className="mt-5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+                    Farm
+                  </p>
 
-                <p className="mt-4 text-xs">
-                  Farm:{' '}
-                  <span className="text-gold">
+                  <p className="mt-2 text-sm font-semibold text-gold">
                     {farm?.name ||
                       farm?.farmCode ||
                       'Unknown'}
-                  </span>
-                </p>
-
-
-                {/* =================================================
-                   FARM ID
-                   ================================================= */}
-
-                <p className="mt-2 text-xs text-gray dark:text-muted">
-                  Farm ID:{' '}
-                  <span className="text-black dark:text-cream">
-                    {hiveFarmId || '—'}
-                  </span>
-                </p>
-
-
-                {/* =================================================
-                   RISK + ALERT
-                   ================================================= */}
-
-                <div className="mt-4 flex items-center justify-between">
-
-                  <RiskBadge
-                    risk={risks[hiveId]}
-                  />
-
-                  {hiveAlerts.length > 0 && (
-                    <span className="text-xs text-red-500">
-                      {hiveAlerts.length} alert
-                      {hiveAlerts.length > 1
-                        ? 's'
-                        : ''}
-                    </span>
-                  )}
-
+                  </p>
                 </div>
 
+                {/* ==================================================
+                    HIVE TYPE
+                    ================================================== */}
+
+                <div className="mt-5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+                    Hive Type
+                  </p>
+
+                  <p className="mt-2 text-sm font-semibold">
+                    {hive?.hiveType ||
+                      'Not specified'}
+                  </p>
+                </div>
+
+                {/* ==================================================
+                    VIEW DETAILS
+                    ================================================== */}
+
+                <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10">
+                  <p className="text-xs font-semibold text-gold">
+                    Click to view hive details →
+                  </p>
+                </div>
               </button>
             );
           })}
-
         </div>
+      )}
+
+      {/* ========================================================
+          HIVE DETAIL OVERLAY
+          ======================================================== */}
+
+      {selectedHive && (
+        <HiveDetail
+          hive={selectedHive}
+          farms={safeFarms}
+          risk={
+            risks?.[getId(selectedHive)]
+          }
+          onClose={closeHiveDetails}
+        />
       )}
     </div>
   );
@@ -468,12 +444,15 @@ function HiveForm({
   onCancel,
   actionLoading,
 }) {
+  const safeFarms = Array.isArray(farms)
+    ? farms
+    : [];
+
   const [form, setForm] = useState({
     hiveCode: `HV-${Date.now()}`,
     farm: farmId || '',
     hiveType: 'Langstroth',
   });
-
 
   function update(field, value) {
     setForm((current) => ({
@@ -481,7 +460,6 @@ function HiveForm({
       [field]: value,
     }));
   }
-
 
   async function submit(event) {
     event.preventDefault();
@@ -493,16 +471,14 @@ function HiveForm({
     });
   }
 
-
   return (
     <form
       onSubmit={submit}
       className="mt-5 p-4 border border-gold/30 bg-gold/5"
     >
-
       {/* ========================================================
-         HIVE CODE
-         ======================================================== */}
+          HIVE CODE
+          ======================================================== */}
 
       <FormField
         label="Hive Code"
@@ -511,14 +487,12 @@ function HiveForm({
         required
       />
 
-
       {/* ========================================================
-         FARM
-         ======================================================== */}
+          FARM
+          ======================================================== */}
 
       {!farmId && (
         <div className="mt-4">
-
           <label className="text-xs font-medium">
             Farm
           </label>
@@ -534,12 +508,11 @@ function HiveForm({
             required
             className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm"
           >
-
             <option value="">
               Select farm
             </option>
 
-            {farms.map((farm) => (
+            {safeFarms.map((farm) => (
               <option
                 key={getId(farm)}
                 value={getId(farm)}
@@ -548,19 +521,15 @@ function HiveForm({
                   farm.farmCode}
               </option>
             ))}
-
           </select>
-
         </div>
       )}
 
-
       {/* ========================================================
-         HIVE TYPE
-         ======================================================== */}
+          HIVE TYPE
+          ======================================================== */}
 
       <div className="mt-4">
-
         <label className="text-xs font-medium">
           Hive Type
         </label>
@@ -575,7 +544,6 @@ function HiveForm({
           }
           className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm"
         >
-
           <option value="Langstroth">
             Langstroth
           </option>
@@ -587,18 +555,14 @@ function HiveForm({
           <option value="Traditional">
             Traditional
           </option>
-
         </select>
-
       </div>
 
-
       {/* ========================================================
-         BUTTONS
-         ======================================================== */}
+          BUTTONS
+          ======================================================== */}
 
       <div className="mt-5 flex gap-2">
-
         <button
           type="submit"
           disabled={actionLoading}
@@ -614,9 +578,7 @@ function HiveForm({
         >
           Cancel
         </button>
-
       </div>
-
     </form>
   );
 }
@@ -629,108 +591,178 @@ function HiveForm({
 function HiveDetail({
   hive,
   farms,
-  alerts,
   risk,
   onClose,
-  onResolveAlert,
-  actionLoading,
 }) {
   const hiveId = getId(hive);
-
 
   /* ==========================================================
      FIND FARM
      ========================================================== */
 
+  const hiveFarmId = String(
+    getId(hive?.farm) ||
+      hive?.farm ||
+      '',
+  );
+
   const farm = farms.find(
     (item) =>
-      getId(item) ===
-        getId(hive?.farm) ||
-      getId(item) === hive?.farm,
+      String(getId(item)) ===
+      hiveFarmId,
   );
-
 
   /* ==========================================================
-     HIVE ALERTS
+     BASIC HIVE DETAILS
      ========================================================== */
 
-  const hiveAlerts = alerts.filter(
-    (alert) =>
-      getId(alert?.hive) === hiveId ||
-      alert?.hive === hiveId,
-  );
+  const basicDetails = [
+    {
+      label: 'Hive ID',
+      value: hiveId,
+    },
+    {
+      label: 'Hive Code',
+      value: hive?.hiveCode,
+    },
+    {
+      label: 'Hive Type',
+      value: hive?.hiveType,
+    },
+    {
+      label: 'Farm',
+      value:
+        farm?.name ||
+        farm?.farmCode ||
+        'Unknown',
+    },
+    {
+      label: 'Farm ID',
+      value: hiveFarmId,
+    },
+  ];
 
+  /* ==========================================================
+     OTHER BASIC FIELDS
+     ========================================================== */
+
+  const excludedFields = new Set([
+    '_id',
+    'id',
+    '__v',
+    'hiveCode',
+    'hiveType',
+    'farm',
+    'createdAt',
+    'updatedAt',
+  ]);
+
+  const additionalDetails = Object.entries(
+    hive || {},
+  ).filter(([key, value]) => {
+    if (excludedFields.has(key)) {
+      return false;
+    }
+
+    if (
+      value === null ||
+      value === undefined ||
+      value === ''
+    ) {
+      return false;
+    }
+
+    if (
+      typeof value === 'object'
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  /* ==========================================================
+     RISK DATA
+     ========================================================== */
+
+  const hasRiskObject =
+    risk !== null &&
+    risk !== undefined;
+
+  const riskEntries =
+    typeof risk === 'object' &&
+    risk !== null
+      ? Object.entries(risk).filter(
+          ([, value]) =>
+            value !== null &&
+            value !== undefined &&
+            value !== '',
+        )
+      : [];
 
   return (
-    <DetailOverlay
-      eyebrow="Hive Details"
-      title={hive.hiveCode || 'Hive'}
-      onClose={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
 
-      {/* ========================================================
-         SUMMARY
-         ======================================================== */}
+      {/* ======================================================
+          OVERLAY
+          ====================================================== */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10 dark:bg-white/10">
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+      />
 
-        <DetailStat
-          label="Hive Code"
-          value={hive.hiveCode}
-        />
+      {/* ======================================================
+          DETAIL PANEL
+          ====================================================== */}
 
-        <DetailStat
-          label="Hive Type"
-          value={hive.hiveType}
-        />
+      <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 shadow-2xl">
 
-        <DetailStat
-          label="Disease Risk"
-          value={
-            risk?.risk ||
-            risk?.level ||
-            risk ||
-            '—'
-          }
-        />
+        {/* ====================================================
+            HEADER
+            ==================================================== */}
 
-      </div>
+        <div className="sticky top-0 z-20 bg-cream-card dark:bg-black-card border-b border-black/10 dark:border-white/10 px-6 py-5 flex items-start justify-between gap-4">
 
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-gold font-semibold">
+              Hive Details
+            </p>
 
-      {/* ========================================================
-         INFORMATION + RISK
-         ======================================================== */}
+            <h2 className="mt-2 text-xl font-semibold">
+              {hive?.hiveCode ||
+                'Hive'}
+            </h2>
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <p className="mt-1 text-xs text-gray dark:text-muted break-all">
+              Hive ID: {hiveId || '—'}
+            </p>
+          </div>
 
-        {/* ------------------------------------------------------
-           HIVE INFORMATION
-           ------------------------------------------------------ */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 border border-black/10 dark:border-white/10 flex items-center justify-center hover:border-gold shrink-0"
+            aria-label="Close hive details"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-        <div className="border border-black/10 dark:border-white/10 p-6">
+        <div className="p-6">
 
-          <h3 className="font-semibold">
-            Hive Information
-          </h3>
+          {/* ==================================================
+              SUMMARY
+              ================================================== */}
 
-          <div className="mt-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10 dark:bg-white/10">
 
-            <InfoItem
+            <DetailStat
               label="Hive ID"
               value={hiveId}
             />
 
-            <InfoItem
-              label="Hive Code"
-              value={hive.hiveCode}
-            />
-
-            <InfoItem
-              label="Hive Type"
-              value={hive.hiveType}
-            />
-
-            <InfoItem
+            <DetailStat
               label="Farm"
               value={
                 farm?.name ||
@@ -739,88 +771,254 @@ function HiveDetail({
               }
             />
 
-            <InfoItem
-              label="Farm ID"
-              value={getId(hive?.farm)}
+            <DetailStat
+              label="Hive Type"
+              value={
+                hive?.hiveType ||
+                'Not specified'
+              }
             />
-
           </div>
 
-        </div>
+          {/* ==================================================
+              BASIC HIVE INFORMATION
+              ================================================== */}
 
-
-        {/* ------------------------------------------------------
-           DISEASE RISK
-           ------------------------------------------------------ */}
-
-        <div className="border border-black/10 dark:border-white/10 p-6">
-
-          <div className="flex items-center gap-2">
-
-            <ShieldAlert
-              size={18}
-              className="text-gold"
-            />
+          <div className="mt-6 border border-black/10 dark:border-white/10 p-6">
 
             <h3 className="font-semibold">
-              Disease Risk
+              Basic Hive Information
             </h3>
 
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              {basicDetails.map(
+                (item) => (
+                  <InfoItem
+                    key={item.label}
+                    label={item.label}
+                    value={
+                      item.value ||
+                      '—'
+                    }
+                  />
+                ),
+              )}
+            </div>
+
+            {/* ==================================================
+                ADDITIONAL API FIELDS
+                ================================================== */}
+
+            {additionalDetails.length >
+              0 && (
+              <div className="mt-6 pt-6 border-t border-black/10 dark:border-white/10">
+
+                <h4 className="text-sm font-semibold">
+                  Additional Details
+                </h4>
+
+                <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                  {additionalDetails.map(
+                    ([key, value]) => (
+                      <InfoItem
+                        key={key}
+                        label={formatLabel(
+                          key,
+                        )}
+                        value={String(
+                          value,
+                        )}
+                      />
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-5">
+          {/* ==================================================
+              DISEASE RISK
+              ================================================== */}
 
-            <RiskBadge
-              risk={risk}
-              large
-            />
+          <div className="mt-6 border border-black/10 dark:border-white/10 p-6">
 
+            <div className="flex items-center gap-3">
+
+              <div className="w-10 h-10 border border-gold/40 flex items-center justify-center">
+                <ShieldAlert
+                  size={18}
+                  className="text-gold"
+                />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">
+                  Disease Risk
+                </h3>
+
+                <p className="mt-1 text-xs text-gray dark:text-muted">
+                  Disease-risk analysis for this hive
+                </p>
+              </div>
+            </div>
+
+            {!hasRiskObject ? (
+              <div className="mt-5 border border-black/10 dark:border-white/10 p-5">
+                <p className="text-sm text-gray dark:text-muted">
+                  Disease risk data is not available for this hive.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* ==================================================
+                    RISK BADGE
+                    ================================================== */}
+
+                <div className="mt-6">
+                  <RiskBadge
+                    risk={risk}
+                    large
+                  />
+                </div>
+
+                {/* ==================================================
+                    RISK DATA FIELDS
+                    ================================================== */}
+
+                {riskEntries.length >
+                  0 && (
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    {riskEntries.map(
+                      ([key, value]) => (
+                        <InfoItem
+                          key={key}
+                          label={formatLabel(
+                            key,
+                          )}
+                          value={formatRiskValue(
+                            value,
+                          )}
+                        />
+                      ),
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
+          {/* ==================================================
+              CLOSE BUTTON
+              ================================================== */}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border border-black/10 dark:border-white/10 px-5 py-3 text-sm font-semibold hover:border-gold"
+            >
+              Close
+            </button>
+          </div>
         </div>
-
       </div>
-
-
-      {/* ========================================================
-         HIVE ALERTS
-         ======================================================== */}
-
-      <div className="mt-6 border border-black/10 dark:border-white/10 p-6">
-
-        <h3 className="font-semibold">
-          Hive Alerts
-        </h3>
-
-        <div className="mt-5">
-
-          {hiveAlerts.length === 0 ? (
-
-            <p className="text-sm text-gray dark:text-muted">
-              No active alerts for this hive.
-            </p>
-
-          ) : (
-
-            hiveAlerts.map((alert) => (
-              <AlertRow
-                key={getId(alert)}
-                alert={alert}
-                onResolve={onResolveAlert}
-                actionLoading={
-                  actionLoading
-                }
-              />
-            ))
-
-          )}
-
-        </div>
-
-      </div>
-
-    </DetailOverlay>
+    </div>
   );
+}
+
+
+/* ============================================================
+   DETAIL STAT
+   ============================================================ */
+
+function DetailStat({
+  label,
+  value,
+}) {
+  return (
+    <div className="bg-cream-card dark:bg-black-card p-5">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+        {label}
+      </p>
+
+      <p className="mt-2 text-sm font-semibold break-all">
+        {value || '—'}
+      </p>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   INFO ITEM
+   ============================================================ */
+
+function InfoItem({
+  label,
+  value,
+}) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+        {label}
+      </p>
+
+      <p className="mt-2 text-sm font-medium break-words">
+        {value || '—'}
+      </p>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FORMAT LABEL
+   ============================================================ */
+
+function formatLabel(key) {
+  return String(key)
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^./, (char) =>
+      char.toUpperCase(),
+    )
+    .trim();
+}
+
+
+/* ============================================================
+   FORMAT RISK VALUE
+   ============================================================ */
+
+function formatRiskValue(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return '—';
+  }
+
+  if (
+    typeof value === 'object'
+  ) {
+    return JSON.stringify(
+      value,
+      null,
+      2,
+    );
+  }
+
+  if (
+    typeof value === 'boolean'
+  ) {
+    return value ? 'Yes' : 'No';
+  }
+
+  return String(value);
 }
 
 
