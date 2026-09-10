@@ -97,12 +97,16 @@ export default function Dashboard() {
 
 
   /* ----------------------------------------------------------
-     ALERT HISTORY
+     ALERT HISTORY (6 parts)
      ---------------------------------------------------------- */
 
   const [historyData, setHistoryData] = useState({
-    current: [],
-    resolved: [],
+    openAll: [],
+    openHive: [],
+    openFarm: [],
+    resolvedAll: [],
+    resolvedHive: [],
+    resolvedFarm: [],
   });
 
 
@@ -144,13 +148,6 @@ export default function Dashboard() {
 
       let loadedFarms =
         meResponse?.farms || [];
-
-      /*
-       * Some backend versions may not return
-       * farms from /api/auth/me.
-       *
-       * In that case fetch them separately.
-       */
 
       if (
         !loadedFarms.length &&
@@ -247,89 +244,70 @@ export default function Dashboard() {
 
 
       /* --------------------------------------------------------
-         ACTIVE ALERTS
+         ALERTS — open + resolved (for history 6 parts)
          -------------------------------------------------------- */
 
-      const activeAlertResults =
-        await Promise.all(
-          loadedFarms.map(
-            async (farm) => {
-              const farmId =
-                getId(farm);
+      let allOpenAlerts = [];
+      let allResolvedAlerts = [];
 
-              if (!farmId) {
-                return [];
-              }
+      try {
+        const openRes = await apiRequest('/api/alerts?status=open');
+        allOpenAlerts = Array.isArray(openRes)
+          ? openRes
+          : openRes?.alerts || [];
+      } catch {
+        allOpenAlerts = [];
+      }
 
-              try {
-                const response =
-                  await apiRequest(
-                    `/api/alerts?farmId=${farmId}&status=open`
-                  );
+      try {
+        const resolvedRes = await apiRequest('/api/alerts?status=resolved');
+        allResolvedAlerts = Array.isArray(resolvedRes)
+          ? resolvedRes
+          : resolvedRes?.alerts || [];
+      } catch {
+        // Fallback: fetch all and filter
+        try {
+          const allRes = await apiRequest('/api/alerts');
+          const all = Array.isArray(allRes)
+            ? allRes
+            : allRes?.alerts || [];
 
-                return (
-                  response?.alerts ||
-                  response ||
-                  []
-                );
-              } catch {
-                return [];
-              }
-            }
-          )
-        );
+          allResolvedAlerts = all.filter(
+            (a) =>
+              String(a?.status || '').toLowerCase() === 'resolved' ||
+              a?.resolved === true
+          );
 
-      const activeAlerts =
-        activeAlertResults.flat();
+          if (!allOpenAlerts.length) {
+            allOpenAlerts = all.filter(
+              (a) =>
+                String(a?.status || '').toLowerCase() === 'open'
+            );
+          }
+        } catch {
+          allResolvedAlerts = [];
+        }
+      }
 
-      setAlerts(activeAlerts);
+      // Keep for dashboard home
+      setAlerts(allOpenAlerts);
+      setResolvedAlerts(allResolvedAlerts);
 
+      // Helpers for 6-part history
+      const isHiveAlert = (a) =>
+        !!(getId(a?.hive) || a?.hive || a?.hiveId);
 
-      /* --------------------------------------------------------
-         RESOLVED ALERTS
-         -------------------------------------------------------- */
+      const isFarmAlert = (a) =>
+        !!(getId(a?.farm) || a?.farm || a?.farmId);
 
-      const resolvedAlertResults =
-        await Promise.all(
-          loadedFarms.map(
-            async (farm) => {
-              const farmId =
-                getId(farm);
-
-              if (!farmId) {
-                return [];
-              }
-
-              try {
-                const response =
-                  await apiRequest(
-                    `/api/alerts?farmId=${farmId}`
-                  );
-
-                const farmAlerts =
-                  response?.alerts ||
-                  response ||
-                  [];
-
-                return farmAlerts.filter(
-                  (alert) =>
-                    String(
-                      alert?.status || ''
-                    ).toLowerCase() ===
-                      'resolved' ||
-                    alert?.resolved === true
-                );
-              } catch {
-                return [];
-              }
-            }
-          )
-        );
-
-      const resolved =
-        resolvedAlertResults.flat();
-
-      setResolvedAlerts(resolved);
+      setHistoryData({
+        openAll: allOpenAlerts,
+        openHive: allOpenAlerts.filter(isHiveAlert),
+        openFarm: allOpenAlerts.filter(isFarmAlert),
+        resolvedAll: allResolvedAlerts,
+        resolvedHive: allResolvedAlerts.filter(isHiveAlert),
+        resolvedFarm: allResolvedAlerts.filter(isFarmAlert),
+      });
 
 
       /* --------------------------------------------------------
@@ -415,32 +393,6 @@ export default function Dashboard() {
       );
 
       setRisks(riskMap);
-
-
-      /* --------------------------------------------------------
-         ALERT HISTORY
-         -------------------------------------------------------- */
-
-      const currentHistory =
-        activeAlerts.map(
-          (alert) => ({
-            ...alert,
-            historyType: 'active',
-          })
-        );
-
-      const resolvedHistory =
-        resolved.map(
-          (alert) => ({
-            ...alert,
-            historyType: 'resolved',
-          })
-        );
-
-      setHistoryData({
-        current: currentHistory,
-        resolved: resolvedHistory,
-      });
 
     } catch (err) {
       setError(
@@ -567,11 +519,6 @@ export default function Dashboard() {
       );
 
       await loadDashboard();
-
-      /*
-       * Return to the farm detail window
-       * when a hive was created from a farm.
-       */
 
       if (formData.farm) {
         const farm =

@@ -719,11 +719,6 @@ function PassportSection({
   );
 }
 
-
-/* ============================================================
-   DIGITAL PASSPORT DETAIL
-   ============================================================ */
-
 function PassportDetail({
   batch,
   onClose,
@@ -731,209 +726,122 @@ function PassportDetail({
   setActionLoading,
   setError,
 }) {
+  const [report, setReport] = useState(null);
+  const [qrData, setQrData] = useState(null);
 
-  const [report, setReport] =
-    useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [loadingQr, setLoadingQr] = useState(false);
 
-  const [qrData, setQrData] =
-    useState(null);
-
-
-  const [loadingReport, setLoadingReport] =
-    useState(false);
-
-
-  const [loadingQr, setLoadingQr] =
-    useState(false);
-
-
-  /*
-   * Success message after submitting
-   * the batch to the laboratory.
-   */
-  const [labSuccess, setLabSuccess] =
-    useState('');
-
+  const [labSuccess, setLabSuccess] = useState('');
+  const [labSubmitted, setLabSubmitted] = useState(false);
 
   const batchId = getId(batch);
 
+  // QR only after report is ready
+  const canGenerateQr = !!report;
 
   /* ==========================================================
      SUBMIT TO LAB
      ========================================================== */
 
   async function submitToLab() {
-
     setActionLoading(true);
-
     setError('');
-
     setLabSuccess('');
 
-
     try {
+      await apiRequest(`/api/lab/submit/${batchId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          delayMs: 5000,
+        }),
+      });
 
-      await apiRequest(
-        `/api/lab/submit/${batchId}`,
-        {
-          method: 'POST',
+      setLabSubmitted(true);
+      setLabSuccess('Successfully submitted to laboratory.');
 
-          body: JSON.stringify({
-            delayMs: 5000,
-          }),
-        },
-      );
-
-
-      /*
-       * Show success message after
-       * backend confirms submission.
-       */
-      setLabSuccess(
-        'Successfully submitted to laboratory.',
-      );
-
-
-      /*
-       * Automatically remove message
-       * after 5 seconds.
-       */
       setTimeout(() => {
         setLabSuccess('');
       }, 5000);
-
-
     } catch (err) {
-
-      setError(
-        getErrorMessage(err),
-      );
-
+      setError(getErrorMessage(err));
     } finally {
-
       setActionLoading(false);
-
     }
-
   }
-
 
   /* ==========================================================
      FETCH LAB REPORT
      ========================================================== */
 
   async function fetchReport() {
-
     setLoadingReport(true);
-
     setError('');
-
     setLabSuccess('');
 
-
     try {
-
-      const response =
-        await apiRequest(
-          `/api/lab/report/${batchId}`,
-        );
-
-
-      /*
-       * Backend may return:
-       *
-       * { report: {...} }
-       *
-       * or directly:
-       *
-       * {...}
-       */
-      setReport(
-        response?.report ||
-        response,
+      const response = await apiRequest(
+        `/api/lab/report/${batchId}`,
       );
 
-
+      setReport(response?.report || response);
     } catch (err) {
-
-      setError(
-        getErrorMessage(err),
-      );
-
+      setReport(null);
+      setError(getErrorMessage(err));
     } finally {
-
       setLoadingReport(false);
-
     }
-
   }
 
-
   /* ==========================================================
-     GENERATE QR
+     GENERATE QR — only if report is ready
      ========================================================== */
 
   async function generateQr() {
-
-    setLoadingQr(true);
-
-    setError('');
-
-
-    try {
-
-      const response =
-        await apiRequest(
-          `/api/qr/generate/${batchId}`,
-          {
-            method: 'POST',
-          },
-        );
-
-
-      setQrData(response);
-
-
-    } catch (err) {
-
+    if (!report) {
       setError(
-        getErrorMessage(err),
+        'Lab report is not ready yet. Submit the sample and fetch the report first.',
       );
-
-    } finally {
-
-      setLoadingQr(false);
-
+      return;
     }
 
-  }
+    setLoadingQr(true);
+    setError('');
 
+    try {
+      const response = await apiRequest(
+        `/api/qr/generate/${batchId}`,
+        {
+          method: 'POST',
+        },
+      );
+
+      setQrData(response);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoadingQr(false);
+    }
+  }
 
   /* ==========================================================
      DETAIL UI
      ========================================================== */
 
   return (
-
     <DetailOverlay
       eyebrow="Digital Passport"
       title={batch.batchCode || 'Batch'}
       onClose={onClose}
     >
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
 
         {/* ==================================================
            LABORATORY VERIFICATION
            ================================================== */}
 
         <div className="border border-black/10 dark:border-white/10 p-6">
-
-          <FlaskConical
-            size={25}
-            className="text-gold"
-          />
+          <FlaskConical size={25} className="text-gold" />
 
           <h3 className="mt-4 text-lg font-semibold">
             Laboratory Verification
@@ -941,288 +849,214 @@ function PassportDetail({
 
           <p className="mt-2 text-sm text-gray dark:text-muted">
             Submit this batch for laboratory testing and
-            retrieve its report.
+            retrieve its report before generating a QR.
           </p>
 
-
-          {/* ==================================================
-             BATCH SUMMARY
-             ================================================== */}
-
+          {/* Batch summary */}
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-
             <ReportField
               label="Batch"
-              value={
-                batch.batchCode ||
-                '—'
-              }
+              value={batch.batchCode || '—'}
               icon={Tag}
             />
-
             <ReportField
               label="Quantity"
               value={
-                batch.quantityKg !==
-                undefined
+                batch.quantityKg !== undefined
                   ? `${batch.quantityKg} kg`
                   : '—'
               }
               icon={Weight}
             />
-
             <ReportField
               label="Harvest Date"
-              value={formatDate(
-                batch.harvestDate,
-              )}
+              value={formatDate(batch.harvestDate)}
               icon={CalendarDays}
             />
-
             <ReportField
               label="Floral Source"
-              value={
-                batch.floralSourceClaimed ||
-                'Unknown'
-              }
+              value={batch.floralSourceClaimed || 'Unknown'}
               icon={Droplets}
             />
-
           </div>
 
-
-          {/* ==================================================
-             ACTION BUTTONS
-             ================================================== */}
-
+          {/* Actions */}
           <div className="mt-6 flex flex-wrap gap-2">
-
             <button
               onClick={submitToLab}
               disabled={actionLoading}
               className="bg-black text-cream dark:bg-cream dark:text-black px-4 py-3 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
             >
-
-              {actionLoading
-                ? 'Submitting...'
-                : 'Submit to Lab'}
-
+              {actionLoading ? 'Submitting...' : 'Submit to Lab'}
             </button>
-
 
             <button
               onClick={fetchReport}
               disabled={loadingReport}
               className="border border-black/10 dark:border-white/10 px-4 py-3 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
-
-              {loadingReport
-                ? 'Fetching...'
-                : 'Fetch Report'}
-
+              {loadingReport ? 'Fetching...' : 'Fetch Report'}
             </button>
-
           </div>
 
-
-          {/* ==================================================
-             SUBMISSION SUCCESS
-             ================================================== */}
+          {/* Step status */}
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px]">
+            <span
+              className={`px-2 py-1 border ${
+                labSubmitted
+                  ? 'border-green-600/40 text-green-600'
+                  : 'border-black/15 dark:border-white/15 text-muted'
+              }`}
+            >
+              {labSubmitted ? '✓ Submitted' : '1. Submit sample'}
+            </span>
+            <span
+              className={`px-2 py-1 border ${
+                report
+                  ? 'border-green-600/40 text-green-600'
+                  : 'border-black/15 dark:border-white/15 text-muted'
+              }`}
+            >
+              {report ? '✓ Report ready' : '2. Report ready'}
+            </span>
+            <span
+              className={`px-2 py-1 border ${
+                qrData
+                  ? 'border-green-600/40 text-green-600'
+                  : 'border-black/15 dark:border-white/15 text-muted'
+              }`}
+            >
+              {qrData ? '✓ QR generated' : '3. Generate QR'}
+            </span>
+          </div>
 
           {labSuccess && (
-
             <div className="mt-4 flex items-start gap-3 border border-green-600/30 bg-green-600/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-
-              <CheckCircle2
-                size={18}
-                className="shrink-0 mt-0.5"
-              />
-
+              <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
               <div>
-
                 <p className="font-semibold">
                   Laboratory submission successful
                 </p>
-
-                <p className="mt-0.5 text-xs">
-                  {labSuccess}
-                </p>
-
+                <p className="mt-0.5 text-xs">{labSuccess}</p>
               </div>
-
             </div>
-
           )}
 
-
-          {/* ==================================================
-             LAB REPORT
-             ================================================== */}
-
-          {report && (
-
-            <LaboratoryReport
-              report={report}
-            />
-
-          )}
-
+          {report && <LaboratoryReport report={report} />}
         </div>
-
 
         {/* ==================================================
            DIGITAL QR PASSPORT
            ================================================== */}
 
         <div className="border border-black/10 dark:border-white/10 p-6">
-
-          <QrCode
-            size={25}
-            className="text-gold"
-          />
+          <QrCode size={25} className="text-gold" />
 
           <h3 className="mt-4 text-lg font-semibold">
             Digital QR Passport
           </h3>
 
           <p className="mt-2 text-sm text-gray dark:text-muted">
-            Generate the public QR passport for this
-            honey batch.
+            QR can be generated only after the lab report is ready.
           </p>
 
+          {/* Locked state */}
+          {!canGenerateQr && (
+            <div className="mt-6 border border-dashed border-orange-500/30 bg-orange-500/5 p-5">
+              <div className="flex items-start gap-3">
+                <ShieldCheck
+                  size={20}
+                  className="text-orange-500 shrink-0"
+                />
+                <div>
+                  <p className="text-sm font-semibold">
+                    QR locked
+                  </p>
+                  <p className="mt-1 text-xs text-gray dark:text-muted">
+                    Submit the batch sample to the lab, then fetch
+                    the report. Once the report is available, you
+                    can generate the QR passport.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* ==================================================
-             QR ACTION
-             ================================================== */}
-
+          {/* QR action */}
           <div className="mt-6">
-
             <button
               onClick={generateQr}
-              disabled={loadingQr}
-              className="bg-gold text-black px-4 py-3 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canGenerateQr || loadingQr}
+              className="bg-gold text-black px-4 py-3 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             >
-
               {loadingQr
                 ? 'Generating...'
-                : 'Generate QR'}
-
+                : canGenerateQr
+                  ? 'Generate QR'
+                  : 'Waiting for lab report'}
             </button>
-
           </div>
 
-
-          {/* ==================================================
-             QR RESULT
-             ================================================== */}
-
+          {/* QR result */}
           {qrData && (
-
             <div className="mt-6 border border-black/10 dark:border-white/10 p-5">
-
               <div className="flex items-center gap-2">
-
-                <CheckCircle2
-                  size={17}
-                  className="text-green-600"
-                />
-
+                <CheckCircle2 size={17} className="text-green-600" />
                 <p className="text-sm font-semibold">
                   QR Passport Generated
                 </p>
-
               </div>
 
-
               {qrData.qrImageDataUrl && (
-
                 <div className="mt-5">
-
                   <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted mb-3">
                     Scan this QR code
                   </p>
-
                   <div className="inline-flex border border-black/10 dark:border-white/10 p-3 bg-white">
-
                     <img
-                      src={
-                        qrData.qrImageDataUrl
-                      }
+                      src={qrData.qrImageDataUrl}
                       alt="Honey batch QR code"
                       className="w-48 h-48"
                     />
-
                   </div>
-
                 </div>
-
               )}
 
-
               {qrData.publicUrl && (
-
                 <a
                   href={qrData.publicUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-5 inline-flex items-center gap-2 text-xs text-gold underline"
                 >
-
                   Open Public Passport
-
-                  <ExternalLink
-                    size={13}
-                  />
-
+                  <ExternalLink size={13} />
                 </a>
-
               )}
-
             </div>
-
           )}
 
-
-          {/* ==================================================
-             QR EMPTY STATE
-             ================================================== */}
-
-          {!qrData && (
-
+          {/* Empty when report ready but QR not generated */}
+          {canGenerateQr && !qrData && (
             <div className="mt-6 border border-dashed border-black/10 dark:border-white/10 p-5">
-
               <div className="flex items-start gap-3">
-
-                <QrCode
-                  size={20}
-                  className="text-gold shrink-0"
-                />
-
+                <QrCode size={20} className="text-gold shrink-0" />
                 <div>
-
                   <p className="text-sm font-semibold">
-                    No QR passport generated yet
+                    Report ready — generate QR
                   </p>
-
                   <p className="mt-1 text-xs text-gray dark:text-muted">
-                    Generate a QR code to create the
+                    Lab report is available. You can now create the
                     public digital passport for this batch.
                   </p>
-
                 </div>
-
               </div>
-
             </div>
-
           )}
-
         </div>
 
       </div>
-
     </DetailOverlay>
-
   );
 }
 
