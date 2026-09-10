@@ -1,0 +1,111 @@
+{
+  "target": "Honey Weight (kg)",
+  "horizon_days": 7,
+  "training_sources": [
+    "Honey_Production_Dataset_2023.csv",
+    "Honey_Production_Dataset_2024_Ideal.csv"
+  ],
+  "out_of_domain_source": "Honey_Production_Dataset_2024_NonIdeal.csv",
+  "train_rows": 567,
+  "test_rows": 142,
+  "ood_rows": 344,
+  "features": [
+    "honey_lag1",
+    "honey_lag3",
+    "honey_lag7",
+    "honey_lag14",
+    "honey_roll_mean_7",
+    "honey_roll_std_7",
+    "honey_roll_mean_14",
+    "honey_diff_1",
+    "days_since_last_extraction",
+    "doy_sin",
+    "doy_cos",
+    "month",
+    "env_temp",
+    "env_temp_roll7",
+    "env_humidity",
+    "env_humidity_roll7",
+    "hive_temp",
+    "hive_temp_roll7",
+    "hive_humidity",
+    "hive_humidity_roll7",
+    "wind_speed",
+    "wind_speed_roll7"
+  ],
+  "models": {
+    "persistence_baseline": {
+      "MAE_kg": 4.112323943661972,
+      "RMSE_kg": 13.480466906905303,
+      "R2": 0.42515929456683865,
+      "MAPE_percent": 63.91785991042812
+    },
+    "linear_regression": {
+      "MAE_kg": 6.918114789291087,
+      "RMSE_kg": 12.690005163496929,
+      "R2": 0.49059730053256645,
+      "MAPE_percent": 78.21825347541088
+    },
+    "random_forest": {
+      "MAE_kg": 2.5450336619718286,
+      "RMSE_kg": 6.720710613550915,
+      "R2": 0.8571211205340636,
+      "MAPE_percent": 33.42964509020314
+    },
+    "xgboost": {
+      "MAE_kg": 3.077482439900788,
+      "RMSE_kg": 9.767204494656355,
+      "R2": 0.6982285110980013,
+      "MAPE_percent": 47.99646114626944
+    }
+  },
+  "out_of_domain": {
+    "linear_regression": {
+      "MAE_kg": 29.734352995206716,
+      "RMSE_kg": 30.320758051902104,
+      "R2": -9.165200031227664,
+      "MAPE_percent": 296.4261587348561
+    },
+    "random_forest": {
+      "MAE_kg": 3.285843662790692,
+      "RMSE_kg": 5.5807123418413305,
+      "R2": 0.6556381010876391,
+      "MAPE_percent": 34.64771479609032
+    },
+    "xgboost": {
+      "MAE_kg": 3.3180730893445567,
+      "RMSE_kg": 6.129049872438044,
+      "R2": 0.5846424302370079,
+      "MAPE_percent": 37.986499087955984
+    }
+  },
+  "best_model": "random_forest",
+  "feature_importance": {
+    "honey_lag1": 0.7203166241409257,
+    "doy_cos": 0.10459772982708698,
+    "honey_lag14": 0.04787938954069984,
+    "doy_sin": 0.03293023788453318,
+    "honey_lag3": 0.029236756973681548,
+    "honey_roll_mean_7": 0.020813343093391244,
+    "honey_lag7": 0.01715861039189286,
+    "honey_roll_mean_14": 0.014052586692530844,
+    "days_since_last_extraction": 0.006260389540114944,
+    "hive_humidity_roll7": 0.001541814303929306,
+    "env_humidity_roll7": 0.001272180868852565,
+    "honey_roll_std_7": 0.0006704928886434677,
+    "month": 0.000647233645763807,
+    "wind_speed": 0.0006191174507031565,
+    "env_temp_roll7": 0.0005694956904127687,
+    "honey_diff_1": 0.00032329870295714087,
+    "hive_temp": 0.0002553521286764202,
+    "hive_temp_roll7": 0.0002098181678854199,
+    "wind_speed_roll7": 0.00019259685881436013,
+    "env_humidity": 0.00018442614967373758,
+    "hive_humidity": 0.00015637464016184005,
+    "env_temp": 0.00011213041866878258
+  },
+  "excluded_columns": [
+    "Total Weight (Hive + Bees + Honey) (kg)",
+    "Extract Honey (future value)"
+  ]
+}
