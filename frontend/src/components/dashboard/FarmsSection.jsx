@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   ChevronRight,
@@ -7,6 +7,7 @@ import {
   MapPin,
   Plus,
   Tractor,
+  TrendingUp,
   X,
 } from 'lucide-react';
 
@@ -21,7 +22,49 @@ import {
 
 import { HiveForm } from './HivesSection';
 
-import { getId } from '../../services/dashboardApi';
+import {
+  apiRequest,
+  getId,
+  getErrorMessage,
+} from '../../services/dashboardApi';
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function formatYieldValue(yieldData) {
+  if (yieldData == null) return '—';
+
+  if (typeof yieldData === 'number') {
+    return `${Number(yieldData).toFixed(1)} kg`;
+  }
+
+  if (typeof yieldData === 'string') {
+    return yieldData.includes('kg')
+      ? yieldData
+      : `${yieldData} kg`;
+  }
+
+  if (typeof yieldData === 'object') {
+    const value =
+      yieldData.estimatedYieldKg ??
+      yieldData.estimatedYield ??
+      yieldData.yieldEstimate ??
+      yieldData.predictedYield ??
+      yieldData.yield ??
+      yieldData.value ??
+      yieldData.amount ??
+      yieldData.kg ??
+      yieldData.quantity;
+
+    if (value !== undefined && value !== null && value !== '') {
+      return `${Number(value).toFixed(1)} kg`;
+    }
+  }
+
+  return '—';
+}
 
 
 /* ============================================================
@@ -29,8 +72,9 @@ import { getId } from '../../services/dashboardApi';
    ============================================================ */
 
 function FarmsSection({
-  farms,
-  hives,
+  farms = [],
+  hives = [],
+  yields = {},
   onCreate,
   onUpdate,
   onOpenFarm,
@@ -83,6 +127,8 @@ function FarmsSection({
                 hive?.farm === farmId,
             );
 
+            const yieldText = formatYieldValue(yields[farmId]);
+
             return (
               <button
                 key={farmId}
@@ -129,6 +175,14 @@ function FarmsSection({
                       className="text-gold"
                     />
                     {farmHives.length} hives
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <TrendingUp
+                      size={14}
+                      className="text-gold"
+                    />
+                    Yield: {yieldText}
                   </div>
                 </div>
               </button>
@@ -348,8 +402,7 @@ function FarmForm({
 
 function FarmDetail({
   farm,
-  farms,
-  hives,
+  hives = [],
   onClose,
   onCreateHive,
   onUpdateFarm,
@@ -361,6 +414,10 @@ function FarmDetail({
   const [editing, setEditing] =
     useState(false);
 
+  const [yieldData, setYieldData] = useState(null);
+  const [yieldLoading, setYieldLoading] = useState(false);
+  const [yieldError, setYieldError] = useState('');
+
   const farmId = getId(farm);
 
   const farmHives = hives.filter(
@@ -368,6 +425,49 @@ function FarmDetail({
       getId(hive?.farm) === farmId ||
       hive?.farm === farmId,
   );
+
+  useEffect(() => {
+    if (!farmId) return;
+
+    let cancelled = false;
+
+    async function loadYield() {
+      setYieldLoading(true);
+      setYieldError('');
+
+      try {
+        const response = await apiRequest(
+          '/api/yield/estimate',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              farmId,
+              season: 'monsoon',
+            }),
+          },
+        );
+
+        if (!cancelled) {
+          setYieldData(response);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setYieldData(null);
+          setYieldError(getErrorMessage(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setYieldLoading(false);
+        }
+      }
+    }
+
+    loadYield();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [farmId]);
 
   return (
     <DetailOverlay
@@ -379,7 +479,7 @@ function FarmDetail({
       eyebrow="Farm Details"
       onClose={onClose}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-black/10 dark:bg-white/10 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10 dark:bg-white/10 mb-8">
         <DetailStat
           label="Farm Code"
           value={farm.farmCode || '—'}
@@ -389,6 +489,59 @@ function FarmDetail({
           label="Hives"
           value={farmHives.length}
         />
+
+        <DetailStat
+          label="Yield Estimate"
+          value={
+            yieldLoading
+              ? 'Loading...'
+              : formatYieldValue(yieldData)
+          }
+        />
+      </div>
+
+      {/* Yield block */}
+      <div className="mb-6 border border-gold/30 bg-gold/5 p-5">
+        <div className="flex items-start gap-3">
+          <TrendingUp
+            size={20}
+            className="text-gold shrink-0 mt-0.5"
+          />
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-gold">
+              Yield estimate · this farm
+            </p>
+            <p className="mt-1 text-lg font-semibold">
+              {yieldLoading
+                ? 'Fetching estimate...'
+                : formatYieldValue(yieldData)}
+            </p>
+
+            {yieldError ? (
+              <p className="mt-1 text-xs text-red-500">
+                {yieldError}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray dark:text-muted">
+                From POST /api/yield/estimate · season: monsoon
+              </p>
+            )}
+
+            {yieldData && typeof yieldData === 'object' && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray dark:text-muted">
+                {yieldData.confidence != null && (
+                  <span>Confidence: {yieldData.confidence}</span>
+                )}
+                {yieldData.season && (
+                  <span>Season: {yieldData.season}</span>
+                )}
+                {yieldData.source && (
+                  <span>Source: {yieldData.source}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
