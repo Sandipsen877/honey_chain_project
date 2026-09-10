@@ -1,0 +1,10 @@
+{
+    "model_version": "1.0.0",
+    "algorithm": "IsolationForest",
+    "trained_at": "2026-09-10T19:07:17.185151",
+    "contamination": 0.05,
+    "hives": [
+        "HIVE_01",
+        "HIVE_02"
+    ]
+}

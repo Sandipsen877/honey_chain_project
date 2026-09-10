@@ -1,0 +1,30 @@
+{
+    "features": [
+        "HiveTemp",
+        "HiveHumidity",
+        "TempOut (\u00b0C)",
+        "HumOut (%)",
+        "Pressure (hPa)",
+        "CO2_eq (ppm)",
+        "TVOC (ppb)",
+        "Light (-)",
+        "BeeActivity",
+        "BeeFlowDifference",
+        "TempDelta",
+        "HumidityDelta",
+        "PressureDelta",
+        "CO2Delta",
+        "BeeActivityDelta",
+        "TempRollingMean",
+        "TempRollingStd",
+        "HumidityRollingMean",
+        "HumidityRollingStd",
+        "CO2RollingMean",
+        "BeeActivityRollingMean",
+        "TempInsideOutsideDiff",
+        "HumidityInsideOutsideDiff",
+        "Hour",
+        "DayOfWeek",
+        "IsDay"
+    ]
+}
