@@ -169,7 +169,7 @@ function FarmForm({
   initialData = {},
 }) {
   const [form, setForm] = useState({
-    farmCode: initialData.farmCode || '',
+    farmCode: initialData.farmCode || `FRM-${Date.now()}`,
     name: initialData.name || '',
     area: initialData.location?.area || '',
     state: initialData.location?.state || '',
