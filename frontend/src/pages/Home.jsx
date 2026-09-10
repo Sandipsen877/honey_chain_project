@@ -72,7 +72,7 @@ export default function Home() {
               <h1 className="text-[clamp(3.5rem,7vw,5.2rem)] leading-[0.88] tracking-[-0.055em] font-semibold text-black dark:text-cream">
                 From hive
                 <br />
-                <span className="text-gold">to jar.</span>
+                <span className="text-gold">to Home.</span>
               </h1>
 
               <p className="mt-8 max-w-lg text-base md:text-lg leading-relaxed text-gray dark:text-muted">
