@@ -699,7 +699,17 @@ function PassportDetail({
 
   const batchId = getId(batch);
 
-  const canGenerateQr = !!report;
+  const reportData = report?.report || report;
+
+const overallResult = String(
+  reportData?.overallResult ??
+    reportData?.overall_result ??
+    ''
+)
+  .trim()
+  .toUpperCase();
+
+const canGenerateQr = overallResult === 'PASS';
 
 
   /* ==========================================================
@@ -782,6 +792,12 @@ function PassportDetail({
       );
       return;
     }
+    if (overallResult !== 'PASS') {
+  setError(
+    'QR passport can only be generated when the laboratory result is PASS.',
+  );
+  return;
+}
 
     setLoadingQr(true);
     setError('');
