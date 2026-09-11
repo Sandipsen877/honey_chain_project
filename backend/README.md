@@ -143,6 +143,7 @@ interchangeably.
 - `PATCH /api/alerts/:id/resolve`
 
 **Yield & disease risk (ML-backed, with heuristic fallback)**
+- `POST /api/yield/predict` — forwards at least 15 chronological honey-yield observations to the dedicated 7-day yield ML model
 - `POST /api/yield/estimate` — body: `{ farmId, season }`
 - `GET /api/yield/disease-risk/:hiveId`
 

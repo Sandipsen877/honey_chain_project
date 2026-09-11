@@ -2,6 +2,7 @@ import axios from "axios";
 import FormData from "form-data";
 
 const getMlServiceUrl = () => process.env.ML_SERVICE_URL?.replace(/\/$/, "");
+const getYieldMlServiceUrl = () => process.env.YIELD_ML_SERVICE_URL?.replace(/\/$/, "");
 
 /**
  * Wraps calls to an external ML microservice (intended to be FastAPI).
@@ -10,10 +11,6 @@ const getMlServiceUrl = () => process.env.ML_SERVICE_URL?.replace(/\/$/, "");
  * rest of the app (and demos) keep working without a live ML service.
  *
  * Expected FastAPI contract (implement these when ready):
- *   POST {ML_SERVICE_URL}/predict/disease-risk
- *     body: { readings: [{temperatureC, humidityPct, weightKg, recordedAt}, ...] }
- *     resp: { riskLevel: "low"|"medium"|"high", confidence: 0-1, notes: string }
- *
  *   POST {ML_SERVICE_URL}/predict/yield
  *     body: { hiveCount, environmentType, region, season, avgWeightTrendKgPerWeek }
  *     resp: { estimatedYieldKg: number, confidence: 0-1 }
@@ -26,19 +23,8 @@ const getMlServiceUrl = () => process.env.ML_SERVICE_URL?.replace(/\/$/, "");
  */
 
 async function predictDiseaseRisk(readings) {
-  const mlServiceUrl = getMlServiceUrl();
-  if (mlServiceUrl) {
-    try {
-      const { data } = await axios.post(
-        `${mlServiceUrl}/predict/disease-risk`,
-        { readings },
-        { timeout: 4000 }
-      );
-      return { ...data, source: "ml_service" };
-    } catch (err) {
-      console.warn("[mlService] disease-risk call failed, falling back:", err.message);
-    }
-  }
+  // The ML service has no sensor-based disease-risk endpoint. Varroa
+  // detection is handled separately by predictVarroa(), using an image.
   return heuristicDiseaseRisk(readings);
 }
 
@@ -55,6 +41,35 @@ async function predictYield(params) {
     }
   }
   return heuristicYield(params);
+}
+
+/**
+ * Calls the dedicated 7-day honey-yield forecasting API. Its history contract
+ * intentionally differs from the existing estimate proxy: it requires real,
+ * chronological honey-yield observations rather than total hive weight.
+ */
+async function predictHoneyYield(history) {
+  const yieldMlServiceUrl = getYieldMlServiceUrl();
+  if (!yieldMlServiceUrl) {
+    const error = new Error("YIELD_ML_SERVICE_URL is not configured");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  try {
+    const { data } = await axios.post(
+      `${yieldMlServiceUrl}/predict`,
+      { history },
+      { timeout: 15000 }
+    );
+    return { ...data, source: "yield_ml_service" };
+  } catch (err) {
+    const detail = err.response?.data?.detail;
+    console.warn("[mlService] yield prediction call failed:", detail || err.message);
+    const error = new Error(detail || "Yield ML service is unavailable");
+    error.statusCode = err.response?.status || 502;
+    throw error;
+  }
 }
 
 /**
@@ -149,4 +164,4 @@ function heuristicYield({ hiveCount = 0, environmentType = "mixed", avgWeightTre
   return { estimatedYieldKg: Math.round(estimatedYieldKg * 10) / 10, confidence: 0.4, source: "heuristic" };
 }
 
-export { predictDiseaseRisk, predictYield, predictAlert, predictVarroa };
+export { predictDiseaseRisk, predictYield, predictHoneyYield, predictAlert, predictVarroa };
