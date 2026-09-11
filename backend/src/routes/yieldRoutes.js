@@ -3,7 +3,23 @@ const router = express.Router();
 import Farm from "../models/Farm.js";
 import Hive from "../models/Hive.js";
 import SensorReading from "../models/SensorReading.js";
-import { predictYield, predictDiseaseRisk } from "../services/mlService.js";
+import { predictYield, predictHoneyYield, predictDiseaseRisk } from "../services/mlService.js";
+
+// POST /api/yield/predict  body: { history: [at least 15 yield observations] }
+// The history is passed directly to the dedicated yield ML API.
+router.post("/predict", async (req, res) => {
+  const { history } = req.body;
+  if (!Array.isArray(history) || history.length < 15) {
+    return res.status(400).json({ error: "history must contain at least 15 chronological observations" });
+  }
+
+  try {
+    const result = await predictHoneyYield(history);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
 
 // POST /api/yield/estimate  body: { farmId, season }
 router.post("/estimate", async (req, res) => {
