@@ -1,6 +1,7 @@
 import axios from "axios";
+import FormData from "form-data";
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
+const getMlServiceUrl = () => process.env.ML_SERVICE_URL?.replace(/\/$/, "");
 
 /**
  * Wraps calls to an external ML microservice (intended to be FastAPI).
@@ -17,7 +18,7 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
  *     body: { hiveCount, environmentType, region, season, avgWeightTrendKgPerWeek }
  *     resp: { estimatedYieldKg: number, confidence: 0-1 }
  *
- *   POST {ML_SERVICE_URL}/predict
+ *   POST {ML_SERVICE_URL}/predict/health
  *     body: { hive_id, temperature, humidity, outside_temperature,
  *             outside_humidity, pressure, co2, tvoc, light, bee_in, bee_out }
  *     resp: { hive_id, health_score, health_status, bee_activity,
@@ -25,10 +26,11 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
  */
 
 async function predictDiseaseRisk(readings) {
-  if (ML_SERVICE_URL) {
+  const mlServiceUrl = getMlServiceUrl();
+  if (mlServiceUrl) {
     try {
       const { data } = await axios.post(
-        `${ML_SERVICE_URL}/predict/disease-risk`,
+        `${mlServiceUrl}/predict/disease-risk`,
         { readings },
         { timeout: 4000 }
       );
@@ -41,9 +43,10 @@ async function predictDiseaseRisk(readings) {
 }
 
 async function predictYield(params) {
-  if (ML_SERVICE_URL) {
+  const mlServiceUrl = getMlServiceUrl();
+  if (mlServiceUrl) {
     try {
-      const { data } = await axios.post(`${ML_SERVICE_URL}/predict/yield`, params, {
+      const { data } = await axios.post(`${mlServiceUrl}/predict/yield`, params, {
         timeout: 4000,
       });
       return { ...data, source: "ml_service" };
@@ -59,15 +62,16 @@ async function predictYield(params) {
  * no local fallback: callers must know when a live inspection prediction was
  * unavailable instead of receiving an invented result.
  */
-async function predictAlert() {
-  if (!ML_SERVICE_URL) {
+async function predictAlert(payload) {
+  const mlServiceUrl = getMlServiceUrl();
+  if (!mlServiceUrl) {
     const error = new Error("ML_SERVICE_URL is not configured");
     error.statusCode = 503;
     throw error;
   }
 
   try {
-    const { data } = await axios.post(`${ML_SERVICE_URL}/predict`, {
+    const { data } = await axios.post(`${mlServiceUrl}/predict/health`, payload, {
       timeout: 4000,
     });
     return { ...data, source: "ml_service" };
@@ -75,6 +79,40 @@ async function predictAlert() {
     console.warn("[mlService] alert prediction call failed:", err.message);
     const error = new Error("Alert ML service is unavailable");
     error.statusCode = 502;
+    throw error;
+  }
+}
+
+/**
+ * Sends one webcam/image frame to the Varroa YOLO model. The backend owns the
+ * ML-service URL, so browsers never need direct access to the Python service.
+ */
+async function predictVarroa(file) {
+  const mlServiceUrl = getMlServiceUrl();
+  if (!mlServiceUrl) {
+    const error = new Error("ML_SERVICE_URL is not configured");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const form = new FormData();
+  form.append("file", file.buffer, {
+    filename: file.originalname || "webcam-frame.jpg",
+    contentType: file.mimetype || "image/jpeg",
+  });
+
+  try {
+    const { data } = await axios.post(`${mlServiceUrl}/predict/varroa`, form, {
+      headers: form.getHeaders(),
+      timeout: 15000,
+      maxBodyLength: 10 * 1024 * 1024,
+    });
+    return { ...data, source: "ml_service" };
+  } catch (err) {
+    const detail = err.response?.data?.detail;
+    console.warn("[mlService] Varroa prediction call failed:", detail || err.message);
+    const error = new Error(detail || "Varroa ML service is unavailable");
+    error.statusCode = err.response?.status || 502;
     throw error;
   }
 }
@@ -111,4 +149,4 @@ function heuristicYield({ hiveCount = 0, environmentType = "mixed", avgWeightTre
   return { estimatedYieldKg: Math.round(estimatedYieldKg * 10) / 10, confidence: 0.4, source: "heuristic" };
 }
 
-export { predictDiseaseRisk, predictYield, predictAlert };
+export { predictDiseaseRisk, predictYield, predictAlert, predictVarroa };

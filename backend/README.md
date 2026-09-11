@@ -20,7 +20,7 @@ later without touching the rest of the app.
 |---|---|---|
 | IoT hive sensors | `src/services/sensorSimulator.js` — cron job generating synthetic readings (with occasional injected anomalies) | Replace with an MQTT/device-gateway listener that writes to the same `SensorReading` model |
 | Lab testing (e.g. KVIC) | `src/services/mockLabService.js` — seeded report templates, simulated turnaround delay | Replace internals with a real HTTP call to the lab's API; routes (`labRoutes.js`) don't change |
-| ML model (disease risk / yield) | `src/services/mlService.js` — calls `ML_SERVICE_URL` if set, else falls back to a simple heuristic | Point `ML_SERVICE_URL` at a real FastAPI service implementing the two documented endpoints |
+| ML model (health alerts) | `src/services/mlService.js` — calls `ML_SERVICE_URL/predict/health` for inspection recommendations | Start the included `ml_service` and set `ML_SERVICE_URL=http://localhost:8000` |
 
 ## Setup
 
@@ -31,6 +31,17 @@ npm run dev             # or: npm start
 ```
 
 Requires a running MongoDB instance (local or Atlas) — set `MONGO_URI` accordingly.
+
+To enable ML health predictions, start the ML service in a second terminal before
+starting the backend:
+
+```bash
+cd ../ml_service
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Then create `backend/.env` from `.env.example`; it already sets
+`ML_SERVICE_URL=http://localhost:8000`.
 
 The sensor simulator starts automatically on boot (every 2 minutes by default,
 configurable via `SIMULATOR_INTERVAL_CRON`; set `SIMULATOR_ENABLED=false` to disable).
@@ -127,6 +138,7 @@ interchangeably.
 
 **Alerts** (detection + suggested action only, no control actions)
 - `POST /api/alerts/predict` — runs the FastAPI health/inspection model with live sensor data
+- `POST /api/alerts/varroa` — accepts a webcam/image upload in the `file` form field and forwards it to the FastAPI Varroa model
 - `GET /api/alerts?farmId=&hiveId=&status=open`
 - `PATCH /api/alerts/:id/resolve`
 
