@@ -1,4 +1,5 @@
 from pathlib import Path
+from ultralytics import YOLO
 import joblib
 
 
@@ -11,8 +12,9 @@ def load_models():
     hive_2_model = joblib.load(MODEL_DIR / "hive_2_isolation_forest.joblib")
 
     return {
+        "VARROA": YOLO(str(MODEL_DIR / "best.pt")),
         "HIVE_01": hive_1_model,
-        "HIVE_02": hive_2_model,
+        "HIVE_02": hive_2_model
     }
 '''
 from pathlib import Path
