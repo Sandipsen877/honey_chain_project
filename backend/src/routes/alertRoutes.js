@@ -1,7 +1,16 @@
 import express from "express";
+import multer from "multer";
 const router = express.Router();
 import Alert from "../models/Alert.js";
-import { predictAlert } from "../services/mlService.js";
+import { predictAlert, predictVarroa } from "../services/mlService.js";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    callback(null, file.mimetype.startsWith("image/"));
+  },
+});
 
 const ALERT_MODEL_FIELDS = [
   "hive_id",
@@ -37,6 +46,20 @@ router.post("/predict", async (req, res) => {
     // Send only the model contract fields, avoiding accidental API-field leakage.
     const payload = Object.fromEntries(ALERT_MODEL_FIELDS.map((field) => [field, req.body[field]]));
     const result = await predictAlert(payload);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/alerts/varroa - webcam/image frame -> backend -> FastAPI YOLO model
+router.post("/varroa", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "Upload one image in the 'file' field" });
+  }
+
+  try {
+    const result = await predictVarroa(req.file);
     res.json(result);
   } catch (err) {
     res.status(err.statusCode || 500).json({ error: err.message });
