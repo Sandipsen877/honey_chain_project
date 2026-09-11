@@ -1,0 +1,144 @@
+{
+  "history": [
+    {
+      "date": "2024-08-01",
+      "honey_weight_kg": 10.1,
+      "environmental_temperature_c": 28.0,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-02",
+      "honey_weight_kg": 10.45,
+      "environmental_temperature_c": 28.1,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-03",
+      "honey_weight_kg": 10.799999999999999,
+      "environmental_temperature_c": 28.2,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-04",
+      "honey_weight_kg": 11.149999999999999,
+      "environmental_temperature_c": 28.3,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-05",
+      "honey_weight_kg": 11.5,
+      "environmental_temperature_c": 28.4,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-06",
+      "honey_weight_kg": 11.85,
+      "environmental_temperature_c": 28.5,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-07",
+      "honey_weight_kg": 12.2,
+      "environmental_temperature_c": 28.6,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-08",
+      "honey_weight_kg": 12.549999999999999,
+      "environmental_temperature_c": 28.7,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-09",
+      "honey_weight_kg": 12.899999999999999,
+      "environmental_temperature_c": 28.8,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-10",
+      "honey_weight_kg": 13.25,
+      "environmental_temperature_c": 28.9,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-11",
+      "honey_weight_kg": 13.6,
+      "environmental_temperature_c": 29.0,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-12",
+      "honey_weight_kg": 13.95,
+      "environmental_temperature_c": 29.1,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-13",
+      "honey_weight_kg": 14.299999999999999,
+      "environmental_temperature_c": 29.2,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    },
+    {
+      "date": "2024-08-14",
+      "honey_weight_kg": 14.649999999999999,
+      "environmental_temperature_c": 29.3,
+      "relative_humidity_pct": 62.0,
+      "hive_temperature_c": 34.1,
+      "hive_humidity_pct": 66.0,
+      "wind_speed_kmh": 7.0,
+      "extract_honey": false
+    }
+  ]
+}
