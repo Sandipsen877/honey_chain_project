@@ -90,6 +90,7 @@ function extractYieldKg(item) {
    ============================================================ */
 
 export default function Dashboard() {
+
   /* ----------------------------------------------------------
      MAIN DATA
      ---------------------------------------------------------- */
@@ -103,10 +104,15 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [resolvedAlerts, setResolvedAlerts] = useState([]);
 
-  /* per-farm yields + total for home */
   const [yields, setYields] = useState({});
   const [yieldEstimate, setYieldEstimate] = useState(null);
 
+  /*
+   * Keep risks as an empty object for compatibility with
+   * existing HivesSection / HiveDetail components.
+   *
+   * Disease-risk API has intentionally been removed.
+   */
   const [risks, setRisks] = useState({});
 
 
@@ -130,12 +136,11 @@ export default function Dashboard() {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [selectedHive, setSelectedHive] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState(null);
-  const [selectedPassport, setSelectedPassport] =
-    useState(null);
+  const [selectedPassport, setSelectedPassport] = useState(null);
 
 
   /* ----------------------------------------------------------
-     ALERT HISTORY (6 parts)
+     ALERT HISTORY
      ---------------------------------------------------------- */
 
   const [historyData, setHistoryData] = useState({
@@ -153,10 +158,12 @@ export default function Dashboard() {
      ============================================================ */
 
   async function loadDashboard() {
+
     setLoading(true);
     setError('');
 
     try {
+
       const token =
         localStorage.getItem('honeychain_token');
 
@@ -191,7 +198,9 @@ export default function Dashboard() {
         !loadedFarms.length &&
         getId(currentKeeper)
       ) {
+
         try {
+
           const farmResponse =
             await apiRequest(
               `/api/keepers/${getId(
@@ -203,8 +212,11 @@ export default function Dashboard() {
             farmResponse?.farms ||
             farmResponse ||
             [];
+
         } catch {
+
           loadedFarms = [];
+
         }
       }
 
@@ -223,6 +235,7 @@ export default function Dashboard() {
         await Promise.all(
           loadedFarms.map(
             async (farm) => {
+
               const farmId =
                 getId(farm);
 
@@ -231,18 +244,25 @@ export default function Dashboard() {
               }
 
               try {
+
                 const response =
                   await apiRequest(
                     `/api/hives?farmId=${farmId}`
                   );
 
-                return (
+                const farmHives =
                   response?.hives ||
                   response ||
-                  []
-                );
+                  [];
+
+                return Array.isArray(farmHives)
+                  ? farmHives
+                  : [];
+
               } catch {
+
                 return [];
+
               }
             }
           )
@@ -261,6 +281,7 @@ export default function Dashboard() {
       let loadedBatches = [];
 
       try {
+
         const response =
           await apiRequest(
             '/api/batches'
@@ -270,8 +291,11 @@ export default function Dashboard() {
           response?.batches ||
           response ||
           [];
+
       } catch {
+
         loadedBatches = [];
+
       }
 
       if (!Array.isArray(loadedBatches)) {
@@ -282,120 +306,221 @@ export default function Dashboard() {
 
 
       /* --------------------------------------------------------
-         ALERTS — open + resolved (for history 6 parts)
+         ALERTS
          -------------------------------------------------------- */
 
       let allOpenAlerts = [];
       let allResolvedAlerts = [];
 
-      try {
-        const openRes = await apiRequest('/api/alerts?status=open');
 
-        allOpenAlerts = Array.isArray(openRes)
-          ? openRes
-          : openRes?.alerts || [];
-      } catch {
-        allOpenAlerts = [];
-      }
+      /* OPEN ALERTS */
 
       try {
-        const resolvedRes =
-          await apiRequest('/api/alerts?status=resolved');
 
-        allResolvedAlerts = Array.isArray(resolvedRes)
-          ? resolvedRes
-          : resolvedRes?.alerts || [];
-      } catch {
-        try {
-          const allRes =
-            await apiRequest('/api/alerts');
-
-          const all = Array.isArray(allRes)
-            ? allRes
-            : allRes?.alerts || [];
-
-          allResolvedAlerts = all.filter(
-            (a) =>
-              String(a?.status || '').toLowerCase() === 'resolved' ||
-              a?.resolved === true
+        const openRes =
+          await apiRequest(
+            '/api/alerts?status=open'
           );
 
-          if (!allOpenAlerts.length) {
-            allOpenAlerts = all.filter(
-              (a) =>
-                String(a?.status || '').toLowerCase() === 'open'
+        allOpenAlerts =
+          Array.isArray(openRes)
+            ? openRes
+            : openRes?.alerts || [];
+
+      } catch {
+
+        allOpenAlerts = [];
+
+      }
+
+
+      /* RESOLVED ALERTS */
+
+      try {
+
+        const resolvedRes =
+          await apiRequest(
+            '/api/alerts?status=resolved'
+          );
+
+        allResolvedAlerts =
+          Array.isArray(resolvedRes)
+            ? resolvedRes
+            : resolvedRes?.alerts || [];
+
+      } catch {
+
+        /*
+         * Fallback: fetch all alerts and filter locally.
+         */
+
+        try {
+
+          const allRes =
+            await apiRequest(
+              '/api/alerts'
             );
+
+          const all =
+            Array.isArray(allRes)
+              ? allRes
+              : allRes?.alerts || [];
+
+          allResolvedAlerts =
+            all.filter(
+              (a) =>
+                String(
+                  a?.status || ''
+                ).toLowerCase() === 'resolved' ||
+                a?.resolved === true
+            );
+
+          if (!allOpenAlerts.length) {
+
+            allOpenAlerts =
+              all.filter(
+                (a) =>
+                  String(
+                    a?.status || ''
+                  ).toLowerCase() === 'open'
+              );
+
           }
+
         } catch {
+
           allResolvedAlerts = [];
+
         }
       }
+
 
       setAlerts(allOpenAlerts);
       setResolvedAlerts(allResolvedAlerts);
 
+
+      /* --------------------------------------------------------
+         ALERT HISTORY
+         -------------------------------------------------------- */
+
       const isHiveAlert = (a) =>
-        !!(getId(a?.hive) || a?.hive || a?.hiveId);
+        !!(
+          getId(a?.hive) ||
+          a?.hive ||
+          a?.hiveId
+        );
+
 
       const isFarmAlert = (a) =>
-        !!(getId(a?.farm) || a?.farm || a?.farmId);
+        !!(
+          getId(a?.farm) ||
+          a?.farm ||
+          a?.farmId
+        );
+
 
       setHistoryData({
-        openAll: allOpenAlerts,
-        openHive: allOpenAlerts.filter(isHiveAlert),
-        openFarm: allOpenAlerts.filter(isFarmAlert),
-        resolvedAll: allResolvedAlerts,
-        resolvedHive: allResolvedAlerts.filter(isHiveAlert),
-        resolvedFarm: allResolvedAlerts.filter(isFarmAlert),
+
+        openAll:
+          allOpenAlerts,
+
+        openHive:
+          allOpenAlerts.filter(
+            isHiveAlert
+          ),
+
+        openFarm:
+          allOpenAlerts.filter(
+            isFarmAlert
+          ),
+
+        resolvedAll:
+          allResolvedAlerts,
+
+        resolvedHive:
+          allResolvedAlerts.filter(
+            isHiveAlert
+          ),
+
+        resolvedFarm:
+          allResolvedAlerts.filter(
+            isFarmAlert
+          ),
+
       });
 
 
       /* --------------------------------------------------------
-         YIELD — per farm + TOTAL for Dashboard Home
+         YIELD — PER FARM
          -------------------------------------------------------- */
 
       const yieldMap = {};
 
       await Promise.all(
-        loadedFarms.map(async (farm) => {
-          const farmId = getId(farm);
+        loadedFarms.map(
+          async (farm) => {
 
-          if (!farmId) return;
+            const farmId =
+              getId(farm);
 
-          try {
-            const response = await apiRequest(
-              '/api/yield/estimate',
-              {
-                method: 'POST',
-                body: JSON.stringify({
-                  farmId,
-                  season: 'monsoon',
-                }),
-              },
-            );
+            if (!farmId) return;
 
-            yieldMap[farmId] = response;
-          } catch {
-            yieldMap[farmId] = null;
+            try {
+
+              const response =
+                await apiRequest(
+                  '/api/yield/estimate',
+                  {
+                    method: 'POST',
+
+                    body: JSON.stringify({
+                      farmId,
+                      season: 'monsoon',
+                    }),
+                  }
+                );
+
+              yieldMap[farmId] =
+                response;
+
+            } catch {
+
+              yieldMap[farmId] =
+                null;
+
+            }
           }
-        }),
+        )
       );
+
 
       setYields(yieldMap);
 
-      const totalKg = Object.values(yieldMap).reduce(
-        (sum, item) => sum + extractYieldKg(item),
-        0,
-      );
+
+      /* --------------------------------------------------------
+         TOTAL YIELD
+         -------------------------------------------------------- */
+
+      const totalKg =
+        Object.values(yieldMap).reduce(
+          (sum, item) =>
+            sum + extractYieldKg(item),
+          0
+        );
+
 
       setYieldEstimate({
+
         estimatedYieldKg:
-          Math.round(totalKg * 10) / 10,
+          Math.round(
+            totalKg * 10
+          ) / 10,
 
         source: 'total',
 
         farmCount:
           loadedFarms.length,
+
       });
 
 
@@ -403,56 +528,35 @@ export default function Dashboard() {
          DISEASE RISK
          -------------------------------------------------------- */
 
-      const riskEntries =
-        await Promise.all(
-          allHives.map(
-            async (hive) => {
-              const hiveId =
-                getId(hive);
+      /*
+       * IMPORTANT:
+       *
+       * Disease-risk API call has been removed.
+       *
+       * Your previous code was calling:
+       *
+       * /api/yield/disease-risk/:hiveId
+       *
+       * If this backend route does not exist, there is no reason
+       * for Dashboard.jsx to request it.
+       *
+       * We keep risks as {} so existing components remain
+       * compatible and do not crash.
+       */
 
-              if (!hiveId) {
-                return null;
-              }
+      setRisks({});
 
-              try {
-                const response =
-                  await apiRequest(
-                    `/api/yield/disease-risk/${hiveId}`
-                  );
-
-                return [
-                  hiveId,
-
-                  response?.risk ??
-                    response?.diseaseRisk ??
-                    response,
-                ];
-              } catch {
-                return null;
-              }
-            }
-          )
-        );
-
-      const riskMap = {};
-
-      riskEntries.forEach(
-        (entry) => {
-          if (entry) {
-            riskMap[entry[0]] =
-              entry[1];
-          }
-        }
-      );
-
-      setRisks(riskMap);
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -462,7 +566,9 @@ export default function Dashboard() {
      ============================================================ */
 
   useEffect(() => {
+
     loadDashboard();
+
   }, []);
 
 
@@ -471,12 +577,14 @@ export default function Dashboard() {
      ============================================================ */
 
   function openSection(section) {
+
     setActiveSection(section);
 
     setSelectedFarm(null);
     setSelectedHive(null);
     setSelectedBatch(null);
     setSelectedPassport(null);
+
   }
 
 
@@ -485,10 +593,12 @@ export default function Dashboard() {
      ============================================================ */
 
   async function createFarm(formData) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         '/api/farms',
         {
@@ -504,16 +614,21 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
       setActiveSection('farms');
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -522,10 +637,12 @@ export default function Dashboard() {
     farmId,
     formData
   ) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         `/api/farms/${farmId}`,
         {
@@ -537,16 +654,21 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
       setSelectedFarm(null);
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -556,10 +678,12 @@ export default function Dashboard() {
      ============================================================ */
 
   async function createHive(formData) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         '/api/hives',
         {
@@ -571,27 +695,40 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
+
       if (formData.farm) {
+
         const farm =
           farms.find(
             (item) =>
-              getId(item) ===
-              formData.farm
+              String(
+                getId(item)
+              ) ===
+              String(
+                formData.farm
+              )
           );
+
 
         if (farm) {
           setSelectedFarm(farm);
         }
+
       }
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -601,10 +738,12 @@ export default function Dashboard() {
      ============================================================ */
 
   async function createBatch(formData) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         '/api/batches',
         {
@@ -620,16 +759,21 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
       setActiveSection('batches');
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -638,10 +782,12 @@ export default function Dashboard() {
     batchId,
     formData
   ) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         `/api/batches/${batchId}`,
         {
@@ -653,16 +799,21 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
       setSelectedBatch(null);
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -672,10 +823,12 @@ export default function Dashboard() {
      ============================================================ */
 
   async function resolveAlert(alertId) {
+
     setActionLoading(true);
     setError('');
 
     try {
+
       await apiRequest(
         `/api/alerts/${alertId}/resolve`,
         {
@@ -683,14 +836,19 @@ export default function Dashboard() {
         }
       );
 
+
       await loadDashboard();
 
     } catch (err) {
+
       setError(
         getErrorMessage(err)
       );
+
     } finally {
+
       setActionLoading(false);
+
     }
   }
 
@@ -701,6 +859,7 @@ export default function Dashboard() {
 
   const statistics = useMemo(
     () => ({
+
       totalFarms:
         farms.length,
 
@@ -715,6 +874,7 @@ export default function Dashboard() {
 
       resolvedAlerts:
         resolvedAlerts.length,
+
     }),
 
     [
@@ -732,7 +892,9 @@ export default function Dashboard() {
      ============================================================ */
 
   if (loading) {
+
     return (
+
       <div className="min-h-[calc(100vh-72px)] bg-cream dark:bg-black flex items-center justify-center">
 
         <div className="flex flex-col items-center gap-4">
@@ -749,6 +911,7 @@ export default function Dashboard() {
         </div>
 
       </div>
+
     );
   }
 
@@ -758,6 +921,7 @@ export default function Dashboard() {
      ============================================================ */
 
   return (
+
     <div className="min-h-[calc(100vh-72px)] bg-cream dark:bg-black text-black dark:text-cream">
 
       <div className="flex min-h-[calc(100vh-72px)]">
@@ -785,128 +949,83 @@ export default function Dashboard() {
           <nav className="flex-1 p-4 space-y-1">
 
             <SidebarButton
-              active={
-                activeSection ===
-                'dashboard'
-              }
+              active={activeSection === 'dashboard'}
               icon={Home}
               label="Dashboard"
               onClick={() =>
-                openSection(
-                  'dashboard'
-                )
+                openSection('dashboard')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'farms'
-              }
+              active={activeSection === 'farms'}
               icon={Tractor}
               label="Farms"
               onClick={() =>
-                openSection(
-                  'farms'
-                )
+                openSection('farms')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'hives'
-              }
+              active={activeSection === 'hives'}
               icon={Hexagon}
               label="Hives"
               onClick={() =>
-                openSection(
-                  'hives'
-                )
+                openSection('hives')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'batches'
-              }
+              active={activeSection === 'batches'}
               icon={Boxes}
               label="Honey Batches"
               onClick={() =>
-                openSection(
-                  'batches'
-                )
+                openSection('batches')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'passport'
-              }
+              active={activeSection === 'passport'}
               icon={QrCode}
               label="Digital Passport"
               onClick={() =>
-                openSection(
-                  'passport'
-                )
+                openSection('passport')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'training'
-              }
+              active={activeSection === 'training'}
               icon={BookOpen}
               label="Training"
               onClick={() =>
-                openSection(
-                  'training'
-                )
+                openSection('training')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'fraud'
-              }
+              active={activeSection === 'fraud'}
               icon={ShieldAlert}
               label="Fraud Alerts"
               onClick={() =>
-                openSection(
-                  'fraud'
-                )
+                openSection('fraud')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'blockchain'
-              }
+              active={activeSection === 'blockchain'}
               icon={Boxes}
               label="Blockchain Explorer"
               onClick={() =>
-                openSection(
-                  'blockchain'
-                )
+                openSection('blockchain')
               }
             />
 
             <SidebarButton
-              active={
-                activeSection ===
-                'history'
-              }
+              active={activeSection === 'history'}
               icon={ClipboardList}
               label="Alert History"
               onClick={() =>
-                openSection(
-                  'history'
-                )
+                openSection('history')
               }
             />
 
@@ -924,13 +1043,11 @@ export default function Dashboard() {
               </p>
 
               <p className="mt-2 text-sm font-semibold truncate">
-                {keeper?.name ||
-                  'Keeper'}
+                {keeper?.name || 'Keeper'}
               </p>
 
               <p className="mt-1 text-xs text-gray dark:text-muted truncate">
-                {keeper?.phone ||
-                  '—'}
+                {keeper?.phone || '—'}
               </p>
 
             </div>
@@ -958,52 +1075,18 @@ export default function Dashboard() {
               <div className="flex gap-2 min-w-max">
 
                 {[
-                  [
-                    'dashboard',
-                    'Dashboard',
-                  ],
-
-                  [
-                    'farms',
-                    'Farms',
-                  ],
-
-                  [
-                    'hives',
-                    'Hives',
-                  ],
-
-                  [
-                    'batches',
-                    'Batches',
-                  ],
-
-                  [
-                    'passport',
-                    'Passport',
-                  ],
-
-                  [
-                    'training',
-                    'Training',
-                  ],
-
-                  [
-                    'fraud',
-                    'Fraud',
-                  ],
-
-                  [
-                    'blockchain',
-                    'Blockchain',
-                  ],
-
-                  [
-                    'history',
-                    'Alert History',
-                  ],
+                  ['dashboard', 'Dashboard'],
+                  ['farms', 'Farms'],
+                  ['hives', 'Hives'],
+                  ['batches', 'Batches'],
+                  ['passport', 'Passport'],
+                  ['training', 'Training'],
+                  ['fraud', 'Fraud'],
+                  ['blockchain', 'Blockchain'],
+                  ['history', 'Alert History'],
                 ].map(
                   ([id, label]) => (
+
                     <button
                       key={id}
                       type="button"
@@ -1011,14 +1094,14 @@ export default function Dashboard() {
                         openSection(id)
                       }
                       className={`px-3 py-2 text-xs border ${
-                        activeSection ===
-                        id
+                        activeSection === id
                           ? 'bg-black text-cream dark:bg-cream dark:text-black border-black dark:border-cream'
                           : 'border-black/10 dark:border-white/10'
                       }`}
                     >
                       {label}
                     </button>
+
                   )
                 )}
 
@@ -1032,6 +1115,7 @@ export default function Dashboard() {
             ================================================== */}
 
             {error && (
+
               <div className="mb-6 flex items-start gap-3 border border-red-500/30 bg-red-500/5 p-4">
 
                 <AlertCircle
@@ -1058,63 +1142,48 @@ export default function Dashboard() {
                 </div>
 
               </div>
+
             )}
 
 
             {/* ==================================================
-                DASHBOARD HOME — total yield of all farms
+                DASHBOARD HOME
             ================================================== */}
 
-            {activeSection ===
-              'dashboard' && (
+            {activeSection === 'dashboard' && (
+
               <DashboardHome
                 keeper={keeper}
-                statistics={
-                  statistics
-                }
+                statistics={statistics}
                 farms={farms}
                 hives={hives}
                 alerts={alerts}
                 risks={risks}
-                yieldEstimate={
-                  yieldEstimate
-                }
-                onOpenSection={
-                  openSection
-                }
-                onResolveAlert={
-                  resolveAlert
-                }
-                actionLoading={
-                  actionLoading
-                }
+                yieldEstimate={yieldEstimate}
+                onOpenSection={openSection}
+                onResolveAlert={resolveAlert}
+                actionLoading={actionLoading}
               />
+
             )}
 
 
             {/* ==================================================
-                FARMS — per-farm yields, no alerts
+                FARMS
             ================================================== */}
 
-            {activeSection ===
-              'farms' && (
+            {activeSection === 'farms' && (
+
               <FarmsSection
                 farms={farms}
                 hives={hives}
                 yields={yields}
-                onCreate={
-                  createFarm
-                }
-                onUpdate={
-                  updateFarm
-                }
-                onOpenFarm={
-                  setSelectedFarm
-                }
-                actionLoading={
-                  actionLoading
-                }
+                onCreate={createFarm}
+                onUpdate={updateFarm}
+                onOpenFarm={setSelectedFarm}
+                actionLoading={actionLoading}
               />
+
             )}
 
 
@@ -1122,23 +1191,18 @@ export default function Dashboard() {
                 HIVES
             ================================================== */}
 
-            {activeSection ===
-              'hives' && (
+            {activeSection === 'hives' && (
+
               <HivesSection
                 farms={farms}
                 hives={hives}
                 alerts={alerts}
                 risks={risks}
-                onCreate={
-                  createHive
-                }
-                onOpenHive={
-                  setSelectedHive
-                }
-                actionLoading={
-                  actionLoading
-                }
+                onCreate={createHive}
+                onOpenHive={setSelectedHive}
+                actionLoading={actionLoading}
               />
+
             )}
 
 
@@ -1146,22 +1210,17 @@ export default function Dashboard() {
                 HONEY BATCHES
             ================================================== */}
 
-            {activeSection ===
-              'batches' && (
+            {activeSection === 'batches' && (
+
               <BatchesSection
                 farms={farms}
                 batches={batches}
                 keeper={keeper}
-                onCreate={
-                  createBatch
-                }
-                onOpenBatch={
-                  setSelectedBatch
-                }
-                actionLoading={
-                  actionLoading
-                }
+                onCreate={createBatch}
+                onOpenBatch={setSelectedBatch}
+                actionLoading={actionLoading}
               />
+
             )}
 
 
@@ -1169,15 +1228,14 @@ export default function Dashboard() {
                 DIGITAL PASSPORT
             ================================================== */}
 
-            {activeSection ===
-              'passport' && (
+            {activeSection === 'passport' && (
+
               <PassportSection
                 farms={farms}
                 batches={batches}
-                onOpenBatch={
-                  setSelectedPassport
-                }
+                onOpenBatch={setSelectedPassport}
               />
+
             )}
 
 
@@ -1185,8 +1243,7 @@ export default function Dashboard() {
                 TRAINING
             ================================================== */}
 
-            {activeSection ===
-              'training' && (
+            {activeSection === 'training' && (
               <TrainingSection />
             )}
 
@@ -1195,11 +1252,12 @@ export default function Dashboard() {
                 FRAUD
             ================================================== */}
 
-            {activeSection ===
-              'fraud' && (
+            {activeSection === 'fraud' && (
+
               <FraudSection
                 batches={batches}
               />
+
             )}
 
 
@@ -1207,8 +1265,7 @@ export default function Dashboard() {
                 BLOCKCHAIN
             ================================================== */}
 
-            {activeSection ===
-              'blockchain' && (
+            {activeSection === 'blockchain' && (
               <BlockchainSection />
             )}
 
@@ -1217,19 +1274,14 @@ export default function Dashboard() {
                 ALERT HISTORY
             ================================================== */}
 
-            {activeSection ===
-              'history' && (
+            {activeSection === 'history' && (
+
               <HistorySection
-                historyData={
-                  historyData
-                }
-                onResolveAlert={
-                  resolveAlert
-                }
-                actionLoading={
-                  actionLoading
-                }
+                historyData={historyData}
+                onResolveAlert={resolveAlert}
+                actionLoading={actionLoading}
               />
+
             )}
 
           </div>
@@ -1240,34 +1292,31 @@ export default function Dashboard() {
 
 
       {/* ========================================================
-          FARM DETAIL — no alerts
-      ========================================================= */}
+          FARM DETAIL
+      ======================================================== */}
 
       {selectedFarm && (
+
         <FarmDetail
           farm={selectedFarm}
           hives={hives}
           onClose={() =>
             setSelectedFarm(null)
           }
-          onCreateHive={
-            createHive
-          }
-          onUpdateFarm={
-            updateFarm
-          }
-          actionLoading={
-            actionLoading
-          }
+          onCreateHive={createHive}
+          onUpdateFarm={updateFarm}
+          actionLoading={actionLoading}
         />
+
       )}
 
 
       {/* ========================================================
           HIVE DETAIL
-      ========================================================= */}
+      ======================================================== */}
 
       {selectedHive && (
+
         <HiveDetail
           hive={selectedHive}
           farms={farms}
@@ -1280,57 +1329,48 @@ export default function Dashboard() {
           onClose={() =>
             setSelectedHive(null)
           }
-          onResolveAlert={
-            resolveAlert
-          }
-          actionLoading={
-            actionLoading
-          }
+          onResolveAlert={resolveAlert}
+          actionLoading={actionLoading}
         />
+
       )}
 
 
       {/* ========================================================
           BATCH DETAIL
-      ========================================================= */}
+      ======================================================== */}
 
       {selectedBatch && (
+
         <BatchDetail
           batch={selectedBatch}
           farms={farms}
           onClose={() =>
             setSelectedBatch(null)
           }
-          onUpdate={
-            updateBatch
-          }
-          actionLoading={
-            actionLoading
-          }
+          onUpdate={updateBatch}
+          actionLoading={actionLoading}
         />
+
       )}
 
 
       {/* ========================================================
           DIGITAL PASSPORT DETAIL
-      ========================================================= */}
+      ======================================================== */}
 
       {selectedPassport && (
+
         <PassportDetail
-          batch={
-            selectedPassport
-          }
+          batch={selectedPassport}
           onClose={() =>
             setSelectedPassport(null)
           }
-          actionLoading={
-            actionLoading
-          }
-          setActionLoading={
-            setActionLoading
-          }
+          actionLoading={actionLoading}
+          setActionLoading={setActionLoading}
           setError={setError}
         />
+
       )}
 
     </div>

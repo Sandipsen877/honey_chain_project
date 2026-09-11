@@ -1,21 +1,35 @@
-import { useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
+  Camera,
+  CheckCircle2,
   Hexagon,
+  LoaderCircle,
   Plus,
   Search,
-  ShieldAlert,
+  Thermometer,
   X,
+  Activity,
+  AlertTriangle,
 } from 'lucide-react';
 
 import {
   PageHeader,
   EmptyState,
   FormField,
-  RiskBadge,
 } from './DashboardUI';
 
-import { getId } from '../../services/dashboardApi';
+import {
+  apiRequest,
+  getId,
+  getErrorMessage,
+} from '../../services/dashboardApi';
+
 
 /* ============================================================
    HIVES SECTION
@@ -24,7 +38,6 @@ import { getId } from '../../services/dashboardApi';
 function HivesSection({
   farms,
   hives,
-  risks,
   onCreate,
   actionLoading,
 }) {
@@ -45,21 +58,13 @@ function HivesSection({
     const search = hiveSearch.trim().toLowerCase();
 
     return safeHives.filter((hive) => {
-      const hiveId = String(getId(hive) || '').toLowerCase();
+      const hiveId = String(
+        getId(hive) || '',
+      ).toLowerCase();
 
       const hiveCode = String(
         hive?.hiveCode || '',
       ).toLowerCase();
-
-      /*
-       * hive.farm can be:
-       *
-       * 1. "FARM_ID"
-       *
-       * OR
-       *
-       * 2. { _id: "FARM_ID", name: "Farm Name" }
-       */
 
       const hiveFarmId = String(
         getId(hive?.farm) ||
@@ -104,16 +109,12 @@ function HivesSection({
     setSelectedHive(null);
   }
 
-  /* ==========================================================
-     RETURN
-     ========================================================== */
-
   return (
     <div className="w-full min-w-0 space-y-5 sm:space-y-6">
 
       {/* ======================================================
           PAGE HEADER
-          ====================================================== */}
+      ====================================================== */}
 
       <PageHeader
         eyebrow="02 / Hives"
@@ -135,7 +136,7 @@ function HivesSection({
 
       {/* ======================================================
           CREATE HIVE FORM
-          ====================================================== */}
+      ====================================================== */}
 
       {showForm && (
         <HiveForm
@@ -153,16 +154,15 @@ function HivesSection({
 
       {/* ======================================================
           SEARCH & FILTER
-          ====================================================== */}
+      ====================================================== */}
 
       {safeHives.length > 0 && (
         <section className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card overflow-hidden">
 
-          {/* Header */}
-
           <div className="px-5 sm:px-6 py-4 border-b border-black/10 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
             <div className="flex items-center gap-3">
+
               <div className="w-9 h-9 border border-gold/40 flex items-center justify-center shrink-0">
                 <Search
                   size={17}
@@ -179,6 +179,7 @@ function HivesSection({
                   Narrow the hive list by ID or farm
                 </p>
               </div>
+
             </div>
 
             <p className="text-xs text-gray dark:text-muted">
@@ -191,22 +192,21 @@ function HivesSection({
               </span>{' '}
               hives
             </p>
-          </div>
 
-          {/* Filters */}
+          </div>
 
           <div className="p-5 sm:p-6">
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-              {/* Hive Search */}
-
               <div className="min-w-0">
+
                 <label className="text-xs font-medium">
                   Search Hive ID / Hive Code
                 </label>
 
                 <div className="relative mt-2">
+
                   <Search
                     size={16}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray dark:text-muted pointer-events-none"
@@ -223,12 +223,13 @@ function HivesSection({
                     placeholder="Search hive ID or HV-TEST-001"
                     className="w-full min-w-0 border border-black/10 dark:border-white/10 bg-cream dark:bg-black pl-9 pr-3 py-3 text-sm outline-none focus:border-gold"
                   />
+
                 </div>
+
               </div>
 
-              {/* Farm Filter */}
-
               <div className="min-w-0">
+
                 <label className="text-xs font-medium">
                   Filter by Farm
                 </label>
@@ -242,6 +243,7 @@ function HivesSection({
                   }
                   className="mt-2 w-full min-w-0 border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm outline-none focus:border-gold"
                 >
+
                   <option value="">
                     All Farms
                   </option>
@@ -260,11 +262,12 @@ function HivesSection({
                       </option>
                     );
                   })}
-                </select>
-              </div>
-            </div>
 
-            {/* Filter Status */}
+                </select>
+
+              </div>
+
+            </div>
 
             {(hiveSearch || selectedFarmId) && (
               <div className="mt-5 pt-4 border-t border-black/10 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -281,15 +284,17 @@ function HivesSection({
                   <X size={13} />
                   Clear Filters
                 </button>
+
               </div>
             )}
+
           </div>
         </section>
       )}
 
       {/* ======================================================
           HIVE LIST
-          ====================================================== */}
+      ====================================================== */}
 
       {safeHives.length === 0 ? (
         <EmptyState
@@ -298,6 +303,7 @@ function HivesSection({
           text="Create a hive inside one of your farms."
         />
       ) : filteredHives.length === 0 ? (
+
         <div className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-8 sm:p-10 text-center">
 
           <div className="mx-auto w-12 h-12 border border-gold/40 flex items-center justify-center">
@@ -312,8 +318,7 @@ function HivesSection({
           </h3>
 
           <p className="mt-2 max-w-md mx-auto text-sm leading-6 text-gray dark:text-muted">
-            No hive matches the selected
-            Hive ID or Farm ID.
+            No hive matches the selected Hive ID or Farm ID.
           </p>
 
           <button
@@ -324,11 +329,12 @@ function HivesSection({
             <X size={13} />
             Clear Filters
           </button>
-        </div>
-      ) : (
-        <section className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card overflow-hidden">
 
-          {/* List Header */}
+        </div>
+
+      ) : (
+
+        <section className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card overflow-hidden">
 
           <div className="px-5 sm:px-6 py-4 border-b border-black/10 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 
@@ -348,15 +354,15 @@ function HivesSection({
                 ? 's'
                 : ''}
             </p>
-          </div>
 
-          {/* Scrollable Hive Grid */}
+          </div>
 
           <div className="max-h-[600px] overflow-y-auto overflow-x-hidden scrollbar-thin p-4 sm:p-5">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
 
               {filteredHives.map((hive) => {
+
                 const hiveId = getId(hive);
 
                 const hiveFarmId = String(
@@ -381,8 +387,6 @@ function HivesSection({
                     className="group text-left w-full min-w-0 border border-black/10 dark:border-white/10 bg-cream dark:bg-black p-5 sm:p-6 hover:border-gold transition-all duration-300 focus:outline-none focus:border-gold"
                   >
 
-                    {/* Top */}
-
                     <div className="flex items-start justify-between gap-4">
 
                       <div className="w-11 h-11 border border-gold/40 flex items-center justify-center shrink-0 group-hover:bg-gold/10 transition-colors">
@@ -395,11 +399,11 @@ function HivesSection({
                       <span className="text-[10px] uppercase tracking-[0.15em] text-gray dark:text-muted">
                         Hive
                       </span>
+
                     </div>
 
-                    {/* Hive ID */}
-
                     <div className="mt-5 min-w-0">
+
                       <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
                         Hive ID
                       </p>
@@ -407,13 +411,13 @@ function HivesSection({
                       <p className="mt-2 text-sm font-semibold break-all">
                         {hiveId || '—'}
                       </p>
-                    </div>
 
-                    {/* Details */}
+                    </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-4">
 
                       <div className="min-w-0">
+
                         <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted">
                           Farm
                         </p>
@@ -423,9 +427,11 @@ function HivesSection({
                             farm?.farmCode ||
                             'Unknown'}
                         </p>
+
                       </div>
 
                       <div className="min-w-0">
+
                         <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted">
                           Type
                         </p>
@@ -434,10 +440,10 @@ function HivesSection({
                           {hive?.hiveType ||
                             'Not specified'}
                         </p>
-                      </div>
-                    </div>
 
-                    {/* Footer */}
+                      </div>
+
+                    </div>
 
                     <div className="mt-5 pt-4 border-t border-black/10 dark:border-white/10 flex items-center justify-between gap-3">
 
@@ -448,33 +454,36 @@ function HivesSection({
                       <span className="text-sm font-semibold text-gold group-hover:translate-x-1 transition-transform duration-300">
                         →
                       </span>
+
                     </div>
+
                   </button>
                 );
               })}
 
             </div>
+
           </div>
+
         </section>
       )}
 
       {/* ======================================================
-          HIVE DETAIL OVERLAY
-          ====================================================== */}
+          HIVE DETAIL
+      ====================================================== */}
 
       {selectedHive && (
         <HiveDetail
           hive={selectedHive}
           farms={safeFarms}
-          risk={
-            risks?.[getId(selectedHive)]
-          }
           onClose={closeHiveDetails}
         />
       )}
+
     </div>
   );
 }
+
 
 /* ============================================================
    HIVE FORM
@@ -515,11 +524,10 @@ function HiveForm({
   }
 
   return (
-    <form 
-    onSubmit={submit}
-    className="border border-gold/30 bg-gold/5 overflow-hidden">
-
-      {/* Form Header */}
+    <form
+      onSubmit={submit}
+      className="border border-gold/30 bg-gold/5 overflow-hidden"
+    >
 
       <div className="px-5 sm:px-6 py-4 border-b border-gold/20 flex items-center gap-3">
 
@@ -531,6 +539,7 @@ function HiveForm({
         </div>
 
         <div>
+
           <h3 className="text-sm font-semibold">
             Create Hive
           </h3>
@@ -538,16 +547,14 @@ function HiveForm({
           <p className="mt-0.5 text-[11px] text-gray dark:text-muted">
             Register a new hive under one of your farms.
           </p>
-        </div>
-      </div>
 
-      {/* Fields */}
+        </div>
+
+      </div>
 
       <div className="p-5 sm:p-6">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          {/* Hive Code */}
 
           <FormField
             label="Hive Code"
@@ -556,10 +563,10 @@ function HiveForm({
             required
           />
 
-          {/* Farm */}
-
           {!farmId ? (
+
             <div>
+
               <label className="text-xs font-medium">
                 Farm
               </label>
@@ -575,6 +582,7 @@ function HiveForm({
                 required
                 className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm outline-none focus:border-gold"
               >
+
                 <option value="">
                   Select farm
                 </option>
@@ -588,10 +596,15 @@ function HiveForm({
                       farm.farmCode}
                   </option>
                 ))}
+
               </select>
+
             </div>
+
           ) : (
+
             <div>
+
               <label className="text-xs font-medium">
                 Farm
               </label>
@@ -609,12 +622,12 @@ function HiveForm({
                   )?.farmCode ||
                   farmId}
               </div>
+
             </div>
           )}
 
-          {/* Hive Type */}
-
           <div>
+
             <label className="text-xs font-medium">
               Hive Type
             </label>
@@ -629,6 +642,7 @@ function HiveForm({
               }
               className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm outline-none focus:border-gold"
             >
+
               <option value="Langstroth">
                 Langstroth
               </option>
@@ -640,11 +654,12 @@ function HiveForm({
               <option value="Traditional">
                 Traditional
               </option>
-            </select>
-          </div>
-        </div>
 
-        {/* Buttons */}
+            </select>
+
+          </div>
+
+        </div>
 
         <div className="mt-5 pt-5 border-t border-gold/20 flex flex-col sm:flex-row gap-2">
 
@@ -665,11 +680,15 @@ function HiveForm({
           >
             Cancel
           </button>
+
         </div>
+
       </div>
+
     </form>
   );
 }
+
 
 /* ============================================================
    HIVE DETAIL
@@ -678,7 +697,6 @@ function HiveForm({
 function HiveDetail({
   hive,
   farms,
-  risk,
   onClose,
 }) {
   const hiveId = getId(hive);
@@ -686,6 +704,50 @@ function HiveDetail({
   const safeFarms = Array.isArray(farms)
     ? farms
     : [];
+
+  /* ==========================================================
+     HEALTH STATE
+     ========================================================== */
+
+  const [healthData, setHealthData] =
+    useState(null);
+
+  const [healthLoading, setHealthLoading] =
+    useState(true);
+
+  const [healthError, setHealthError] =
+    useState('');
+
+  /* ==========================================================
+     VARROA STATE
+     ========================================================== */
+
+  const [cameraOpen, setCameraOpen] =
+    useState(false);
+
+  const [cameraLoading, setCameraLoading] =
+    useState(false);
+
+  const [varroaLoading, setVarroaLoading] =
+    useState(false);
+
+  const [varroaResult, setVarroaResult] =
+    useState(null);
+
+  const [varroaImage, setVarroaImage] =
+    useState(null);
+
+  const [varroaError, setVarroaError] =
+    useState('');
+
+  /* ==========================================================
+     CAMERA REFS
+     ========================================================== */
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const captureTimerRef = useRef(null);
 
   /* ==========================================================
      FIND FARM
@@ -748,139 +810,769 @@ function HiveDetail({
     'updatedAt',
   ]);
 
-  const additionalDetails = Object.entries(
-    hive || {},
-  ).filter(([key, value]) => {
-    if (excludedFields.has(key)) {
-      return false;
-    }
+  const additionalDetails =
+    Object.entries(hive || {}).filter(
+      ([key, value]) => {
+        if (excludedFields.has(key)) {
+          return false;
+        }
 
-    if (
-      value === null ||
-      value === undefined ||
-      value === ''
-    ) {
-      return false;
-    }
+        if (
+          value === null ||
+          value === undefined ||
+          value === ''
+        ) {
+          return false;
+        }
 
-    if (
-      typeof value === 'object'
-    ) {
-      return false;
-    }
+        if (
+          typeof value === 'object'
+        ) {
+          return false;
+        }
 
-    return true;
-  });
+        return true;
+      },
+    );
 
   /* ==========================================================
-     RISK DATA
+     GENERATE DIFFERENT SENSOR DATA PER HIVE
      ========================================================== */
 
-  const hasRiskObject =
-    risk !== null &&
-    risk !== undefined;
+  function generateHiveSensorData() {
+    const source = String(
+      hiveId ||
+        hive?.hiveCode ||
+        'HIVE',
+    );
 
-  const riskEntries =
-    typeof risk === 'object' &&
-    risk !== null
-      ? Object.entries(risk).filter(
-          ([, value]) =>
-            value !== null &&
-            value !== undefined &&
-            value !== '',
-        )
-      : [];
+    let hash = 0;
+
+    for (
+      let i = 0;
+      i < source.length;
+      i += 1
+    ) {
+      hash =
+        (hash * 31 +
+          source.charCodeAt(i)) %
+        100000;
+    }
+
+    const variation = hash % 100;
+
+    return {
+      hive_id: String(
+        hive?.hiveCode ||
+          hiveId ||
+          'HIVE',
+      ),
+
+      temperature: Number(
+        (
+          32 +
+          (variation % 35) / 10
+        ).toFixed(1),
+      ),
+
+      humidity: Number(
+        (
+          60 +
+          (variation % 25)
+        ).toFixed(1),
+      ),
+
+      outside_temperature: Number(
+        (
+          28 +
+          (variation % 40) / 10
+        ).toFixed(1),
+      ),
+
+      outside_humidity: Number(
+        (
+          65 +
+          (variation % 20)
+        ).toFixed(1),
+      ),
+
+      pressure: Number(
+        (
+          1005 +
+          (variation % 15) / 10
+        ).toFixed(1),
+      ),
+
+      co2:
+        900 +
+        (variation % 700),
+
+      tvoc:
+        300 +
+        (variation % 500),
+
+      light:
+        180 +
+        (variation % 300),
+
+      bee_in:
+        10 +
+        (variation % 15),
+
+      bee_out:
+        12 +
+        ((variation * 2) % 18),
+    };
+  }
+
+  /* ==========================================================
+     OVERALL HEALTH API
+     ========================================================== */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchHealth() {
+      setHealthLoading(true);
+      setHealthError('');
+      setHealthData(null);
+
+      try {
+        const sensorData =
+          generateHiveSensorData();
+
+        const response =
+          await apiRequest(
+            '/api/alerts/predict',
+            {
+              method: 'POST',
+              body: JSON.stringify(
+                sensorData,
+              ),
+            },
+          );
+
+        if (!cancelled) {
+          setHealthData({
+            ...response,
+            sensorData,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setHealthError(
+            getErrorMessage(err),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setHealthLoading(false);
+        }
+      }
+    }
+
+    fetchHealth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hiveId]);
+
+  /* ==========================================================
+     CAMERA CLEANUP
+     ========================================================== */
+
+  function stopCamera() {
+    if (captureTimerRef.current) {
+      clearTimeout(
+        captureTimerRef.current,
+      );
+
+      captureTimerRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current
+        .getTracks()
+        .forEach((track) => {
+          track.stop();
+        });
+
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCameraOpen(false);
+    setCameraLoading(false);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (captureTimerRef.current) {
+        clearTimeout(
+          captureTimerRef.current,
+        );
+      }
+
+      if (streamRef.current) {
+        streamRef.current
+          .getTracks()
+          .forEach((track) => {
+            track.stop();
+          });
+      }
+
+      if (varroaImage) {
+        URL.revokeObjectURL(varroaImage);
+      }
+    };
+  }, []);
+
+  /* ==========================================================
+     START CAMERA
+     ========================================================== */
+
+  async function startVarroaScan() {
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      setVarroaError(
+        'Camera access is not supported by this browser.',
+      );
+      return;
+    }
+
+    setVarroaError('');
+    setVarroaResult(null);
+
+    if (varroaImage) {
+      URL.revokeObjectURL(
+        varroaImage,
+      );
+    }
+
+    setVarroaImage(null);
+
+    setCameraOpen(true);
+    setCameraLoading(true);
+
+    try {
+      const stream =
+        await navigator.mediaDevices.getUserMedia(
+          {
+            video: {
+              facingMode: {
+                ideal: 'environment',
+              },
+              width: {
+                ideal: 1280,
+              },
+              height: {
+                ideal: 720,
+              },
+            },
+            audio: false,
+          },
+        );
+
+      streamRef.current = stream;
+
+      if (!videoRef.current) {
+        throw new Error(
+          'Camera preview could not be initialized.',
+        );
+      }
+
+      videoRef.current.srcObject =
+        stream;
+
+      await videoRef.current.play();
+
+      /*
+       * Wait until the video has actual
+       * dimensions before capturing.
+       */
+
+      const waitForVideo = () => {
+        const video = videoRef.current;
+
+        if (
+          !video ||
+          video.readyState < 2 ||
+          !video.videoWidth ||
+          !video.videoHeight
+        ) {
+          captureTimerRef.current =
+            setTimeout(
+              waitForVideo,
+              200,
+            );
+
+          return;
+        }
+
+        setCameraLoading(false);
+
+        captureTimerRef.current =
+          setTimeout(() => {
+            captureFrame();
+          }, 1200);
+      };
+
+      waitForVideo();
+
+    } catch (err) {
+      stopCamera();
+
+      let message =
+        'Unable to access the webcam.';
+
+      if (
+        err?.name ===
+        'NotAllowedError'
+      ) {
+        message =
+          'Camera permission was denied. Please allow camera access and try again.';
+      } else if (
+        err?.name ===
+        'NotFoundError'
+      ) {
+        message =
+          'No camera was found on this device.';
+      } else if (
+        err?.name ===
+        'NotReadableError'
+      ) {
+        message =
+          'The camera is already being used by another application.';
+      } else if (err?.message) {
+        message = err.message;
+      }
+
+      setVarroaError(message);
+    }
+  }
+
+  /* ==========================================================
+     CAPTURE CAMERA FRAME
+     ========================================================== */
+
+  function captureFrame() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!video || !canvas) {
+      setVarroaError(
+        'Camera capture failed.',
+      );
+
+      stopCamera();
+      return;
+    }
+
+    if (
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+      setVarroaError(
+        'Camera image is not ready yet. Please try again.',
+      );
+
+      stopCamera();
+      return;
+    }
+
+    const width =
+      video.videoWidth;
+
+    const height =
+      video.videoHeight;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context =
+      canvas.getContext('2d');
+
+    if (!context) {
+      setVarroaError(
+        'Unable to initialize image capture.',
+      );
+
+      stopCamera();
+      return;
+    }
+
+    context.drawImage(
+      video,
+      0,
+      0,
+      width,
+      height,
+    );
+
+    canvas.toBlob(
+      async (blob) => {
+        if (!blob) {
+          setVarroaError(
+            'Unable to create image from camera.',
+          );
+
+          stopCamera();
+          return;
+        }
+
+        /*
+         * Convert captured Blob into
+         * an actual image File.
+         */
+
+        const imageFile =
+          new File(
+            [blob],
+            `${String(
+              hive?.hiveCode ||
+                hiveId ||
+                'hive',
+            )}-varroa-scan.jpg`,
+            {
+              type: 'image/jpeg',
+              lastModified:
+                Date.now(),
+            },
+          );
+
+        /*
+         * Keep captured image locally
+         * in browser memory for preview.
+         */
+
+        const imageUrl =
+          URL.createObjectURL(
+            blob,
+          );
+
+        setVarroaImage(
+          imageUrl,
+        );
+
+        /*
+         * Stop webcam immediately
+         * after one frame is captured.
+         */
+
+        stopCamera();
+
+        /*
+         * Send exactly this captured
+         * File to the backend.
+         */
+
+        await sendVarroaImage(
+          imageFile,
+        );
+      },
+      'image/jpeg',
+      0.92,
+    );
+  }
+
+  /* ==========================================================
+     SEND VARROA IMAGE
+     ========================================================== */
+
+  async function sendVarroaImage(
+    imageFile,
+  ) {
+    if (!(imageFile instanceof File)) {
+      setVarroaError(
+        'Captured image file is invalid.',
+      );
+      return;
+    }
+
+    setVarroaLoading(true);
+    setVarroaError('');
+    setVarroaResult(null);
+
+    try {
+      const token =
+        localStorage.getItem(
+          'honeychain_token',
+        );
+
+      /*
+       * IMPORTANT:
+       * This is multipart/form-data.
+       *
+       * Do NOT manually set the
+       * Content-Type header.
+       */
+
+      const formData =
+        new FormData();
+
+      /*
+       * Backend should use:
+       *
+       * upload.single('image')
+       *
+       * or equivalent.
+       */
+
+      formData.append(
+        'image',
+        imageFile,
+        imageFile.name,
+      );
+
+      /*
+       * VITE_API_URL should point to
+       * your Express backend, for example:
+       *
+       * https://your-backend.onrender.com
+       *
+       * If empty, same-origin /api is used.
+       */
+
+      const baseUrl = String(
+        import.meta.env
+          .VITE_API_URL || '',
+      ).replace(/\/$/, '');
+
+      const endpoint =
+        `${baseUrl}/api/alerts/varroa`;
+
+      console.log(
+        'Sending Varroa image to:',
+        endpoint,
+      );
+
+      console.log(
+        'File:',
+        imageFile.name,
+        imageFile.type,
+        imageFile.size,
+      );
+
+      const response =
+        await fetch(
+          endpoint,
+          {
+            method: 'POST',
+
+            headers: token
+              ? {
+                  Authorization:
+                    `Bearer ${token}`,
+                }
+              : {},
+
+            body: formData,
+          },
+        );
+
+      let data = null;
+
+      try {
+        data =
+          await response.json();
+      } catch {
+        data = null;
+      }
+
+      console.log(
+        'Varroa API response:',
+        data,
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            data?.error ||
+            data?.detail ||
+            `Varroa detection failed with status ${response.status}.`,
+        );
+      }
+
+      /*
+       * Support common backend response
+       * structures:
+       *
+       * { detected: true, ... }
+       *
+       * { data: { detected: true } }
+       *
+       * { result: { detected: true } }
+       */
+
+      const normalizedResult =
+        data?.data ||
+        data?.result ||
+        data;
+
+      if (
+        !normalizedResult ||
+        typeof normalizedResult !==
+          'object'
+      ) {
+        throw new Error(
+          'Varroa API returned an invalid response.',
+        );
+      }
+
+      setVarroaResult(
+        normalizedResult,
+      );
+
+    } catch (err) {
+      console.error(
+        'Varroa detection error:',
+        err,
+      );
+
+      setVarroaError(
+        err?.message ||
+          'Unable to analyze the captured image.',
+      );
+    } finally {
+      setVarroaLoading(false);
+    }
+  }
+
+  /* ==========================================================
+     HEALTH STATUS CLASS
+     ========================================================== */
+
+  function getHealthStatusClass(
+    status,
+  ) {
+    const normalized =
+      String(status || '')
+        .toLowerCase();
+
+    if (
+      normalized ===
+      'healthy'
+    ) {
+      return 'text-green-600 border-green-600/30 bg-green-600/5';
+    }
+
+    if (
+      normalized.includes(
+        'warning',
+      ) ||
+      normalized.includes(
+        'moderate',
+      )
+    ) {
+      return 'text-amber-600 border-amber-500/30 bg-amber-500/5';
+    }
+
+    return 'text-red-600 border-red-500/30 bg-red-500/5';
+  }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4">
+    <>
+      {/* ======================================================
+          HIVE DETAIL OVERLAY
+      ====================================================== */}
 
-      {/* Overlay */}
+      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4">
 
-      <div
-        className="absolute inset-0"
-        onClick={onClose}
-      />
+        <div
+          className="absolute inset-0"
+          onClick={onClose}
+        />
 
-      {/* Detail Panel */}
+        <div
+          className="relative z-10 w-full max-w-5xl max-h-[92vh] overflow-hidden bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 shadow-2xl flex flex-col"
+        >
 
-      <div className="relative z-10 w-full max-w-5xl max-h-[92vh] overflow-hidden bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 shadow-2xl flex flex-col">
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
-        {/* ==================================================
-            HEADER
-            ================================================== */}
+          <div className="shrink-0 bg-cream-card dark:bg-black-card border-b border-black/10 dark:border-white/10 px-5 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4">
 
-        <div className="shrink-0 bg-cream-card dark:bg-black-card border-b border-black/10 dark:border-white/10 px-5 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-4">
+            <div className="min-w-0">
 
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-gold font-semibold">
-              Hive Details
-            </p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-gold font-semibold">
+                Hive Details
+              </p>
 
-            <h2 className="mt-2 text-lg sm:text-xl font-semibold break-words">
-              {hive?.hiveCode ||
-                'Hive'}
-            </h2>
+              <h2 className="mt-2 text-lg sm:text-xl font-semibold break-words">
+                {hive?.hiveCode ||
+                  'Hive'}
+              </h2>
 
-            <p className="mt-1 text-[11px] sm:text-xs text-gray dark:text-muted break-all">
-              Hive ID: {hiveId || '—'}
-            </p>
-          </div>
+              <p className="mt-1 text-[11px] sm:text-xs text-gray dark:text-muted break-all">
+                Hive ID: {hiveId || '—'}
+              </p>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-9 h-9 border border-black/10 dark:border-white/10 flex items-center justify-center hover:border-gold shrink-0"
-            aria-label="Close hive details"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* ==================================================
-            CONTENT
-            ================================================== */}
-
-        <div className="overflow-y-auto scrollbar-thin">
-
-          <div className="p-5 sm:p-6">
-
-            {/* ==================================================
-                SUMMARY
-                ================================================== */}
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black/10 dark:bg-white/10">
-
-              <DetailStat
-                label="Hive ID"
-                value={hiveId}
-              />
-
-              <DetailStat
-                label="Farm"
-                value={
-                  farm?.name ||
-                  farm?.farmCode ||
-                  'Unknown'
-                }
-              />
-
-              <DetailStat
-                label="Hive Type"
-                value={
-                  hive?.hiveType ||
-                  'Not specified'
-                }
-              />
             </div>
 
-            {/* ==================================================
-                BASIC INFORMATION
-                ================================================== */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-9 h-9 border border-black/10 dark:border-white/10 flex items-center justify-center hover:border-gold shrink-0"
+              aria-label="Close hive details"
+            >
+              <X size={18} />
+            </button>
 
-            <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+          </div>
 
-              <div className="flex items-center justify-between gap-3">
+          {/* ==================================================
+              CONTENT
+          ================================================== */}
+
+          <div className="overflow-y-auto scrollbar-thin">
+
+            <div className="p-5 sm:p-6">
+
+              {/* ==================================================
+                  SUMMARY
+              ================================================== */}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black/10 dark:bg-white/10">
+
+                <DetailStat
+                  label="Hive ID"
+                  value={hiveId}
+                />
+
+                <DetailStat
+                  label="Farm"
+                  value={
+                    farm?.name ||
+                    farm?.farmCode ||
+                    'Unknown'
+                  }
+                />
+
+                <DetailStat
+                  label="Hive Type"
+                  value={
+                    hive?.hiveType ||
+                    'Not specified'
+                  }
+                />
+
+              </div>
+
+              {/* ==================================================
+                  BASIC INFORMATION
+              ================================================== */}
+
+              <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+
                 <div>
+
                   <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
                     Overview
                   </p>
@@ -888,113 +1580,44 @@ function HiveDetail({
                   <h3 className="mt-1 font-semibold">
                     Basic Hive Information
                   </h3>
-                </div>
-              </div>
 
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-
-                {basicDetails.map(
-                  (item) => (
-                    <InfoItem
-                      key={item.label}
-                      label={item.label}
-                      value={
-                        item.value || '—'
-                      }
-                    />
-                  ),
-                )}
-
-              </div>
-
-              {/* Additional API Fields */}
-
-              {additionalDetails.length >
-                0 && (
-                <div className="mt-6 pt-6 border-t border-black/10 dark:border-white/10">
-
-                  <h4 className="text-sm font-semibold">
-                    Additional Details
-                  </h4>
-
-                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-
-                    {additionalDetails.map(
-                      ([key, value]) => (
-                        <InfoItem
-                          key={key}
-                          label={formatLabel(
-                            key,
-                          )}
-                          value={String(
-                            value,
-                          )}
-                        />
-                      ),
-                    )}
-
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ==================================================
-                DISEASE RISK
-                ================================================== */}
-
-            <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
-
-              <div className="flex items-start gap-3">
-
-                <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
-                  <ShieldAlert
-                    size={18}
-                    className="text-gold"
-                  />
                 </div>
 
-                <div className="min-w-0">
-                  <h3 className="font-semibold">
-                    Disease Risk
-                  </h3>
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
 
-                  <p className="mt-1 text-xs text-gray dark:text-muted">
-                    Disease-risk analysis for this hive
-                  </p>
+                  {basicDetails.map(
+                    (item) => (
+                      <InfoItem
+                        key={item.label}
+                        label={item.label}
+                        value={
+                          item.value ||
+                          '—'
+                        }
+                      />
+                    ),
+                  )}
+
                 </div>
-              </div>
 
-              {!hasRiskObject ? (
-                <div className="mt-5 border border-black/10 dark:border-white/10 p-5">
-                  <p className="text-sm text-gray dark:text-muted">
-                    Disease risk data is not available for this hive.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Risk Badge */}
+                {additionalDetails.length >
+                  0 && (
+                  <div className="mt-6 pt-6 border-t border-black/10 dark:border-white/10">
 
-                  <div className="mt-5">
-                    <RiskBadge
-                      risk={risk}
-                      large
-                    />
-                  </div>
+                    <h4 className="text-sm font-semibold">
+                      Additional Details
+                    </h4>
 
-                  {/* Risk Data */}
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
 
-                  {riskEntries.length >
-                    0 && (
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-
-                      {riskEntries.map(
+                      {additionalDetails.map(
                         ([key, value]) => (
                           <InfoItem
                             key={key}
                             label={formatLabel(
                               key,
                             )}
-                            value={formatRiskValue(
+                            value={String(
                               value,
                             )}
                           />
@@ -1002,32 +1625,860 @@ function HiveDetail({
                       )}
 
                     </div>
-                  )}
-                </>
-              )}
-            </div>
 
-            {/* ==================================================
-                CLOSE
+                  </div>
+                )}
+
+              </div>
+
+              {/* ==================================================
+                  OVERALL HIVE HEALTH
+              ================================================== */}
+
+              <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+
+                <div className="flex items-start gap-3">
+
+                  <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
+                    <Activity
+                      size={18}
+                      className="text-gold"
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+                      Live Analysis
+                    </p>
+
+                    <h3 className="mt-1 font-semibold">
+                      Overall Hive Health
+                    </h3>
+
+                    <p className="mt-1 text-xs text-gray dark:text-muted">
+                      Sensor-based health prediction for this hive
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {healthLoading ? (
+
+                  <div className="mt-6 border border-black/10 dark:border-white/10 p-6 flex flex-col items-center justify-center">
+
+                    <LoaderCircle
+                      size={26}
+                      className="animate-spin text-gold"
+                    />
+
+                    <p className="mt-3 text-sm text-gray dark:text-muted">
+                      Analyzing hive health...
+                    </p>
+
+                  </div>
+
+                ) : healthError ? (
+
+                  <div className="mt-6 border border-red-500/30 bg-red-500/5 p-5">
+
+                    <div className="flex items-start gap-3">
+
+                      <AlertTriangle
+                        size={19}
+                        className="text-red-500 shrink-0"
+                      />
+
+                      <div>
+
+                        <p className="text-sm font-semibold">
+                          Health analysis unavailable
+                        </p>
+
+                        <p className="mt-1 text-xs text-gray dark:text-muted">
+                          {healthError}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                ) : healthData ? (
+
+                  <div className="mt-6">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black/10 dark:bg-white/10">
+
+                      <HealthStat
+                        label="Health Score"
+                        value={`${healthData.health_score ?? '—'}/100`}
+                      />
+
+                      <HealthStat
+                        label="Health Status"
+                        value={
+                          healthData.health_status ||
+                          'Unknown'
+                        }
+                        valueClass={
+                          getHealthStatusClass(
+                            healthData.health_status,
+                          )
+                        }
+                      />
+
+                      <HealthStat
+                        label="Bee Activity"
+                        value={
+                          healthData.bee_activity ??
+                          '—'
+                        }
+                      />
+
+                      <HealthStat
+                        label="Inspection"
+                        value={
+                          healthData.inspection_required
+                            ? 'Required'
+                            : 'Not Required'
+                        }
+                        valueClass={
+                          healthData.inspection_required
+                            ? 'text-red-600'
+                            : 'text-green-600'
+                        }
+                      />
+
+                    </div>
+
+                    {healthData.sensorData && (
+                      <div className="mt-5 border border-black/10 dark:border-white/10 p-5">
+
+                        <div className="flex items-center gap-2">
+
+                          <Thermometer
+                            size={16}
+                            className="text-gold"
+                          />
+
+                          <h4 className="text-sm font-semibold">
+                            Sensor Snapshot
+                          </h4>
+
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+
+                          <SensorValue
+                            label="Temperature"
+                            value={`${healthData.sensorData.temperature}°C`}
+                          />
+
+                          <SensorValue
+                            label="Humidity"
+                            value={`${healthData.sensorData.humidity}%`}
+                          />
+
+                          <SensorValue
+                            label="Outside Temp."
+                            value={`${healthData.sensorData.outside_temperature}°C`}
+                          />
+
+                          <SensorValue
+                            label="CO₂"
+                            value={`${healthData.sensorData.co2} ppm`}
+                          />
+
+                          <SensorValue
+                            label="TVOC"
+                            value={`${healthData.sensorData.tvoc}`}
+                          />
+
+                          <SensorValue
+                            label="Light"
+                            value={`${healthData.sensorData.light}`}
+                          />
+
+                          <SensorValue
+                            label="Bee In"
+                            value={
+                              healthData.sensorData.beе_in ??
+                              healthData.sensorData.bee_in
+                            }
+                          />
+
+                          <SensorValue
+                            label="Bee Out"
+                            value={
+                              healthData.sensorData.bee_out
+                            }
+                          />
+
+                          <SensorValue
+                            label="Pressure"
+                            value={`${healthData.sensorData.pressure} hPa`}
+                          />
+
+                        </div>
+
+                      </div>
+                    )}
+
+                  </div>
+
+                ) : null}
+
+              </div>
+
+              {/* ==================================================
+                  VARROA DETECTION
+              ================================================== */}
+
+              <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+
+                <div className="flex items-start justify-between gap-4">
+
+                  <div className="flex items-start gap-3">
+
+                    <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
+
+                      <Camera
+                        size={18}
+                        className="text-gold"
+                      />
+
+                    </div>
+
+                    <div className="min-w-0">
+
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+                        YOLO Detection
+                      </p>
+
+                      <h3 className="mt-1 font-semibold">
+                        Varroa Detection
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray dark:text-muted">
+                        Capture a hive image and scan for Varroa mites.
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                  <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-gray dark:text-muted">
+                    YOLO · best.pt
+                  </span>
+
+                </div>
+
+                <div className="mt-5">
+
+                  <button
+                    type="button"
+                    onClick={
+                      startVarroaScan
+                    }
+                    disabled={
+                      varroaLoading ||
+                      cameraOpen
+                    }
+                    className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-black text-cream dark:bg-cream dark:text-black px-5 py-3 text-sm font-semibold disabled:opacity-50 hover:bg-gold hover:text-black dark:hover:bg-gold dark:hover:text-black transition-colors"
+                  >
+
+                    {varroaLoading ? (
+                      <>
+                        <LoaderCircle
+                          size={17}
+                          className="animate-spin"
+                        />
+
+                        Analyzing Image...
+                      </>
+                    ) : (
+                      <>
+                        <Camera
+                          size={17}
+                        />
+
+                        Scan for Varroa
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+
+                {/* ==================================================
+                    ERROR
                 ================================================== */}
 
-            <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:justify-end">
+                {varroaError && (
+                  <div className="mt-5 border border-red-500/30 bg-red-500/5 p-4">
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full sm:w-auto border border-black/10 dark:border-white/10 px-5 py-3 text-sm font-semibold hover:border-gold transition-colors"
-              >
-                Close
-              </button>
+                    <div className="flex items-start gap-3">
+
+                      <AlertTriangle
+                        size={18}
+                        className="text-red-500 shrink-0"
+                      />
+
+                      <p className="text-sm">
+                        {varroaError}
+                      </p>
+
+                    </div>
+
+                  </div>
+                )}
+
+                {/* ==================================================
+                    RESULT
+                ================================================== */}
+
+                {varroaResult && (
+                  <VarroaResult
+                    result={
+                      varroaResult
+                    }
+                    imageUrl={
+                      varroaImage
+                    }
+                  />
+                )}
+
+              </div>
+
+              {/* ==================================================
+                  CLOSE
+              ================================================== */}
+
+              <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:justify-end">
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full sm:w-auto border border-black/10 dark:border-white/10 px-5 py-3 text-sm font-semibold hover:border-gold transition-colors"
+                >
+                  Close
+                </button>
+
+              </div>
 
             </div>
+
           </div>
+
         </div>
       </div>
+
+      {/* ========================================================
+          CAMERA OVERLAY
+      ======================================================== */}
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4">
+
+          <div className="w-full max-w-3xl">
+
+            <div className="border border-white/10 bg-black overflow-hidden">
+
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+
+                <div>
+
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+                    Camera Scan
+                  </p>
+
+                  <h3 className="mt-1 text-sm font-semibold text-white">
+                    Position the hive in view
+                  </h3>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="w-9 h-9 border border-white/20 text-white flex items-center justify-center hover:border-gold"
+                >
+                  <X size={18} />
+                </button>
+
+              </div>
+
+              <div className="relative aspect-video bg-black">
+
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+
+                    <LoaderCircle
+                      size={32}
+                      className="animate-spin text-gold"
+                    />
+
+                    <p className="mt-3 text-sm text-white">
+                      Opening camera...
+                    </p>
+
+                  </div>
+                )}
+
+                {!cameraLoading && (
+                  <div className="absolute inset-0 pointer-events-none">
+
+                    <div className="absolute inset-[10%] border border-gold/70" />
+
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 border border-white/60" />
+
+                  </div>
+                )}
+
+              </div>
+
+              <div className="px-5 py-4 border-t border-white/10">
+
+                <p className="text-xs text-white/70">
+                  One frame will be captured automatically and analyzed using the YOLO Varroa model.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Hidden capture canvas */}
+
+      <canvas
+        ref={canvasRef}
+        className="hidden"
+      />
+    </>
+  );
+}
+
+
+/* ============================================================
+   VARROA RESULT
+   ============================================================ */
+
+function VarroaResult({
+  result,
+  imageUrl,
+}) {
+  const detected =
+    result?.detected === true;
+
+  const detections =
+    Array.isArray(
+      result?.detections,
+    )
+      ? result.detections
+      : [];
+
+  const count =
+    Number(result?.count) ||
+    detections.length ||
+    0;
+
+  return (
+    <div className="mt-6 border border-black/10 dark:border-white/10 overflow-hidden">
+
+      {/* ==================================================
+          RESULT HEADER
+      ================================================== */}
+
+      <div className="p-5 border-b border-black/10 dark:border-white/10">
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+          <div className="flex items-center gap-3">
+
+            <div
+              className={`w-10 h-10 border flex items-center justify-center ${
+                detected
+                  ? 'border-red-500/40 bg-red-500/5'
+                  : 'border-green-600/40 bg-green-600/5'
+              }`}
+            >
+
+              {detected ? (
+                <AlertTriangle
+                  size={19}
+                  className="text-red-500"
+                />
+              ) : (
+                <CheckCircle2
+                  size={19}
+                  className="text-green-600"
+                />
+              )}
+
+            </div>
+
+            <div>
+
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray dark:text-muted">
+                Varroa Analysis
+              </p>
+
+              <h4
+                className={`mt-1 text-base font-semibold ${
+                  detected
+                    ? 'text-red-500'
+                    : 'text-green-600'
+                }`}
+              >
+                {detected
+                  ? 'Infected'
+                  : 'Not Infected'}
+              </h4>
+
+            </div>
+
+          </div>
+
+          <div className="border border-black/10 dark:border-white/10 px-4 py-3">
+
+            <p className="text-[9px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+              Varroa Count
+            </p>
+
+            <p
+              className={`mt-1 text-xl font-bold ${
+                detected
+                  ? 'text-red-500'
+                  : 'text-green-600'
+              }`}
+            >
+              {count}
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ==================================================
+          CAPTURED IMAGE
+      ================================================== */}
+
+      {imageUrl && (
+        <div className="p-5">
+
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted mb-3">
+            Captured Image
+          </p>
+
+          <BoundingBoxImage
+            imageUrl={imageUrl}
+            detections={detections}
+          />
+
+        </div>
+      )}
+
+      {/* ==================================================
+          DETECTION DETAILS
+      ================================================== */}
+
+      {detections.length > 0 && (
+        <div className="border-t border-black/10 dark:border-white/10 p-5">
+
+          <h4 className="text-sm font-semibold">
+            YOLO Detection Details
+          </h4>
+
+          <div className="mt-4 space-y-3">
+
+            {detections.map(
+              (detection, index) => (
+                <div
+                  key={`${detection?.class_id}-${index}`}
+                  className="border border-black/10 dark:border-white/10 p-4"
+                >
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+                    <InfoItem
+                      label="Class"
+                      value={
+                        detection?.class_name ||
+                        'varroa'
+                      }
+                    />
+
+                    <InfoItem
+                      label="Confidence"
+                      value={
+                        Number.isFinite(
+                          Number(
+                            detection?.confidence,
+                          ),
+                        )
+                          ? `${
+                              (
+                                Number(
+                                  detection.confidence,
+                                ) * 100
+                              ).toFixed(1)
+                            }%`
+                          : '—'
+                      }
+                    />
+
+                    <InfoItem
+                      label="Class ID"
+                      value={
+                        detection?.class_id ??
+                        '—'
+                      }
+                    />
+
+                    <InfoItem
+                      label="Bounding Box"
+                      value={
+                        detection?.bbox
+                          ? `${detection.bbox.x1}, ${detection.bbox.y1}, ${detection.bbox.x2}, ${detection.bbox.y2}`
+                          : '—'
+                      }
+                    />
+
+                  </div>
+
+                </div>
+              ),
+            )}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ==================================================
+          BACKEND STATUS
+      ================================================== */}
+
+      <div className="border-t border-black/10 dark:border-white/10 px-5 py-4">
+
+        <div className="flex flex-wrap items-center gap-4 text-[10px] uppercase tracking-[0.14em] text-gray dark:text-muted">
+
+          <span>
+            Model: {result?.model || 'best.pt'}
+          </span>
+
+          <span>
+            Source: {result?.source || 'ml_service'}
+          </span>
+
+          <span>
+            Status: {result?.status || 'ok'}
+          </span>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
+
+
+/* ============================================================
+   BOUNDING BOX IMAGE
+   ============================================================ */
+
+function BoundingBoxImage({
+  imageUrl,
+  detections,
+}) {
+  const [imageSize, setImageSize] =
+    useState({
+      width: 1,
+      height: 1,
+    });
+
+  function handleImageLoad(event) {
+    setImageSize({
+      width:
+        event.currentTarget
+          .naturalWidth || 1,
+      height:
+        event.currentTarget
+          .naturalHeight || 1,
+    });
+  }
+
+  return (
+    <div className="relative w-full overflow-hidden bg-black border border-black/10 dark:border-white/10">
+
+      <img
+        src={imageUrl}
+        alt="Captured hive for Varroa detection"
+        onLoad={handleImageLoad}
+        className="block w-full h-auto"
+      />
+
+      {detections.map(
+        (detection, index) => {
+          const bbox =
+            detection?.bbox;
+
+          if (!bbox) {
+            return null;
+          }
+
+          const x1 =
+            Number(bbox.x1);
+
+          const y1 =
+            Number(bbox.y1);
+
+          const x2 =
+            Number(bbox.x2);
+
+          const y2 =
+            Number(bbox.y2);
+
+          if (
+            !Number.isFinite(x1) ||
+            !Number.isFinite(y1) ||
+            !Number.isFinite(x2) ||
+            !Number.isFinite(y2)
+          ) {
+            return null;
+          }
+
+          const left =
+            (x1 /
+              imageSize.width) *
+            100;
+
+          const top =
+            (y1 /
+              imageSize.height) *
+            100;
+
+          const width =
+            ((x2 - x1) /
+              imageSize.width) *
+            100;
+
+          const height =
+            ((y2 - y1) /
+              imageSize.height) *
+            100;
+
+          return (
+            <div
+              key={index}
+              className="absolute border-2 border-blue-500 pointer-events-none"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${width}%`,
+                height: `${height}%`,
+              }}
+            >
+
+              <span className="absolute -top-6 left-0 bg-blue-500 text-white text-[9px] font-semibold px-1.5 py-1 whitespace-nowrap">
+                {detection?.class_name ||
+                  'varroa'}{' '}
+
+                {Number.isFinite(
+                  Number(
+                    detection?.confidence,
+                  ),
+                )
+                  ? `${
+                      (
+                        Number(
+                          detection.confidence,
+                        ) * 100
+                      ).toFixed(0)
+                    }%`
+                  : ''}
+              </span>
+
+            </div>
+          );
+        },
+      )}
+
+    </div>
+  );
+}
+
+
+/* ============================================================
+   HEALTH STAT
+   ============================================================ */
+
+function HealthStat({
+  label,
+  value,
+  valueClass = '',
+}) {
+  return (
+    <div className="bg-cream-card dark:bg-black-card p-5 min-w-0">
+
+      <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 text-lg font-semibold break-words ${
+          valueClass || ''
+        }`}
+      >
+        {value || '—'}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* ============================================================
+   SENSOR VALUE
+   ============================================================ */
+
+function SensorValue({
+  label,
+  value,
+}) {
+  return (
+    <div className="border border-black/10 dark:border-white/10 p-3 min-w-0">
+
+      <p className="text-[9px] uppercase tracking-[0.14em] text-gray dark:text-muted">
+        {label}
+      </p>
+
+      <p className="mt-1 text-xs font-semibold break-words">
+        {value ?? '—'}
+      </p>
+
+    </div>
+  );
+}
+
 
 /* ============================================================
    DETAIL STAT
@@ -1047,9 +2498,11 @@ function DetailStat({
       <p className="mt-2 text-sm font-semibold break-all">
         {value || '—'}
       </p>
+
     </div>
   );
 }
+
 
 /* ============================================================
    INFO ITEM
@@ -1074,51 +2527,33 @@ function InfoItem({
   );
 }
 
+
 /* ============================================================
    FORMAT LABEL
    ============================================================ */
 
 function formatLabel(key) {
   return String(key)
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/[_-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .replace(/^./, (char) =>
-      char.toUpperCase(),
+    .replace(
+      /([A-Z])/g,
+      ' $1',
+    )
+    .replace(
+      /[_-]/g,
+      ' ',
+    )
+    .replace(
+      /\s+/g,
+      ' ',
+    )
+    .replace(
+      /^./,
+      (char) =>
+        char.toUpperCase(),
     )
     .trim();
 }
 
-/* ============================================================
-   FORMAT RISK VALUE
-   ============================================================ */
-
-function formatRiskValue(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return '—';
-  }
-
-  if (
-    typeof value === 'object'
-  ) {
-    return JSON.stringify(
-      value,
-      null,
-      2,
-    );
-  }
-
-  if (
-    typeof value === 'boolean'
-  ) {
-    return value ? 'Yes' : 'No';
-  }
-
-  return String(value);
-}
 
 /* ============================================================
    EXPORTS
