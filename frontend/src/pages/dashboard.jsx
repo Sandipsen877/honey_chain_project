@@ -51,6 +51,41 @@ import HistorySection from '../components/dashboard/AlertHistory';
 
 
 /* ============================================================
+   HELPERS
+   ============================================================ */
+
+function extractYieldKg(item) {
+  if (item == null) return 0;
+
+  if (typeof item === 'number') {
+    return Number(item) || 0;
+  }
+
+  if (typeof item === 'string') {
+    const n = parseFloat(item);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  if (typeof item === 'object') {
+    const n =
+      item.estimatedYieldKg ??
+      item.estimatedYield ??
+      item.yieldEstimate ??
+      item.predictedYield ??
+      item.yield ??
+      item.value ??
+      item.amount ??
+      item.kg ??
+      item.quantity;
+
+    return Number(n) || 0;
+  }
+
+  return 0;
+}
+
+
+/* ============================================================
    MAIN DASHBOARD
    ============================================================ */
 
@@ -68,7 +103,10 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [resolvedAlerts, setResolvedAlerts] = useState([]);
 
+  /* per-farm yields + total for home */
+  const [yields, setYields] = useState({});
   const [yieldEstimate, setYieldEstimate] = useState(null);
+
   const [risks, setRisks] = useState({});
 
 
@@ -252,6 +290,7 @@ export default function Dashboard() {
 
       try {
         const openRes = await apiRequest('/api/alerts?status=open');
+
         allOpenAlerts = Array.isArray(openRes)
           ? openRes
           : openRes?.alerts || [];
@@ -260,14 +299,17 @@ export default function Dashboard() {
       }
 
       try {
-        const resolvedRes = await apiRequest('/api/alerts?status=resolved');
+        const resolvedRes =
+          await apiRequest('/api/alerts?status=resolved');
+
         allResolvedAlerts = Array.isArray(resolvedRes)
           ? resolvedRes
           : resolvedRes?.alerts || [];
       } catch {
-        // Fallback: fetch all and filter
         try {
-          const allRes = await apiRequest('/api/alerts');
+          const allRes =
+            await apiRequest('/api/alerts');
+
           const all = Array.isArray(allRes)
             ? allRes
             : allRes?.alerts || [];
@@ -289,11 +331,9 @@ export default function Dashboard() {
         }
       }
 
-      // Keep for dashboard home
       setAlerts(allOpenAlerts);
       setResolvedAlerts(allResolvedAlerts);
 
-      // Helpers for 6-part history
       const isHiveAlert = (a) =>
         !!(getId(a?.hive) || a?.hive || a?.hiveId);
 
@@ -311,39 +351,52 @@ export default function Dashboard() {
 
 
       /* --------------------------------------------------------
-         YIELD ESTIMATE
+         YIELD — per farm + TOTAL for Dashboard Home
          -------------------------------------------------------- */
 
-      if (loadedFarms.length) {
-        try {
-          const response =
-            await apiRequest(
+      const yieldMap = {};
+
+      await Promise.all(
+        loadedFarms.map(async (farm) => {
+          const farmId = getId(farm);
+
+          if (!farmId) return;
+
+          try {
+            const response = await apiRequest(
               '/api/yield/estimate',
               {
                 method: 'POST',
-
                 body: JSON.stringify({
-                  farmId: getId(
-                    loadedFarms[0]
-                  ),
-
+                  farmId,
                   season: 'monsoon',
                 }),
-              }
+              },
             );
 
-          setYieldEstimate(
-            response?.yieldEstimate ??
-              response?.estimatedYield ??
-              response?.yield ??
-              response
-          );
-        } catch {
-          setYieldEstimate(null);
-        }
-      } else {
-        setYieldEstimate(null);
-      }
+            yieldMap[farmId] = response;
+          } catch {
+            yieldMap[farmId] = null;
+          }
+        }),
+      );
+
+      setYields(yieldMap);
+
+      const totalKg = Object.values(yieldMap).reduce(
+        (sum, item) => sum + extractYieldKg(item),
+        0,
+      );
+
+      setYieldEstimate({
+        estimatedYieldKg:
+          Math.round(totalKg * 10) / 10,
+
+        source: 'total',
+
+        farmCount:
+          loadedFarms.length,
+      });
 
 
       /* --------------------------------------------------------
@@ -681,6 +734,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-72px)] bg-cream dark:bg-black flex items-center justify-center">
+
         <div className="flex flex-col items-center gap-4">
 
           <LoaderCircle
@@ -693,6 +747,7 @@ export default function Dashboard() {
           </p>
 
         </div>
+
       </div>
     );
   }
@@ -712,7 +767,7 @@ export default function Dashboard() {
             DESKTOP SIDEBAR
         ======================================================= */}
 
-        <aside className="hidden lg:flex w-64 shrink-0 border-r border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card flex-col">
+        <aside className="hidden lg:flex fixed left-0 top-[72px] z-30 w-64 h-[calc(100vh-72px)] shrink-0 border-r border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card flex-col">
 
           <div className="p-6 border-b border-black/10 dark:border-white/10">
 
@@ -889,7 +944,7 @@ export default function Dashboard() {
             MAIN CONTENT
         ======================================================= */}
 
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 lg:ml-64">
 
           <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-10 py-8">
 
@@ -1007,7 +1062,7 @@ export default function Dashboard() {
 
 
             {/* ==================================================
-                DASHBOARD HOME
+                DASHBOARD HOME — total yield of all farms
             ================================================== */}
 
             {activeSection ===
@@ -1038,7 +1093,7 @@ export default function Dashboard() {
 
 
             {/* ==================================================
-                FARMS
+                FARMS — per-farm yields, no alerts
             ================================================== */}
 
             {activeSection ===
@@ -1046,7 +1101,7 @@ export default function Dashboard() {
               <FarmsSection
                 farms={farms}
                 hives={hives}
-                alerts={alerts}
+                yields={yields}
                 onCreate={
                   createFarm
                 }
@@ -1185,15 +1240,13 @@ export default function Dashboard() {
 
 
       {/* ========================================================
-          FARM DETAIL
+          FARM DETAIL — no alerts
       ========================================================= */}
 
       {selectedFarm && (
         <FarmDetail
           farm={selectedFarm}
-          farms={farms}
           hives={hives}
-          alerts={alerts}
           onClose={() =>
             setSelectedFarm(null)
           }
@@ -1202,9 +1255,6 @@ export default function Dashboard() {
           }
           onUpdateFarm={
             updateFarm
-          }
-          onResolveAlert={
-            resolveAlert
           }
           actionLoading={
             actionLoading

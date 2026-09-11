@@ -17,7 +17,7 @@
 
   /* Light Theme */
   --color-cream: #FFF4D6;
-  --color-cream-card: #FFFFFF;
+  --color-cream-card: #F2F2F2;
   --color-gray: #252525;
   --color-muted: #FFFFFF;
 
@@ -72,4 +72,26 @@ body {
 }
 .animate-wing {
   animation: wing 0.15s ease-in-out infinite;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 154, 34, 0.45) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(201, 154, 34, 0.45);
+  border-radius: 999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 154, 34, 0.75);
 }
