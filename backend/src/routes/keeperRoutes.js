@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Keeper = require("../models/Keeper");
-const Farm = require("../models/Farm");
-const otpService = require("../services/otpService");
+import Keeper from "../models/Keeper.js";
+import Farm from "../models/Farm.js";
+import * as otpService from "../services/otpService.js";
 
 function registrationData(body) {
   return {
@@ -93,4 +93,4 @@ router.patch("/:id", async (req, res) => {
   res.json(keeper);
 });
 
-module.exports = router;
+export default router;

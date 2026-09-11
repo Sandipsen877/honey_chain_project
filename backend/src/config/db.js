@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 async function connectDB() {
   const uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/beekeeping_prototype";
@@ -11,4 +11,4 @@ async function connectDB() {
   }
 }
 
-module.exports = connectDB;
+export default connectDB;

@@ -1,4 +1,4 @@
-const OtpCode = require("../models/OtpCode");
+import OtpCode from "../models/OtpCode.js";
 
 /**
  * Mocked OTP delivery: generates a 6-digit code, saves it with a short expiry,
@@ -29,4 +29,4 @@ async function verifyOtp(phone, code, purpose = "login") {
   return record;
 }
 
-module.exports = { sendOtp, verifyOtp };
+export { sendOtp, verifyOtp };

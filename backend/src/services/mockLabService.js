@@ -1,6 +1,6 @@
-const { v4: uuidv4 } = require("uuid");
-const LabReport = require("../models/LabReport");
-const Batch = require("../models/Batch");
+import { v4 as uuidv4 } from "uuid";
+import LabReport from "../models/LabReport.js";
+import Batch from "../models/Batch.js";
 
 // Seeded report templates covering a mix of pass/fail results and floral sources,
 // modeled on real Indian honey-quality parameters (FSSAI-style panel).
@@ -106,4 +106,4 @@ async function getReport(batchId) {
   return LabReport.findOne({ batch: batchId });
 }
 
-module.exports = { submitSample, getReport };
+export { submitSample, getReport };

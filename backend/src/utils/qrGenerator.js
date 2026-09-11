@@ -1,4 +1,4 @@
-const QRCode = require("qrcode");
+import QRCode from "qrcode";
 
 /**
  * Generates a QR code (as a base64 data URL) that encodes the public scan URL
@@ -12,4 +12,4 @@ async function generateBatchQr(batchId) {
   return { publicUrl, dataUrl };
 }
 
-module.exports = { generateBatchQr };
+export { generateBatchQr };

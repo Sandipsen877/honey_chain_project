@@ -1,7 +1,7 @@
-const cron = require("node-cron");
-const Hive = require("../models/Hive");
-const SensorReading = require("../models/SensorReading");
-const { evaluateReading } = require("./alertEngine");
+import cron from "node-cron";
+import Hive from "../models/Hive.js";
+import SensorReading from "../models/SensorReading.js";
+import { evaluateReading } from "./alertEngine.js";
 
 let lastWeightByHive = {}; // in-memory cache: hiveId -> last simulated weight, for a gentle trend
 
@@ -73,4 +73,4 @@ function startSimulator() {
   });
 }
 
-module.exports = { startSimulator, runSimulationTick, generateReading };
+export { startSimulator, runSimulationTick, generateReading };

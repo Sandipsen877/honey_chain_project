@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const OtpCodeSchema = new Schema({
@@ -13,4 +13,4 @@ const OtpCodeSchema = new Schema({
 // Auto-delete expired OTP documents from MongoDB once they pass their expiry.
 OtpCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-module.exports = mongoose.model("OtpCode", OtpCodeSchema);
+export default mongoose.model("OtpCode", OtpCodeSchema);

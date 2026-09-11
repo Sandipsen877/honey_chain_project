@@ -1,20 +1,21 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const morgan = require("morgan");
-const connectDB = require("./src/config/db");
-const { startSimulator } = require("./src/services/sensorSimulator");
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
+import morgan from "morgan";
+import connectDB from "./src/config/db.js";
+import { startSimulator } from "./src/services/sensorSimulator.js";
+import keeperRoutes from "./src/routes/keeperRoutes.js";
+import farmRoutes from "./src/routes/farmRoutes.js";
+import hiveRoutes from "./src/routes/hiveRoutes.js";
+import sensorRoutes from "./src/routes/sensorRoutes.js";
+import alertRoutes from "./src/routes/alertRoutes.js";
+import yieldRoutes from "./src/routes/yieldRoutes.js";
+import batchRoutes from "./src/routes/batchRoutes.js";
+import labRoutes from "./src/routes/labRoutes.js";
+import qrRoutes from "./src/routes/qrRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
 
-const keeperRoutes = require("./src/routes/keeperRoutes");
-const farmRoutes = require("./src/routes/farmRoutes");
-const hiveRoutes = require("./src/routes/hiveRoutes");
-const sensorRoutes = require("./src/routes/sensorRoutes");
-const alertRoutes = require("./src/routes/alertRoutes");
-const yieldRoutes = require("./src/routes/yieldRoutes");
-const batchRoutes = require("./src/routes/batchRoutes");
-const labRoutes = require("./src/routes/labRoutes");
-const qrRoutes = require("./src/routes/qrRoutes");
-const authRoutes = require("./src/routes/authRoutes");
+dotenv.config();
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.get("/", (_req, res) => {
+  console.log("[server] health check");
   res.json({ status: "ok", service: "beekeeping-backend", mode: "prototype" });
 });
 
@@ -60,7 +62,7 @@ const PORT = process.env.PORT || 5000;
   }
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`[server] beekeeping-backend running on port ${PORT}`);
+    console.log(`[server] beekeeping-backend running on port http://localhost:${PORT}`);
     startSimulator();
   });
 })();

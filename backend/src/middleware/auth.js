@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 /**
  * Verifies the Authorization: Bearer <token> header issued by
@@ -21,4 +21,4 @@ function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+export { requireAuth };

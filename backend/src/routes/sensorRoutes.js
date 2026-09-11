@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const SensorReading = require("../models/SensorReading");
-const { evaluateReading } = require("../services/alertEngine");
+import SensorReading from "../models/SensorReading.js";
+import { evaluateReading } from "../services/alertEngine.js";
 
 // POST /api/sensors/readings - manually log a reading (keeper's manual-entry mode)
 router.post("/readings", async (req, res) => {
@@ -33,4 +33,4 @@ router.get("/latest/:hiveId", async (req, res) => {
   res.json(reading);
 });
 
-module.exports = router;
+export default router;

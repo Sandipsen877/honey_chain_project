@@ -126,6 +126,7 @@ interchangeably.
 - `GET /api/sensors/latest/:hiveId`
 
 **Alerts** (detection + suggested action only, no control actions)
+- `POST /api/alerts/predict` — runs the FastAPI health/inspection model with live sensor data
 - `GET /api/alerts?farmId=&hiveId=&status=open`
 - `PATCH /api/alerts/:id/resolve`
 

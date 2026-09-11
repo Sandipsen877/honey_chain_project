@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Batch = require("../models/Batch");
-const Farm = require("../models/Farm");
+import Batch from "../models/Batch.js";
+import Farm from "../models/Farm.js";
 
 // POST /api/batches - create a new honey batch for a harvest
 // Enforces that the given farm actually belongs to the given keeper (the
@@ -49,4 +49,4 @@ router.patch("/:id", async (req, res) => {
   res.json(batch);
 });
 
-module.exports = router;
+export default router;

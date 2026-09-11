@@ -515,7 +515,9 @@ function HiveForm({
   }
 
   return (
-    <form className="border border-gold/30 bg-gold/5 overflow-hidden">
+    <form 
+    onSubmit={submit}
+    className="border border-gold/30 bg-gold/5 overflow-hidden">
 
       {/* Form Header */}
 
