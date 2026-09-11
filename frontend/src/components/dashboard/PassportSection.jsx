@@ -793,11 +793,11 @@ const canGenerateQr = overallResult === 'PASS';
       return;
     }
     if (overallResult !== 'PASS') {
-  setError(
-    'QR passport can only be generated when the laboratory result is PASS.',
-  );
-  return;
-}
+        setError(
+          'QR passport can only be generated when the laboratory result is PASS.',
+        );
+        return;
+      }
 
     setLoadingQr(true);
     setError('');
