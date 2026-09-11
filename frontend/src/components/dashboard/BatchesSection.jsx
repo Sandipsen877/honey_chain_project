@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 import {
@@ -9,7 +8,6 @@ import {
 } from 'lucide-react';
 
 import {
-  PageHeader,
   DetailOverlay,
   DetailStat,
   InfoItem,
@@ -21,6 +19,25 @@ import {
   getId,
   formatDate,
 } from '../../services/dashboardApi';
+
+
+/* ============================================================
+   SECTION LABEL
+   ============================================================ */
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3 mb-5 sm:mb-6">
+      <span className="h-px flex-1 bg-gold/20" />
+
+      <span className="text-[9px] uppercase tracking-[0.2em] font-semibold text-gold whitespace-nowrap">
+        {children}
+      </span>
+
+      <span className="h-px flex-1 bg-gold/20" />
+    </div>
+  );
+}
 
 
 /* ============================================================
@@ -36,43 +53,18 @@ function BatchesSection({
   onUpdate,
   actionLoading,
 }) {
-  const [showForm, setShowForm] = useState(false);
-
-  /*
-   * ------------------------------------------------------------
-   * SELECTED FARM FILTER
-   * ------------------------------------------------------------
-   */
+  const [showForm, setShowForm] =
+    useState(false);
 
   const [selectedFarmId, setSelectedFarmId] =
     useState('all');
 
-
-  /*
-   * ------------------------------------------------------------
-   * CURRENT KEEPER ID
-   * ------------------------------------------------------------
-   */
-
   const keeperId = getId(keeper);
 
 
-  /*
-   * ------------------------------------------------------------
-   * FIND FARMS BELONGING TO CURRENT KEEPER
-   * ------------------------------------------------------------
-   *
-   * Some backend responses may contain:
-   *
-   * farm.keeper = "keeperId"
-   *
-   * or:
-   *
-   * farm.keeper = { _id: "keeperId" }
-   *
-   * We support both.
-   * ------------------------------------------------------------
-   */
+  /* ==========================================================
+     FIND KEEPER FARMS
+     ========================================================== */
 
   const keeperFarmIds = farms
     .filter((farm) => {
@@ -80,105 +72,115 @@ function BatchesSection({
         getId(farm?.keeper) ||
         farm?.keeper;
 
-      return (
-        farmKeeperId === keeperId
-      );
+      return farmKeeperId === keeperId;
     })
     .map((farm) => getId(farm))
     .filter(Boolean);
 
 
-  /*
-   * ------------------------------------------------------------
-   * GET BATCHES BELONGING TO CURRENT KEEPER
-   * ------------------------------------------------------------
-   *
-   * We check two possibilities:
-   *
-   * 1. The batch directly contains the keeper ID.
-   *
-   * 2. The batch contains a farm ID and that farm belongs
-   *    to the current keeper.
-   *
-   * This prevents batches from disappearing when the backend
-   * does not populate batch.keeper.
-   * ------------------------------------------------------------
-   */
+  /* ==========================================================
+     FIND KEEPER BATCHES
+     ========================================================== */
 
-  const keeperBatches = batches.filter((batch) => {
+  const keeperBatches = batches.filter(
+    (batch) => {
+      const batchKeeperId =
+        getId(batch?.keeper) ||
+        batch?.keeper;
 
-    const batchKeeperId =
-      getId(batch?.keeper) ||
-      batch?.keeper;
+      const batchFarmId =
+        getId(batch?.farm) ||
+        batch?.farm;
 
-    const batchFarmId =
-      getId(batch?.farm) ||
-      batch?.farm;
-
-
-    const belongsToKeeper =
-      batchKeeperId === keeperId ||
-      keeperFarmIds.includes(
-        batchFarmId
+      return (
+        batchKeeperId === keeperId ||
+        keeperFarmIds.includes(
+          batchFarmId,
+        )
       );
+    },
+  );
 
 
-    return belongsToKeeper;
-  });
-
-
-  /*
-   * ------------------------------------------------------------
-   * APPLY FARM FILTER
-   * ------------------------------------------------------------
-   */
+  /* ==========================================================
+     APPLY FARM FILTER
+     ========================================================== */
 
   const filteredBatches =
     selectedFarmId === 'all'
       ? keeperBatches
-      : keeperBatches.filter((batch) => {
+      : keeperBatches.filter(
+          (batch) => {
+            const batchFarmId =
+              getId(batch?.farm) ||
+              batch?.farm;
 
-          const batchFarmId =
-            getId(batch?.farm) ||
-            batch?.farm;
-
-          return (
-            batchFarmId ===
-            selectedFarmId
-          );
-        });
+            return (
+              batchFarmId ===
+              selectedFarmId
+            );
+          },
+        );
 
 
   return (
-    <div>
+    <div className="w-full min-w-0">
 
       {/* ======================================================
-          PAGE HEADER
-          ====================================================== */}
+          SECTION HEADING
+         ====================================================== */}
 
-      <PageHeader
-        eyebrow="03 / Honey Batches"
-        title="Honey Batches"
-        description="Create, view and update harvested honey batches."
-        action={
+      <div className="mb-8 sm:mb-10">
+
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-gold font-semibold">
+            03 / Honey Batches
+          </span>
+
+          <span className="h-px w-12 bg-gold/30" />
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-black dark:text-cream">
+              Honey <span className="text-gold">Batches.</span>
+            </h2>
+
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray dark:text-muted">
+              Create, view and update harvested honey batches.
+            </p>
+          </div>
+
           <button
             onClick={() =>
               setShowForm(
-                (value) => !value
+                (value) => !value,
               )
             }
-            className="inline-flex items-center gap-2 bg-gold text-black px-4 py-3 text-sm font-semibold"
+            className="
+              shrink-0
+              inline-flex items-center justify-center gap-2
+              bg-gold text-black
+              px-5 py-3
+              text-sm font-semibold
+              hover:bg-gold-light
+              transition-colors
+            "
           >
             <Plus size={17} />
-            Create Batch
+            {showForm
+              ? 'Close Form'
+              : 'Create Batch'}
           </button>
-        }
-      />
+
+        </div>
+      </div>
 
 
       {/* ======================================================
           CREATE BATCH FORM
-          ====================================================== */}
+         ====================================================== */}
 
       {showForm && (
         <BatchForm
@@ -203,30 +205,39 @@ function BatchesSection({
 
       {/* ======================================================
           FARM FILTER
-          ====================================================== */}
+         ====================================================== */}
 
-      <div className="mb-6 border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-5">
+      <SectionLabel>
+        Batch filter
+      </SectionLabel>
 
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card mb-7 sm:mb-8">
 
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
+
+          {/* Filter information */}
+
+          <div className="p-5 sm:p-6 lg:border-r border-black/10 dark:border-white/10">
 
             <p className="text-[10px] uppercase tracking-[0.2em] text-gold">
-              Batch Filter
+              Farm Selection
             </p>
 
-            <h3 className="mt-1 text-sm font-semibold">
+            <h3 className="mt-1 text-sm sm:text-base font-semibold">
               Filter batches by farm
             </h3>
 
-            <p className="mt-1 text-xs text-gray dark:text-muted">
-              Only batches belonging to the current keeper are shown.
+            <p className="mt-2 max-w-xl text-xs leading-5 text-gray dark:text-muted">
+              Only batches belonging to the current
+              keeper are shown in the results.
             </p>
 
           </div>
 
 
-          <div className="w-full md:w-72">
+          {/* Select */}
+
+          <div className="p-5 sm:p-6">
 
             <label className="text-xs font-medium">
               Select Farm
@@ -236,10 +247,20 @@ function BatchesSection({
               value={selectedFarmId}
               onChange={(event) =>
                 setSelectedFarmId(
-                  event.target.value
+                  event.target.value,
                 )
               }
-              className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm"
+              className="
+                mt-2
+                w-full
+                border border-black/10
+                dark:border-white/10
+                bg-cream dark:bg-black
+                px-3 py-3
+                text-sm
+                outline-none
+                focus:border-gold
+              "
             >
 
               <option value="all">
@@ -247,7 +268,6 @@ function BatchesSection({
               </option>
 
               {farms.map((farm) => (
-
                 <option
                   key={getId(farm)}
                   value={getId(farm)}
@@ -256,7 +276,6 @@ function BatchesSection({
                     farm.farmCode ||
                     'Unnamed Farm'}
                 </option>
-
               ))}
 
             </select>
@@ -266,30 +285,38 @@ function BatchesSection({
         </div>
 
 
-        {/* ====================================================
-            RESULT COUNT
-            ==================================================== */}
+        {/* Result count */}
 
-        <div className="mt-4 border-t border-black/10 dark:border-white/10 pt-4">
+        <div className="border-t border-black/10 dark:border-white/10 px-5 sm:px-6 py-4">
 
-          <p className="text-xs text-gray dark:text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-2">
 
-            Showing{' '}
+            <p className="text-xs text-gray dark:text-muted">
 
-            <span className="font-semibold text-black dark:text-white">
-              {filteredBatches.length}
-            </span>{' '}
+              Showing{' '}
 
-            batch
-            {filteredBatches.length !== 1
-              ? 'es'
-              : ''}
+              <span className="font-semibold text-black dark:text-white">
+                {filteredBatches.length}
+              </span>{' '}
 
-            {selectedFarmId !== 'all'
-              ? ' for the selected farm'
-              : ''}
+              batch
+              {filteredBatches.length !== 1
+                ? 'es'
+                : ''}
 
-          </p>
+              {selectedFarmId !== 'all'
+                ? ' for the selected farm'
+                : ''}
+
+            </p>
+
+            <span className="text-[9px] uppercase tracking-[0.18em] text-gold">
+              {selectedFarmId === 'all'
+                ? 'All farms'
+                : 'Filtered'}
+            </span>
+
+          </div>
 
         </div>
 
@@ -298,15 +325,17 @@ function BatchesSection({
 
       {/* ======================================================
           BATCH LIST
-          ====================================================== */}
+         ====================================================== */}
+
+      <SectionLabel>
+        Batch records
+      </SectionLabel>
 
       {filteredBatches.length === 0 ? (
 
         <EmptyState
           icon={Boxes}
-
           title="No honey batches"
-
           text={
             selectedFarmId === 'all'
               ? 'No batches were found for this keeper.'
@@ -316,160 +345,274 @@ function BatchesSection({
 
       ) : (
 
-        <div className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card">
+        <div className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card overflow-hidden">
 
-          <div className="overflow-x-auto">
+          {/* ==================================================
+              DESKTOP TABLE
+             ================================================== */}
 
-            <table className="w-full text-sm">
+          <div className="hidden lg:block">
 
-              <thead className="border-b border-black/10 dark:border-white/10">
+            <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_1fr_80px] gap-4 px-5 py-3 border-b border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
 
-                <tr className="text-left">
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+                Batch
+              </span>
 
-                  <th className="p-4 text-xs uppercase tracking-wider">
-                    Batch
-                  </th>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+                Farm
+              </span>
 
-                  <th className="p-4 text-xs uppercase tracking-wider">
-                    Farm
-                  </th>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+                Harvest Date
+              </span>
 
-                  <th className="p-4 text-xs uppercase tracking-wider">
-                    Harvest Date
-                  </th>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+                Quantity
+              </span>
 
-                  <th className="p-4 text-xs uppercase tracking-wider">
-                    Quantity
-                  </th>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+                Floral Source
+              </span>
 
-                  <th className="p-4 text-xs uppercase tracking-wider">
-                    Floral Source
-                  </th>
-
-                  <th className="p-4" />
-
-                </tr>
-
-              </thead>
+              <span />
+            </div>
 
 
-              <tbody>
+            <div className="max-h-[520px] overflow-y-auto overflow-x-hidden scrollbar-thin">
 
-                {filteredBatches.map(
-                  (batch) => {
+              {filteredBatches.map(
+                (batch) => {
 
-                    /*
-                     * Find farm information
-                     * for displaying farm name.
-                     */
+                  const farm =
+                    farms.find(
+                      (item) =>
+                        getId(item) ===
+                          getId(batch?.farm) ||
+                        getId(item) ===
+                          batch?.farm,
+                    );
 
-                    const farm =
-                      farms.find(
-                        (item) =>
-                          getId(item) ===
-                            getId(batch?.farm) ||
-                          getId(item) ===
-                            batch?.farm
-                      );
+                  return (
+                    <div
+                      key={getId(batch)}
+                      className="
+                        grid
+                        grid-cols-[1.2fr_1fr_1fr_0.8fr_1fr_80px]
+                        gap-4
+                        px-5 py-4
+                        border-b
+                        border-black/5
+                        dark:border-white/10
+                        last:border-b-0
+                        hover:bg-black/[0.02]
+                        dark:hover:bg-white/[0.02]
+                        transition-colors
+                      "
+                    >
+
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold break-words">
+                          {batch.batchCode ||
+                            'Unnamed Batch'}
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-gray dark:text-muted break-words">
+                        {farm?.name ||
+                          farm?.farmCode ||
+                          'Unknown'}
+                      </p>
+
+                      <p className="text-xs text-gray dark:text-muted">
+                        {formatDate(
+                          batch.harvestDate,
+                        )}
+                      </p>
+
+                      <p className="text-xs font-medium">
+                        {batch.quantityKg != null
+                          ? `${batch.quantityKg} kg`
+                          : '—'}
+                      </p>
+
+                      <p className="text-xs text-gray dark:text-muted break-words">
+                        {batch.floralSourceClaimed ||
+                          '—'}
+                      </p>
+
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() =>
+                            onOpenBatch(
+                              batch,
+                            )
+                          }
+                          className="
+                            inline-flex
+                            items-center
+                            gap-1
+                            text-xs
+                            text-gold
+                            hover:gap-2
+                            transition-all
+                          "
+                        >
+                          View
+                          <ChevronRight
+                            size={14}
+                          />
+                        </button>
+                      </div>
+
+                    </div>
+                  );
+                },
+              )}
+
+            </div>
+
+          </div>
 
 
-                    return (
-                      <tr
-                        key={getId(batch)}
-                        className="border-b border-black/10 dark:border-white/10 last:border-b-0"
-                      >
+          {/* ==================================================
+              MOBILE / TABLET CARDS
+             ================================================== */}
 
-                        {/* BATCH */}
+          <div className="lg:hidden max-h-[560px] overflow-y-auto overflow-x-hidden scrollbar-thin">
 
-                        <td className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3">
 
-                          <p className="font-semibold">
-                            {batch.batchCode ||
-                              'Unnamed Batch'}
+              {filteredBatches.map(
+                (batch) => {
+
+                  const farm =
+                    farms.find(
+                      (item) =>
+                        getId(item) ===
+                          getId(batch?.farm) ||
+                        getId(item) ===
+                          batch?.farm,
+                    );
+
+                  return (
+                    <div
+                      key={getId(batch)}
+                      className="
+                        min-w-0
+                        border
+                        border-black/10
+                        dark:border-white/10
+                        p-4
+                        bg-cream
+                        dark:bg-black
+                      "
+                    >
+
+                      <div className="flex items-start justify-between gap-3">
+
+                        <div className="min-w-0">
+
+                          <p className="text-[9px] uppercase tracking-[0.16em] text-gold">
+                            Batch
                           </p>
 
-                        </td>
+                          <h3 className="mt-1 text-sm font-semibold break-words">
+                            {batch.batchCode ||
+                              'Unnamed Batch'}
+                          </h3>
+
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            onOpenBatch(
+                              batch,
+                            )
+                          }
+                          className="
+                            shrink-0
+                            w-8 h-8
+                            flex items-center justify-center
+                            border
+                            border-black/10
+                            dark:border-white/10
+                            text-gold
+                          "
+                          aria-label="View batch"
+                        >
+                          <ChevronRight
+                            size={15}
+                          />
+                        </button>
+
+                      </div>
 
 
-                        {/* FARM */}
+                      <div className="mt-4 grid grid-cols-2 gap-2">
 
-                        <td className="p-4">
+                        <div className="border border-black/10 dark:border-white/10 p-3">
+                          <p className="text-[9px] uppercase tracking-[0.14em] text-muted">
+                            Farm
+                          </p>
 
-                          {farm?.name ||
-                            farm?.farmCode ||
-                            'Unknown'}
-
-                        </td>
-
-
-                        {/* HARVEST DATE */}
-
-                        <td className="p-4">
-
-                          {formatDate(
-                            batch.harvestDate
-                          )}
-
-                        </td>
+                          <p className="mt-1 text-xs font-medium break-words">
+                            {farm?.name ||
+                              farm?.farmCode ||
+                              'Unknown'}
+                          </p>
+                        </div>
 
 
-                        {/* QUANTITY */}
+                        <div className="border border-black/10 dark:border-white/10 p-3">
+                          <p className="text-[9px] uppercase tracking-[0.14em] text-muted">
+                            Quantity
+                          </p>
 
-                        <td className="p-4">
-
-                          {batch.quantityKg != null
-                            ? `${batch.quantityKg} kg`
-                            : '—'}
-
-                        </td>
-
-
-                        {/* FLORAL SOURCE */}
-
-                        <td className="p-4">
-
-                          {batch.floralSourceClaimed ||
-                            '—'}
-
-                        </td>
+                          <p className="mt-1 text-xs font-medium">
+                            {batch.quantityKg != null
+                              ? `${batch.quantityKg} kg`
+                              : '—'}
+                          </p>
+                        </div>
 
 
-                        {/* VIEW */}
+                        <div className="border border-black/10 dark:border-white/10 p-3">
+                          <p className="text-[9px] uppercase tracking-[0.14em] text-muted">
+                            Harvest
+                          </p>
 
-                        <td className="p-4 text-right">
+                          <p className="mt-1 text-xs font-medium">
+                            {formatDate(
+                              batch.harvestDate,
+                            )}
+                          </p>
+                        </div>
 
-                          <button
-                            onClick={() =>
-                              onOpenBatch(
-                                batch
-                              )
-                            }
-                            className="inline-flex items-center gap-1 text-xs text-gold"
-                          >
 
-                            View
+                        <div className="border border-black/10 dark:border-white/10 p-3">
+                          <p className="text-[9px] uppercase tracking-[0.14em] text-muted">
+                            Source
+                          </p>
 
-                            <ChevronRight
-                              size={14}
-                            />
+                          <p className="mt-1 text-xs font-medium break-words">
+                            {batch.floralSourceClaimed ||
+                              '—'}
+                          </p>
+                        </div>
 
-                          </button>
+                      </div>
 
-                        </td>
+                    </div>
+                  );
+                },
+              )}
 
-                      </tr>
-                    );
-                  }
-                )}
-
-              </tbody>
-
-            </table>
+            </div>
 
           </div>
 
         </div>
-
       )}
 
     </div>
@@ -489,97 +632,62 @@ function BatchForm({
   onCancel,
   actionLoading,
 }) {
+  const [form, setForm] =
+    useState({
 
-  /*
-   * ------------------------------------------------------------
-   * FORM DATA
-   * ------------------------------------------------------------
-   *
-   * New batch:
-   *
-   * BATCH-${Date.now()}
-   *
-   * Existing batch:
-   *
-   * Keep existing batch code.
-   * ------------------------------------------------------------
-   */
+      batchCode:
+        initialData?.batchCode ||
+        `BATCH-${Date.now()}`,
 
-  const [form, setForm] = useState({
+      farm:
+        getId(initialData?.farm) ||
+        initialData?.farm ||
+        '',
 
-    batchCode:
-      initialData?.batchCode ||
-      `BATCH-${Date.now()}`,
+      keeper:
+        getId(keeper) ||
+        '',
 
-    farm:
-      getId(initialData?.farm) ||
-      initialData?.farm ||
-      '',
+      harvestDate:
+        initialData?.harvestDate
+          ? String(
+              initialData.harvestDate,
+            ).slice(0, 10)
+          : '',
 
-    keeper:
-      getId(keeper) ||
-      '',
+      quantityKg:
+        initialData?.quantityKg != null
+          ? String(
+              initialData.quantityKg,
+            )
+          : '',
 
-    harvestDate:
-      initialData?.harvestDate
-        ? String(
-            initialData.harvestDate
-          ).slice(0, 10)
-        : '',
+      floralSourceClaimed:
+        initialData?.floralSourceClaimed ||
+        '',
 
-    quantityKg:
-      initialData?.quantityKg != null
-        ? String(
-            initialData.quantityKg
-          )
-        : '',
+      priceInrPerKg:
+        initialData?.priceInrPerKg != null
+          ? String(
+              initialData.priceInrPerKg,
+            )
+          : '',
+    });
 
-    floralSourceClaimed:
-      initialData?.floralSourceClaimed ||
-      '',
-
-    priceInrPerKg:
-      initialData?.priceInrPerKg != null
-        ? String(
-            initialData.priceInrPerKg
-          )
-        : '',
-  });
-
-
-  /*
-   * ------------------------------------------------------------
-   * UPDATE FORM FIELD
-   * ------------------------------------------------------------
-   */
 
   function update(
     field,
-    value
+    value,
   ) {
-
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
-
   }
 
 
-  /*
-   * ------------------------------------------------------------
-   * SUBMIT
-   * ------------------------------------------------------------
-   */
-
   async function submit(event) {
-
     event.preventDefault();
-
-    /*
-     * Keeper ID comes from the logged-in
-     * keeper profile.
-     */
 
     await onSubmit({
 
@@ -598,7 +706,7 @@ function BatchForm({
       quantityKg:
         form.quantityKg
           ? Number(
-              form.quantityKg
+              form.quantityKg,
             )
           : undefined,
 
@@ -608,12 +716,11 @@ function BatchForm({
       priceInrPerKg:
         form.priceInrPerKg
           ? Number(
-              form.priceInrPerKg
+              form.priceInrPerKg,
             )
           : undefined,
 
     });
-
   }
 
 
@@ -624,36 +731,43 @@ function BatchForm({
   return (
     <form
       onSubmit={submit}
-      className="mb-8 border border-gold/40 bg-cream-card dark:bg-black-card p-6"
+      className="
+        mb-8
+        border border-gold/40
+        bg-cream-card
+        dark:bg-black-card
+        overflow-hidden
+      "
     >
 
       {/* ======================================================
-          HEADER
-          ====================================================== */}
+          FORM HEADER
+         ====================================================== */}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 sm:p-6 border-b border-gold/20">
 
         <div>
-
           <p className="text-[10px] uppercase tracking-[0.2em] text-gold">
             Batch details
           </p>
 
           <h2 className="mt-1 text-lg font-semibold">
-
             {isEditing
               ? 'Update Honey Batch'
               : 'Create Honey Batch'}
-
           </h2>
-
         </div>
-
 
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-2 border border-black/10 dark:border-white/10 text-xs"
+          className="
+            self-start sm:self-auto
+            px-4 py-2
+            border border-black/10
+            dark:border-white/10
+            text-xs
+          "
         >
           Close
         </button>
@@ -662,202 +776,194 @@ function BatchForm({
 
 
       {/* ======================================================
-          FORM FIELDS
-          ====================================================== */}
+          FORM BODY
+         ====================================================== */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="p-5 sm:p-6">
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* BATCH CODE */}
-
-        <FormField
-          label="Batch Code"
-
-          value={
-            form.batchCode
-          }
-
-          onChange={(value) =>
-            update(
-              'batchCode',
-              value
-            )
-          }
-
-          placeholder="BATCH-TEST-001"
-
-          required
-        />
-
-
-        {/* FARM */}
-
-        <div>
-
-          <label className="text-xs font-medium">
-            Farm
-          </label>
-
-          <select
-            value={form.farm}
-            onChange={(event) =>
+          <FormField
+            label="Batch Code"
+            value={
+              form.batchCode
+            }
+            onChange={(value) =>
               update(
-                'farm',
-                event.target.value
+                'batchCode',
+                value,
               )
             }
+            placeholder="BATCH-TEST-001"
             required
-            className="mt-2 w-full border border-black/10 dark:border-white/10 bg-cream dark:bg-black px-3 py-3 text-sm"
-          >
+          />
 
-            <option value="">
-              Select farm
-            </option>
 
-            {farms.map(
-              (farm) => (
+          <div>
+            <label className="text-xs font-medium">
+              Farm
+            </label>
 
-                <option
-                  key={getId(farm)}
-                  value={getId(farm)}
-                >
+            <select
+              value={form.farm}
+              onChange={(event) =>
+                update(
+                  'farm',
+                  event.target.value,
+                )
+              }
+              required
+              className="
+                mt-2
+                w-full
+                border border-black/10
+                dark:border-white/10
+                bg-cream dark:bg-black
+                px-3 py-3
+                text-sm
+                outline-none
+                focus:border-gold
+              "
+            >
 
-                  {farm.name ||
-                    farm.farmCode}
+              <option value="">
+                Select farm
+              </option>
 
-                </option>
+              {farms.map(
+                (farm) => (
+                  <option
+                    key={getId(farm)}
+                    value={getId(farm)}
+                  >
+                    {farm.name ||
+                      farm.farmCode}
+                  </option>
+                ),
+              )}
 
+            </select>
+          </div>
+
+
+          <FormField
+            label="Harvest Date"
+            value={
+              form.harvestDate
+            }
+            onChange={(value) =>
+              update(
+                'harvestDate',
+                value,
               )
-            )}
+            }
+            type="date"
+            required
+          />
 
-          </select>
+
+          <FormField
+            label="Quantity (kg)"
+            value={
+              form.quantityKg
+            }
+            onChange={(value) =>
+              update(
+                'quantityKg',
+                value,
+              )
+            }
+            placeholder="25"
+            type="number"
+            required
+          />
+
+
+          <FormField
+            label="Floral Source"
+            value={
+              form.floralSourceClaimed
+            }
+            onChange={(value) =>
+              update(
+                'floralSourceClaimed',
+                value,
+              )
+            }
+            placeholder="Mustard"
+          />
+
+
+          <FormField
+            label="Price (INR/kg)"
+            value={
+              form.priceInrPerKg
+            }
+            onChange={(value) =>
+              update(
+                'priceInrPerKg',
+                value,
+              )
+            }
+            placeholder="450"
+            type="number"
+          />
 
         </div>
 
 
-        {/* HARVEST DATE */}
+        {/* ====================================================
+            FORM BUTTONS
+           ==================================================== */}
 
-        <FormField
-          label="Harvest Date"
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-          value={
-            form.harvestDate
-          }
+          <button
+            type="submit"
+            disabled={actionLoading}
+            className="
+              inline-flex
+              items-center
+              justify-center
+              gap-2
+              bg-black
+              text-cream
+              dark:bg-cream
+              dark:text-black
+              px-5 py-3
+              text-sm font-semibold
+              disabled:opacity-50
+            "
+          >
 
-          onChange={(value) =>
-            update(
-              'harvestDate',
-              value
-            )
-          }
+            {actionLoading && (
+              <LoaderCircle
+                size={16}
+                className="animate-spin"
+              />
+            )}
 
-          type="date"
+            {isEditing
+              ? 'Update Batch'
+              : 'Create Batch'}
 
-          required
-        />
-
-
-        {/* QUANTITY */}
-
-        <FormField
-          label="Quantity (kg)"
-
-          value={
-            form.quantityKg
-          }
-
-          onChange={(value) =>
-            update(
-              'quantityKg',
-              value
-            )
-          }
-
-          placeholder="25"
-
-          type="number"
-
-          required
-        />
+          </button>
 
 
-        {/* FLORAL SOURCE */}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="
+              px-5 py-3
+              text-sm
+              border border-black/10
+              dark:border-white/10
+            "
+          >
+            Cancel
+          </button>
 
-        <FormField
-          label="Floral Source"
-
-          value={
-            form.floralSourceClaimed
-          }
-
-          onChange={(value) =>
-            update(
-              'floralSourceClaimed',
-              value
-            )
-          }
-
-          placeholder="Mustard"
-        />
-
-
-        {/* PRICE */}
-
-        <FormField
-          label="Price (INR/kg)"
-
-          value={
-            form.priceInrPerKg
-          }
-
-          onChange={(value) =>
-            update(
-              'priceInrPerKg',
-              value
-            )
-          }
-
-          placeholder="450"
-
-          type="number"
-        />
-
-      </div>
-
-
-      {/* ======================================================
-          BUTTONS
-          ====================================================== */}
-
-      <div className="mt-6 flex gap-3">
-
-        <button
-          type="submit"
-          disabled={actionLoading}
-          className="inline-flex items-center gap-2 bg-black text-cream dark:bg-cream dark:text-black px-5 py-3 text-sm font-semibold disabled:opacity-50"
-        >
-
-          {actionLoading && (
-            <LoaderCircle
-              size={16}
-              className="animate-spin"
-            />
-          )}
-
-          {isEditing
-            ? 'Update Batch'
-            : 'Create Batch'}
-
-        </button>
-
-
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-5 py-3 text-sm border border-black/10 dark:border-white/10"
-        >
-          Cancel
-        </button>
+        </div>
 
       </div>
 
@@ -878,41 +984,34 @@ function BatchDetail({
   onUpdate,
   actionLoading,
 }) {
-
   const [editing, setEditing] =
     useState(false);
 
-
-  /*
-   * Find farm belonging to this batch.
-   */
 
   const farm = farms.find(
     (item) =>
       getId(item) ===
         getId(batch?.farm) ||
       getId(item) ===
-        batch?.farm
+        batch?.farm,
   );
 
 
   return (
     <DetailOverlay
       eyebrow="Honey Batch Details"
-
       title={
         batch.batchCode ||
         'Honey Batch'
       }
-
       onClose={onClose}
     >
 
       {/* ======================================================
           SUMMARY
-          ====================================================== */}
+         ====================================================== */}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-black/10 dark:bg-white/10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-black/10 dark:bg-white/10">
 
         <DetailStat
           label="Batch Code"
@@ -921,7 +1020,6 @@ function BatchDetail({
             '—'
           }
         />
-
 
         <DetailStat
           label="Quantity"
@@ -932,7 +1030,6 @@ function BatchDetail({
           }
         />
 
-
         <DetailStat
           label="Floral Source"
           value={
@@ -941,12 +1038,11 @@ function BatchDetail({
           }
         />
 
-
         <DetailStat
           label="Harvest Date"
           value={
             formatDate(
-              batch.harvestDate
+              batch.harvestDate,
             )
           }
         />
@@ -956,31 +1052,39 @@ function BatchDetail({
 
       {/* ======================================================
           BATCH INFORMATION
-          ====================================================== */}
+         ====================================================== */}
 
-      <div className="mt-6 border border-black/10 dark:border-white/10 p-6">
+      <div className="mt-6 border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-5 sm:p-6">
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-          <h3 className="font-semibold">
-            Batch Information
-          </h3>
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.18em] text-gold">
+              Record
+            </p>
 
+            <h3 className="mt-1 font-semibold">
+              Batch Information
+            </h3>
+          </div>
 
           <button
             type="button"
             onClick={() =>
               setEditing(
-                (value) => !value
+                (value) => !value,
               )
             }
-            className="text-xs underline underline-offset-4"
+            className="
+              self-start sm:self-auto
+              text-xs
+              underline
+              underline-offset-4
+            "
           >
-
             {editing
               ? 'Close Edit'
               : 'Update Batch'}
-
           </button>
 
         </div>
@@ -992,34 +1096,22 @@ function BatchDetail({
 
             <BatchForm
               farms={farms}
-
-              /*
-               * Use the logged-in keeper.
-               */
-
               keeper={keeper}
-
-              /*
-               * Preserve existing batch values.
-               */
-
               initialData={batch}
-
               onCancel={() =>
                 setEditing(false)
               }
-
-              onSubmit={async (data) => {
+              onSubmit={async (
+                data,
+              ) => {
 
                 await onUpdate(
                   getId(batch),
-                  data
+                  data,
                 );
 
                 setEditing(false);
-
               }}
-
               actionLoading={
                 actionLoading
               }
@@ -1029,7 +1121,7 @@ function BatchDetail({
 
         ) : (
 
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
 
             <InfoItem
               label="Batch Code"
@@ -1037,7 +1129,6 @@ function BatchDetail({
                 batch.batchCode
               }
             />
-
 
             <InfoItem
               label="Farm"
@@ -1048,16 +1139,14 @@ function BatchDetail({
               }
             />
 
-
             <InfoItem
               label="Harvest Date"
               value={
                 formatDate(
-                  batch.harvestDate
+                  batch.harvestDate,
                 )
               }
             />
-
 
             <InfoItem
               label="Quantity"
@@ -1068,7 +1157,6 @@ function BatchDetail({
               }
             />
 
-
             <InfoItem
               label="Floral Source"
               value={
@@ -1076,7 +1164,6 @@ function BatchDetail({
                 '—'
               }
             />
-
 
             <InfoItem
               label="Price"
@@ -1096,9 +1183,9 @@ function BatchDetail({
 
       {/* ======================================================
           DIGITAL PASSPORT NOTE
-          ====================================================== */}
+         ====================================================== */}
 
-      <div className="mt-6 border border-gold/30 bg-gold/5 p-6">
+      <div className="mt-6 border border-gold/30 bg-gold/5 p-5 sm:p-6">
 
         <p className="text-[10px] uppercase tracking-[0.2em] text-gold">
           Digital Passport

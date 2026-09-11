@@ -1,4 +1,3 @@
-
 import {
   Outlet,
   Link,
@@ -47,7 +46,7 @@ export default function Layout() {
   const navigate = useNavigate();
 
 
-  /*
+  /* 
    * ============================================================
    * CHECK CURRENT PAGE
    * ============================================================
@@ -59,7 +58,7 @@ export default function Layout() {
     );
 
 
-  /*
+  /* 
    * ============================================================
    * PROFILE MODAL
    * ============================================================
@@ -71,7 +70,7 @@ export default function Layout() {
   ] = useState(false);
 
 
-  /*
+  /* 
    * ============================================================
    * KEEPER DATA
    * ============================================================
@@ -83,7 +82,7 @@ export default function Layout() {
   ] = useState(null);
 
 
-  /*
+  /* 
    * ============================================================
    * PROFILE LOADING
    * ============================================================
@@ -95,7 +94,7 @@ export default function Layout() {
   ] = useState(false);
 
 
-  /*
+  /* 
    * ============================================================
    * PROFILE ERROR
    * ============================================================
@@ -107,7 +106,7 @@ export default function Layout() {
   ] = useState('');
 
 
-  /*
+  /* 
    * ============================================================
    * LOAD PROFILE
    * ============================================================
@@ -127,6 +126,7 @@ export default function Layout() {
     /*
      * Do nothing when modal is closed.
      */
+
     if (
       !profileOpen ||
       !isDashboard
@@ -140,6 +140,7 @@ export default function Layout() {
       /*
        * Get JWT token.
        */
+
       const token =
         localStorage.getItem(
           'honeychain_token'
@@ -149,6 +150,7 @@ export default function Layout() {
       /*
        * No token.
        */
+
       if (!token) {
 
         setProfileError(
@@ -169,6 +171,7 @@ export default function Layout() {
          * Ask backend for the
          * currently authenticated keeper.
          */
+
         const response =
           await getCurrentKeeper(
             token
@@ -189,6 +192,7 @@ export default function Layout() {
          *   email: "...",
          * }
          */
+
         const currentKeeper =
           response?.keeper ||
           response;
@@ -205,6 +209,7 @@ export default function Layout() {
         /*
          * Store actual backend data.
          */
+
         setKeeper(
           currentKeeper
         );
@@ -213,6 +218,7 @@ export default function Layout() {
         /*
          * Keep local copy updated.
          */
+
         localStorage.setItem(
           'honeychain_keeper',
           JSON.stringify(
@@ -249,7 +255,7 @@ export default function Layout() {
   ]);
 
 
-  /*
+  /* 
    * ============================================================
    * CLOSE PROFILE
    * ============================================================
@@ -263,7 +269,7 @@ export default function Layout() {
   };
 
 
-  /*
+  /* 
    * ============================================================
    * LOGOUT
    * ============================================================
@@ -274,6 +280,7 @@ export default function Layout() {
     /*
      * Remove authentication token.
      */
+
     localStorage.removeItem(
       'honeychain_token'
     );
@@ -282,6 +289,7 @@ export default function Layout() {
     /*
      * Remove cached keeper information.
      */
+
     localStorage.removeItem(
       'honeychain_keeper'
     );
@@ -290,23 +298,26 @@ export default function Layout() {
     /*
      * Close profile modal.
      */
+
     setProfileOpen(false);
 
 
     /*
      * Remove keeper from state.
      */
+
     setKeeper(null);
 
 
     /*
      * Go to login.
      */
+
     navigate('/login');
   };
 
 
-  /*
+  /* 
    * ============================================================
    * ESCAPE KEY
    * ============================================================
@@ -675,7 +686,7 @@ export default function Layout() {
       {profileOpen && (
 
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center px-5 py-8"
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4 sm:px-5 py-6 sm:py-8"
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-title"
@@ -698,52 +709,73 @@ export default function Layout() {
               MODAL
           =================================================== */}
 
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 shadow-2xl">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 shadow-2xl">
 
 
             {/* =================================================
                 MODAL HEADER
             ================================================== */}
 
-            <div className="flex items-center justify-between px-6 md:px-7 py-5 border-b border-black/10 dark:border-white/10">
+            <div className="px-5 sm:px-7 py-5 border-b border-black/10 dark:border-white/10">
+
+              <div className="flex items-center justify-between gap-4">
 
 
-              <div>
+                {/* Header Identity */}
 
-                <p className="text-[10px] uppercase tracking-[0.25em] text-gold font-medium mb-1">
+                <div className="flex items-center gap-4 min-w-0">
 
-                  HoneyChain
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center bg-gold/10 border border-gold/30">
 
-                </p>
+                    <UserRound
+                      size={21}
+                      strokeWidth={1.6}
+                      className="text-gold"
+                    />
+
+                  </div>
 
 
-                <h2
-                  id="profile-title"
-                  className="text-xl font-semibold text-black dark:text-cream"
+                  <div className="min-w-0">
+
+                    <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-gold font-medium">
+
+                      HoneyChain
+
+                    </p>
+
+
+                    <h2
+                      id="profile-title"
+                      className="mt-1 text-lg sm:text-xl font-semibold text-black dark:text-cream"
+                    >
+
+                      My Profile
+
+                    </h2>
+
+                  </div>
+
+                </div>
+
+
+                {/* Close Button */}
+
+                <button
+                  type="button"
+                  onClick={closeProfile}
+                  className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center border border-black/10 dark:border-white/10 text-gray dark:text-muted hover:text-gold hover:border-gold/40 transition-all duration-300"
+                  aria-label="Close profile"
                 >
 
-                  My Profile
+                  <X
+                    size={18}
+                    strokeWidth={1.8}
+                  />
 
-                </h2>
+                </button>
 
               </div>
-
-
-              {/* Close Button */}
-
-              <button
-                type="button"
-                onClick={closeProfile}
-                className="w-9 h-9 flex items-center justify-center border border-black/10 dark:border-white/10 text-gray dark:text-muted hover:text-gold hover:border-gold/40 transition-all duration-300"
-                aria-label="Close profile"
-              >
-
-                <X
-                  size={18}
-                  strokeWidth={1.8}
-                />
-
-              </button>
 
             </div>
 
@@ -752,205 +784,294 @@ export default function Layout() {
                 MODAL BODY
             ================================================== */}
 
-            <div className="p-6 md:p-7">
+            <div className="max-h-[calc(90vh-82px)] overflow-y-auto scrollbar-thin">
+
+              <div className="p-5 sm:p-7">
 
 
-              {/* =================================================
-                  LOADING
-              ================================================== */}
+                {/* =================================================
+                    LOADING
+                ================================================== */}
 
-              {profileLoading && (
+                {profileLoading && (
 
-                <div className="py-12 text-center">
+                  <div className="py-12 sm:py-16 text-center">
 
-                  <LoaderCircle
-                    size={30}
-                    className="mx-auto text-gold animate-spin"
-                  />
-
-
-                  <p className="mt-4 text-sm text-gray dark:text-muted">
-
-                    Loading your profile...
-
-                  </p>
-
-                </div>
-
-              )}
-
-
-              {/* =================================================
-                  ERROR
-              ================================================== */}
-
-              {!profileLoading &&
-                profileError && (
-
-                  <div className="py-8 text-center">
-
-                    <AlertCircle
+                    <LoaderCircle
                       size={30}
-                      className="mx-auto text-red-500"
+                      className="mx-auto text-gold animate-spin"
                     />
 
 
-                    <p className="mt-4 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-4 text-sm text-gray dark:text-muted">
 
-                      {profileError}
+                      Loading your profile...
 
                     </p>
-
-
-                    <button
-                      type="button"
-                      onClick={closeProfile}
-                      className="mt-5 px-5 py-2.5 bg-black dark:bg-cream text-cream dark:text-black text-sm font-semibold hover:bg-gold hover:text-black transition-all duration-300"
-                    >
-
-                      Close
-
-                    </button>
 
                   </div>
 
                 )}
 
 
-              {/* =================================================
-                  PROFILE CONTENT
-              ================================================== */}
+                {/* =================================================
+                    ERROR
+                ================================================== */}
 
-              {!profileLoading &&
-                !profileError &&
-                keeper && (
+                {!profileLoading &&
+                  profileError && (
 
-                  <div>
+                    <div className="py-10 sm:py-14 text-center">
 
+                      <div className="mx-auto w-12 h-12 flex items-center justify-center bg-red-500/10 border border-red-500/20">
 
-                    {/* =========================================
-                        PROFILE IDENTITY
-                    ========================================== */}
-
-                    <div className="flex items-center gap-4 pb-6 border-b border-black/10 dark:border-white/10">
-
-
-                      {/* Avatar */}
-
-                      <div className="w-14 h-14 shrink-0 flex items-center justify-center bg-gold/10 border border-gold/30">
-
-                        <UserRound
-                          size={26}
-                          strokeWidth={1.5}
-                          className="text-gold"
+                        <AlertCircle
+                          size={24}
+                          className="text-red-500"
                         />
 
                       </div>
 
 
-                      {/* Name */}
+                      <p className="mt-4 max-w-md mx-auto text-sm leading-6 text-red-600 dark:text-red-400">
 
-                      <div className="min-w-0">
+                        {profileError}
 
-                        <h3 className="text-lg font-semibold text-black dark:text-cream break-words">
-
-                          {keeper.name || 'Not provided'}
-
-                        </h3>
+                      </p>
 
 
-                        {keeper.keeperCode && (
+                      <button
+                        type="button"
+                        onClick={closeProfile}
+                        className="mt-6 px-5 py-2.5 bg-black dark:bg-cream text-cream dark:text-black text-sm font-semibold hover:bg-gold hover:text-black transition-all duration-300"
+                      >
 
-                          <p className="mt-1 text-xs text-gray dark:text-muted">
+                        Close
 
-                            {keeper.keeperCode}
+                      </button>
 
-                          </p>
+                    </div>
 
-                        )}
+                  )}
+
+
+                {/* =================================================
+                    PROFILE CONTENT
+                ================================================== */}
+
+                {!profileLoading &&
+                  !profileError &&
+                  keeper && (
+
+                    <div>
+
+
+                      {/* =========================================
+                          PROFILE IDENTITY
+                      ========================================== */}
+
+                      <div className="border border-black/10 dark:border-white/10 bg-cream dark:bg-black">
+
+                        <div className="p-5 sm:p-6">
+
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+
+
+                            {/* Avatar */}
+
+                            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] shrink-0 flex items-center justify-center bg-gold/10 border border-gold/30">
+
+                              <UserRound
+                                size={30}
+                                strokeWidth={1.5}
+                                className="text-gold"
+                              />
+
+                            </div>
+
+
+                            {/* Identity */}
+
+                            <div className="min-w-0 flex-1">
+
+                              <p className="text-[9px] uppercase tracking-[0.2em] text-gold font-semibold">
+
+                                Keeper Account
+
+                              </p>
+
+
+                              <h3 className="mt-1.5 text-xl sm:text-2xl font-semibold text-black dark:text-cream break-words">
+
+                                {keeper.name ||
+                                  'Not provided'}
+
+                              </h3>
+
+
+                              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+
+                                {keeper.keeperCode && (
+
+                                  <span className="text-xs text-gray dark:text-muted break-all">
+
+                                    {keeper.keeperCode}
+
+                                  </span>
+
+                                )}
+
+
+                                {keeper.phone && (
+
+                                  <span className="text-xs text-gray dark:text-muted">
+
+                                    {keeper.phone}
+
+                                  </span>
+
+                                )}
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+
+                        {/* Gold Accent */}
+
+                        <div className="h-px bg-gold/30" />
+
+                      </div>
+
+
+                      {/* =========================================
+                          PROFILE DETAILS
+                      ========================================== */}
+
+                      <div className="mt-5 sm:mt-6">
+
+
+                        {/* Section Heading */}
+
+                        <div className="flex items-center gap-3 mb-3">
+
+                          <span className="text-[9px] uppercase tracking-[0.22em] text-gold font-semibold">
+
+                            Account Information
+
+                          </span>
+
+                          <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+
+                        </div>
+
+
+                        {/* Details */}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 border border-black/10 dark:border-white/10">
+
+
+                          {/* Full Name */}
+
+                          <ProfileItem
+                            icon={
+                              <UserRound
+                                size={17}
+                              />
+                            }
+                            label="Full Name"
+                            value={keeper.name}
+                          />
+
+
+                          {/* Email */}
+
+                          <ProfileItem
+                            icon={
+                              <Mail
+                                size={17}
+                              />
+                            }
+                            label="Email Address"
+                            value={keeper.email}
+                          />
+
+
+                          {/* Phone */}
+
+                          <ProfileItem
+                            icon={
+                              <Phone
+                                size={17}
+                              />
+                            }
+                            label="Mobile Number"
+                            value={keeper.phone}
+                          />
+
+
+                          {/* Address */}
+
+                          <ProfileItem
+                            icon={
+                              <MapPin
+                                size={17}
+                              />
+                            }
+                            label="Address"
+                            value={keeper.address}
+                          />
+
+
+                          {/* Keeper Code */}
+
+                          <div className="md:col-span-2">
+
+                            <ProfileItem
+                              icon={
+                                <ShieldCheck
+                                  size={17}
+                                />
+                              }
+                              label="Keeper Code"
+                              value={keeper.keeperCode}
+                              last
+                            />
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+
+                      {/* =========================================
+                          CLOSE
+                      ========================================== */}
+
+                      <div className="mt-6 flex justify-end">
+
+                        <button
+                          type="button"
+                          onClick={closeProfile}
+                          className="w-full sm:w-auto px-6 py-3 bg-black dark:bg-cream text-cream dark:text-black text-sm font-semibold hover:bg-gold hover:text-black transition-all duration-300"
+                        >
+
+                          Close
+
+                        </button>
 
                       </div>
 
                     </div>
 
+                  )}
 
-                    {/* =========================================
-                        PROFILE DETAILS
-                    ========================================== */}
-
-                    <div className="mt-2">
-
-
-                      {/* NAME */}
-
-                      <ProfileItem
-                        icon={
-                          <UserRound
-                            size={18}
-                          />
-                        }
-                        label="Full Name"
-                        value={keeper.name}
-                      />
-
-
-                      {/* EMAIL */}
-
-                      <ProfileItem
-                        icon={
-                          <Mail
-                            size={18}
-                          />
-                        }
-                        label="Email Address"
-                        value={keeper.email}
-                      />
-
-
-                      {/* PHONE */}
-
-                      <ProfileItem
-                        icon={
-                          <Phone
-                            size={18}
-                          />
-                        }
-                        label="Mobile Number"
-                        value={keeper.phone}
-                      />
-
-
-                      {/* ADDRESS */}
-
-                      <ProfileItem
-                        icon={
-                          <MapPin
-                            size={18}
-                          />
-                        }
-                        label="Address"
-                        value={keeper.address}
-                      />
-
-
-                      {/* KEEPER CODE */}
-
-                      <ProfileItem
-                        icon={
-                          <ShieldCheck
-                            size={18}
-                          />
-                        }
-                        label="Keeper Code"
-                        value={keeper.keeperCode}
-                        last
-                      />
-
-                    </div>
-
-                  </div>
-
-                )}
+              </div>
 
             </div>
 
@@ -999,7 +1120,9 @@ function ProfileItem({
 
     <div
       className={`
-        flex items-start gap-4 py-5
+        flex items-start gap-4
+        p-4 sm:p-5
+        min-w-0
         ${
           !last
             ? 'border-b border-black/10 dark:border-white/10'
@@ -1022,7 +1145,7 @@ function ProfileItem({
 
       <div className="min-w-0 flex-1">
 
-        <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
+        <p className="text-[9px] uppercase tracking-[0.18em] text-gray dark:text-muted">
 
           {label}
 
@@ -1041,4 +1164,3 @@ function ProfileItem({
 
   );
 }
-

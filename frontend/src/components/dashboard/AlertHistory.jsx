@@ -1,14 +1,12 @@
 import {
   AlertCircle,
   CheckCircle2,
-  ClipboardList,
   Hexagon,
   Tractor,
 } from 'lucide-react';
 
 import {
   PageHeader,
-  EmptyState,
 } from './DashboardUI';
 
 import {
@@ -17,7 +15,7 @@ import {
 } from '../../services/dashboardApi';
 
 /* ============================================================
-   ALERT HISTORY — 6 PARTS
+   ALERT HISTORY
    ============================================================ */
 
 function HistorySection({
@@ -35,100 +33,87 @@ function HistorySection({
   } = historyData || {};
 
   return (
-    <div>
+    <div className="w-full min-w-0 space-y-7 sm:space-y-9">
       <PageHeader
         eyebrow="08 / Alert History"
         title="Alert History"
         description="Open and resolved alerts — all, by hive, and by farm."
       />
 
-      <div className="space-y-10">
+      {/* ======================================================
+          OPEN ALERTS
+      ====================================================== */}
 
-        {/* ========== OPEN ALERTS ========== */}
-        <SectionBlock
-          title="Open Alerts"
-          subtitle="Status = open"
-          icon={AlertCircle}
-          iconClass="text-red-500"
-        >
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            {/* 1. All open */}
-            <AlertColumn
-              title="All Open Alerts"
-              
-              alerts={openAll}
-              emptyText="No open alerts."
-              onResolve={onResolveAlert}
-              actionLoading={actionLoading}
-              showResolve
-            />
+      <SectionBlock
+        title="Open Alerts"
+        subtitle="Status = open"
+        icon={AlertCircle}
+        iconClass="text-red-500"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          <AlertColumn
+            title="All Open Alerts"
+            alerts={openAll}
+            emptyText="No open alerts."
+            onResolve={onResolveAlert}
+            actionLoading={actionLoading}
+            showResolve
+          />
 
-            {/* 2. Open by hive */}
-            <AlertColumn
-              title="Open Hive Alerts"
-              
-              alerts={openHive}
-              emptyText="No open hive alerts."
-              onResolve={onResolveAlert}
-              actionLoading={actionLoading}
-              showResolve
-              badge="Hive"
-            />
+          <AlertColumn
+            title="Open Hive Alerts"
+            alerts={openHive}
+            emptyText="No open hive alerts."
+            onResolve={onResolveAlert}
+            actionLoading={actionLoading}
+            showResolve
+            badge="Hive"
+          />
 
-            {/* 3. Open by farm */}
-            <AlertColumn
-              title="Open Farm Alerts"
-              
-              alerts={openFarm}
-              emptyText="No open farm alerts."
-              onResolve={onResolveAlert}
-              actionLoading={actionLoading}
-              showResolve
-              badge="Farm"
-            />
-          </div>
-        </SectionBlock>
+          <AlertColumn
+            title="Open Farm Alerts"
+            alerts={openFarm}
+            emptyText="No open farm alerts."
+            onResolve={onResolveAlert}
+            actionLoading={actionLoading}
+            showResolve
+            badge="Farm"
+          />
+        </div>
+      </SectionBlock>
 
-        {/* ========== RESOLVED ALERTS ========== */}
-        <SectionBlock
-          title="Resolved Alerts"
-          subtitle="Status = resolved"
-          icon={CheckCircle2}
-          iconClass="text-green-600"
-        >
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            {/* 4. All resolved */}
-            <AlertColumn
-              title="All Resolved Alerts"
-              
-              alerts={resolvedAll}
-              emptyText="No resolved alerts."
-              showResolve={false}
-            />
+      {/* ======================================================
+          RESOLVED ALERTS
+      ====================================================== */}
 
-            {/* 5. Resolved by hive */}
-            <AlertColumn
-              title="Resolved Hive Alerts"
-              
-              alerts={resolvedHive}
-              emptyText="No resolved hive alerts."
-              showResolve={false}
-              badge="Hive"
-            />
+      <SectionBlock
+        title="Resolved Alerts"
+        subtitle="Status = resolved"
+        icon={CheckCircle2}
+        iconClass="text-green-600"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          <AlertColumn
+            title="All Resolved Alerts"
+            alerts={resolvedAll}
+            emptyText="No resolved alerts."
+          />
 
-            {/* 6. Resolved by farm */}
-            <AlertColumn
-              title="Resolved Farm Alerts"
-              
-              alerts={resolvedFarm}
-              emptyText="No resolved farm alerts."
-              showResolve={false}
-              badge="Farm"
-            />
-          </div>
-        </SectionBlock>
+          <AlertColumn
+            title="Resolved Hive Alerts"
+            alerts={resolvedHive}
+            emptyText="No resolved hive alerts."
+            badge="Hive"
+          />
 
-      </div>
+          <AlertColumn
+            title="Resolved Farm Alerts"
+            alerts={resolvedFarm}
+            emptyText="No resolved farm alerts."
+            badge="Farm"
+          />
+        </div>
+      </SectionBlock>
     </div>
   );
 }
@@ -137,18 +122,37 @@ function HistorySection({
    SECTION BLOCK
    ============================================================ */
 
-function SectionBlock({ title, subtitle, icon: Icon, iconClass, children }) {
+function SectionBlock({
+  title,
+  subtitle,
+  icon: Icon,
+  iconClass,
+  children,
+}) {
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-5">
-        <Icon size={20} className={iconClass} />
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-xs text-gray dark:text-muted">{subtitle}</p>
+    <section className="min-w-0">
+      <div className="flex items-center gap-3 mb-4 sm:mb-5">
+        <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card">
+          <Icon
+            size={17}
+            strokeWidth={1.8}
+            className={iconClass}
+          />
+        </div>
+
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-black dark:text-cream">
+            {title}
+          </h2>
+
+          <p className="text-[11px] sm:text-xs text-gray dark:text-muted">
+            {subtitle}
+          </p>
         </div>
       </div>
+
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -159,7 +163,7 @@ function SectionBlock({ title, subtitle, icon: Icon, iconClass, children }) {
 function AlertColumn({
   title,
   description,
-  alerts,
+  alerts = [],
   emptyText,
   onResolve,
   actionLoading,
@@ -167,26 +171,63 @@ function AlertColumn({
   badge,
 }) {
   return (
-    <div className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card flex flex-col min-h-[280px]">
-      <div className="p-4 border-b border-black/10 dark:border-white/10">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">{title}</h3>
+    <div className="min-w-0 border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 sm:p-5 border-b border-black/10 dark:border-white/10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-black dark:text-cream truncate">
+              {title}
+            </h3>
+
+            {description && (
+              <p className="mt-1 text-[11px] text-gray dark:text-muted">
+                {description}
+              </p>
+            )}
+          </div>
+
           {badge && (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-gold/40 text-gold">
+            <span className="shrink-0 text-[9px] sm:text-[10px] uppercase tracking-[0.15em] px-2 py-1 border border-gold/40 text-gold">
               {badge}
             </span>
           )}
         </div>
-        <p className="mt-1 text-[11px] text-gray dark:text-muted">{description}</p>
-        <p className="mt-2 text-xs font-medium text-gold">
-          {alerts.length} alert{alerts.length !== 1 ? 's' : ''}
-        </p>
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-gray dark:text-muted">
+            Total
+          </span>
+
+          <span className="text-xs font-semibold text-gold">
+            {alerts.length}
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto max-h-[420px]">
+      {/* Scrollable alerts */}
+      <div className="flex-1 min-h-0 max-h-[300px] sm:max-h-[360px] overflow-y-auto overflow-x-hidden scrollbar-thin">
         {alerts.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-sm text-gray dark:text-muted">{emptyText}</p>
+          <div className="min-h-[170px] flex items-center justify-center p-6 text-center">
+            <div>
+              <div className="w-10 h-10 mx-auto mb-3 flex items-center justify-center border border-black/10 dark:border-white/10">
+                {showResolve ? (
+                  <AlertCircle
+                    size={17}
+                    className="text-gray dark:text-muted"
+                  />
+                ) : (
+                  <CheckCircle2
+                    size={17}
+                    className="text-gray dark:text-muted"
+                  />
+                )}
+              </div>
+
+              <p className="text-sm text-gray dark:text-muted">
+                {emptyText}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-black/5 dark:divide-white/10">
@@ -220,65 +261,97 @@ function AlertRow({
   const hasFarm = !!(alert?.farm || alert?.farmId);
 
   return (
-    <div className="p-4 flex flex-col gap-3">
+    <div className="p-4 sm:p-5">
       <div className="flex items-start gap-3">
+        {/* Status icon */}
         <div
-          className={`w-8 h-8 shrink-0 border flex items-center justify-center ${
+          className={`w-8 h-8 shrink-0 flex items-center justify-center border ${
             showResolve
-              ? 'border-red-500/30'
-              : 'border-green-600/30'
+              ? 'border-red-500/30 bg-red-500/5'
+              : 'border-green-600/30 bg-green-600/5'
           }`}
         >
           {showResolve ? (
-            <AlertCircle size={16} className="text-red-500" />
+            <AlertCircle
+              size={15}
+              strokeWidth={1.8}
+              className="text-red-500"
+            />
           ) : (
-            <CheckCircle2 size={16} className="text-green-600" />
+            <CheckCircle2
+              size={15}
+              strokeWidth={1.8}
+              className="text-green-600"
+            />
           )}
         </div>
 
+        {/* Content */}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium break-words">
-            {alert.message || alert.title || alert.type || 'Alert'}
+          <p className="text-sm font-medium leading-5 text-black dark:text-cream break-words">
+            {alert.message ||
+              alert.title ||
+              alert.type ||
+              'Alert'}
           </p>
 
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray dark:text-muted">
+          <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1.5 text-[10px] sm:text-[11px] text-gray dark:text-muted">
             {hasHive && (
               <span className="inline-flex items-center gap-1">
-                <Hexagon size={11} />
+                <Hexagon size={10} />
                 Hive
               </span>
             )}
+
             {hasFarm && (
               <span className="inline-flex items-center gap-1">
-                <Tractor size={11} />
+                <Tractor size={10} />
                 Farm
               </span>
             )}
+
             {alert.createdAt && (
-              <span>{formatDate(alert.createdAt)}</span>
-            )}
-            {!showResolve && (alert.resolvedAt || alert.updatedAt) && (
               <span>
-                Resolved: {formatDate(alert.resolvedAt || alert.updatedAt)}
+                {formatDate(alert.createdAt)}
               </span>
             )}
+
+            {!showResolve &&
+              (alert.resolvedAt || alert.updatedAt) && (
+                <span>
+                  Resolved:{' '}
+                  {formatDate(
+                    alert.resolvedAt || alert.updatedAt
+                  )}
+                </span>
+              )}
           </div>
         </div>
       </div>
 
+      {/* Resolve action */}
       {showResolve && onResolve && (
-        <button
-          onClick={() => onResolve(getId(alert))}
-          disabled={actionLoading}
-          className="self-start inline-flex items-center gap-2 border border-green-600/30 text-green-600 px-3 py-1.5 text-xs font-medium disabled:opacity-50"
-        >
-          <CheckCircle2 size={13} />
-          Resolve
-        </button>
+        <div className="mt-3 pl-11">
+          <button
+            onClick={() => onResolve(getId(alert))}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-2 border border-green-600/30 text-green-600 hover:bg-green-600/10 px-3 py-1.5 text-[11px] font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CheckCircle2
+              size={13}
+              strokeWidth={1.8}
+            />
+            Resolve
+          </button>
+        </div>
       )}
     </div>
   );
 }
+
+/* ============================================================
+   EXPORTS
+   ============================================================ */
 
 export default HistorySection;
 
