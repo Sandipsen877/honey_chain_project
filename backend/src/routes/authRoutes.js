@@ -1,10 +1,10 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const Keeper = require("../models/Keeper");
-const Farm = require("../models/Farm");
-const otpService = require("../services/otpService");
-const { requireAuth } = require("../middleware/auth");
+import jwt from "jsonwebtoken";
+import Keeper from "../models/Keeper.js";
+import Farm from "../models/Farm.js";
+import * as otpService from "../services/otpService.js";
+import { requireAuth } from "../middleware/auth.js";
 
 // POST /api/auth/request-otp  body: { phone }
 // Sends (mocked, logged to console) a one-time code to a phone already
@@ -61,4 +61,4 @@ router.get("/me", requireAuth, async (req, res) => {
   res.json({ keeper, farms });
 });
 
-module.exports = router;
+export default router;

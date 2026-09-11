@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Farm = require("../models/Farm");
-const Hive = require("../models/Hive");
-const SensorReading = require("../models/SensorReading");
-const { predictYield, predictDiseaseRisk } = require("../services/mlService");
+import Farm from "../models/Farm.js";
+import Hive from "../models/Hive.js";
+import SensorReading from "../models/SensorReading.js";
+import { predictYield, predictDiseaseRisk } from "../services/mlService.js";
 
 // POST /api/yield/estimate  body: { farmId, season }
 router.post("/estimate", async (req, res) => {
@@ -57,4 +57,4 @@ router.get("/disease-risk/:hiveId", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

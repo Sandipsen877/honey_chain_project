@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 
@@ -16,6 +16,12 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
  *   POST {ML_SERVICE_URL}/predict/yield
  *     body: { hiveCount, environmentType, region, season, avgWeightTrendKgPerWeek }
  *     resp: { estimatedYieldKg: number, confidence: 0-1 }
+ *
+ *   POST {ML_SERVICE_URL}/predict
+ *     body: { hive_id, temperature, humidity, outside_temperature,
+ *             outside_humidity, pressure, co2, tvoc, light, bee_in, bee_out }
+ *     resp: { hive_id, health_score, health_status, bee_activity,
+ *             inspection_required }
  */
 
 async function predictDiseaseRisk(readings) {
@@ -46,6 +52,31 @@ async function predictYield(params) {
     }
   }
   return heuristicYield(params);
+}
+
+/**
+ * Runs the health/alert model. Unlike yield and disease-risk, this model has
+ * no local fallback: callers must know when a live inspection prediction was
+ * unavailable instead of receiving an invented result.
+ */
+async function predictAlert() {
+  if (!ML_SERVICE_URL) {
+    const error = new Error("ML_SERVICE_URL is not configured");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  try {
+    const { data } = await axios.post(`${ML_SERVICE_URL}/predict`, {
+      timeout: 4000,
+    });
+    return { ...data, source: "ml_service" };
+  } catch (err) {
+    console.warn("[mlService] alert prediction call failed:", err.message);
+    const error = new Error("Alert ML service is unavailable");
+    error.statusCode = 502;
+    throw error;
+  }
 }
 
 // ---- Fallback heuristics (used when no ML service is configured/reachable) ----
@@ -80,4 +111,4 @@ function heuristicYield({ hiveCount = 0, environmentType = "mixed", avgWeightTre
   return { estimatedYieldKg: Math.round(estimatedYieldKg * 10) / 10, confidence: 0.4, source: "heuristic" };
 }
 
-module.exports = { predictDiseaseRisk, predictYield };
+export { predictDiseaseRisk, predictYield, predictAlert };

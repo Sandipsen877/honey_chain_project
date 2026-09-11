@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const HiveSchema = new Schema(
@@ -12,4 +12,4 @@ const HiveSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Hive", HiveSchema);
+export default mongoose.model("Hive", HiveSchema);

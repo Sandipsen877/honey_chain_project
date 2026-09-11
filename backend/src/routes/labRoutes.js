@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const mockLabService = require("../services/mockLabService");
+import * as mockLabService from "../services/mockLabService.js";
 
 // POST /api/lab/submit/:batchId - submit a batch sample for testing
 router.post("/submit/:batchId", async (req, res) => {
@@ -21,4 +21,4 @@ router.get("/report/:batchId", async (req, res) => {
   res.json(report);
 });
 
-module.exports = router;
+export default router;

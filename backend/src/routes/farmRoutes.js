@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Farm = require("../models/Farm");
+import Farm from "../models/Farm.js";
 
 // POST /api/farms - create a farm, linked to a keeper
 router.post("/", async (req, res) => {
@@ -34,4 +34,4 @@ router.patch("/:id", async (req, res) => {
   res.json(farm);
 });
 
-module.exports = router;
+export default router;

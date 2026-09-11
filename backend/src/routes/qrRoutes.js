@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Batch = require("../models/Batch");
-const LabReport = require("../models/LabReport");
-const { generateBatchQr } = require("../utils/qrGenerator");
+import Batch from "../models/Batch.js";
+import LabReport from "../models/LabReport.js";
+import { generateBatchQr } from "../utils/qrGenerator.js";
 
 // POST /api/qr/generate/:batchId - generate QR only after a passing/available report
 router.post("/generate/:batchId", async (req, res) => {
@@ -51,4 +51,4 @@ router.get("/scan/:batchId", async (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

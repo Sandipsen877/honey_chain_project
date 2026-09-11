@@ -1,4 +1,4 @@
-const Alert = require("../models/Alert");
+import Alert from "../models/Alert.js";
 
 // Reasonable defaults for a Langstroth-style hive brood nest.
 // These are simple, tunable thresholds for MVP - not medical/scientific guarantees.
@@ -83,4 +83,4 @@ async function evaluateReading(reading, previousReading) {
   return Alert.insertMany(docs);
 }
 
-module.exports = { evaluateReading, THRESHOLDS };
+export { evaluateReading, THRESHOLDS };

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const SensorReadingSchema = new Schema(
@@ -16,4 +16,4 @@ const SensorReadingSchema = new Schema(
 
 SensorReadingSchema.index({ hive: 1, recordedAt: -1 });
 
-module.exports = mongoose.model("SensorReading", SensorReadingSchema);
+export default mongoose.model("SensorReading", SensorReadingSchema);

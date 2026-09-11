@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Hive = require("../models/Hive");
-const Farm = require("../models/Farm");
+import Hive from "../models/Hive.js";
+import Farm from "../models/Farm.js";
 
 // POST /api/hives - add a hive to a farm (also bumps farm.hiveCount)
 router.post("/", async (req, res) => {
@@ -29,4 +29,4 @@ router.get("/:id", async (req, res) => {
   res.json(hive);
 });
 
-module.exports = router;
+export default router;

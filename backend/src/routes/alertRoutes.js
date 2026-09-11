@@ -1,6 +1,47 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Alert = require("../models/Alert");
+import Alert from "../models/Alert.js";
+import { predictAlert } from "../services/mlService.js";
+
+const ALERT_MODEL_FIELDS = [
+  "hive_id",
+  "temperature",
+  "humidity",
+  "outside_temperature",
+  "outside_humidity",
+  "pressure",
+  "co2",
+  "tvoc",
+  "light",
+  "bee_in",
+  "bee_out",
+];
+
+// POST /api/alerts/predict - run the FastAPI health/inspection alert model
+router.post("/predict", async (req, res) => {
+  const missingFields = ALERT_MODEL_FIELDS.filter(
+    (field) => req.body[field] === undefined || req.body[field] === null
+  );
+  if (missingFields.length) {
+    return res.status(400).json({ error: `Missing required fields: ${missingFields.join(", ")}` });
+  }
+
+  const invalidNumericFields = ALERT_MODEL_FIELDS.slice(1).filter(
+    (field) => !Number.isFinite(Number(req.body[field]))
+  );
+  if (invalidNumericFields.length) {
+    return res.status(400).json({ error: `Fields must be numeric: ${invalidNumericFields.join(", ")}` });
+  }
+
+  try {
+    // Send only the model contract fields, avoiding accidental API-field leakage.
+    const payload = Object.fromEntries(ALERT_MODEL_FIELDS.map((field) => [field, req.body[field]]));
+    const result = await predictAlert(payload);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
 
 // GET /api/alerts?farmId=&hiveId=&status=open
 router.get("/", async (req, res) => {
@@ -19,4 +60,4 @@ router.patch("/:id/resolve", async (req, res) => {
   res.json(alert);
 });
 
-module.exports = router;
+export default router;
