@@ -146,7 +146,10 @@ export function RiskBadge({
 
   if (
     normalized.includes('high') ||
-    normalized.includes('severe')
+    normalized.includes('severe') ||
+    normalized.includes('infected') ||
+    normalized.includes('varroa') ||
+    normalized.includes('detected')
   ) {
     className =
       'border-red-500/30 text-red-500';

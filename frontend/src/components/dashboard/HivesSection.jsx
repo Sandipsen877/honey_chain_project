@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -22,6 +23,7 @@ import {
   PageHeader,
   EmptyState,
   FormField,
+  RiskBadge,
 } from './DashboardUI';
 
 import {
@@ -29,6 +31,9 @@ import {
   getId,
   getErrorMessage,
 } from '../../services/dashboardApi';
+
+const VARROA_SCAN_INTERVAL_MS = 1800;
+const VARROA_IMAGE_QUALITY = 0.82;
 
 
 /* ============================================================
@@ -38,7 +43,9 @@ import {
 function HivesSection({
   farms,
   hives,
+  risks,
   onCreate,
+  onVarroaAlert,
   actionLoading,
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -47,8 +54,15 @@ function HivesSection({
   const [hiveSearch, setHiveSearch] = useState('');
   const [selectedFarmId, setSelectedFarmId] = useState('');
 
-  const safeFarms = Array.isArray(farms) ? farms : [];
-  const safeHives = Array.isArray(hives) ? hives : [];
+  const safeFarms = useMemo(
+    () => Array.isArray(farms) ? farms : [],
+    [farms],
+  );
+
+  const safeHives = useMemo(
+    () => Array.isArray(hives) ? hives : [],
+    [hives],
+  );
 
   /* ==========================================================
      FILTERED HIVES
@@ -364,6 +378,8 @@ function HivesSection({
               {filteredHives.map((hive) => {
 
                 const hiveId = getId(hive);
+                const hiveRisk =
+                  risks?.[String(hiveId)];
 
                 const hiveFarmId = String(
                   getId(hive?.farm) ||
@@ -396,9 +412,17 @@ function HivesSection({
                         />
                       </div>
 
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-gray dark:text-muted">
-                        Hive
-                      </span>
+                      <div className="shrink-0">
+                        {hiveRisk ? (
+                          <RiskBadge
+                            risk={hiveRisk}
+                          />
+                        ) : (
+                          <span className="text-[10px] uppercase tracking-[0.15em] text-gray dark:text-muted">
+                            Hive
+                          </span>
+                        )}
+                      </div>
 
                     </div>
 
@@ -476,6 +500,7 @@ function HivesSection({
         <HiveDetail
           hive={selectedHive}
           farms={safeFarms}
+          onVarroaAlert={onVarroaAlert}
           onClose={closeHiveDetails}
         />
       )}
@@ -500,11 +525,11 @@ function HiveForm({
     ? farms
     : [];
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     hiveCode: `HV-${Date.now()}`,
     farm: farmId || '',
     hiveType: 'Langstroth',
-  });
+  }));
 
   function update(field, value) {
     setForm((current) => ({
@@ -697,6 +722,7 @@ function HiveForm({
 function HiveDetail({
   hive,
   farms,
+  onVarroaAlert,
   onClose,
 }) {
   const hiveId = getId(hive);
@@ -731,14 +757,26 @@ function HiveDetail({
   const [varroaLoading, setVarroaLoading] =
     useState(false);
 
+  const [liveVarroaActive, setLiveVarroaActive] =
+    useState(false);
+
   const [varroaResult, setVarroaResult] =
     useState(null);
 
   const [varroaImage, setVarroaImage] =
     useState(null);
 
+  const [varroaImageVersion, setVarroaImageVersion] =
+    useState(0);
+
   const [varroaError, setVarroaError] =
     useState('');
+
+  const [varroaFrameCount, setVarroaFrameCount] =
+    useState(0);
+
+  const [varroaLastScanAt, setVarroaLastScanAt] =
+    useState(null);
 
   /* ==========================================================
      CAMERA REFS
@@ -748,6 +786,11 @@ function HiveDetail({
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const captureTimerRef = useRef(null);
+  const liveScanActiveRef = useRef(false);
+  const predictionInFlightRef = useRef(false);
+  const varroaImageRef = useRef(null);
+  const varroaAbortControllerRef = useRef(null);
+  const varroaAlertNotifiedRef = useRef(false);
 
   /* ==========================================================
      FIND FARM
@@ -839,7 +882,7 @@ function HiveDetail({
      GENERATE DIFFERENT SENSOR DATA PER HIVE
      ========================================================== */
 
-  function generateHiveSensorData() {
+  const generateHiveSensorData = useCallback(() => {
     const source = String(
       hiveId ||
         hive?.hiveCode ||
@@ -923,7 +966,10 @@ function HiveDetail({
         12 +
         ((variation * 2) % 18),
     };
-  }
+  }, [
+    hiveId,
+    hive?.hiveCode,
+  ]);
 
   /* ==========================================================
      OVERALL HEALTH API
@@ -976,13 +1022,54 @@ function HiveDetail({
     return () => {
       cancelled = true;
     };
-  }, [hiveId]);
+  }, [
+    hiveId,
+    generateHiveSensorData,
+  ]);
 
   /* ==========================================================
      CAMERA CLEANUP
      ========================================================== */
 
+  function setLatestVarroaImageUrl(imageUrl) {
+    if (varroaImageRef.current) {
+      URL.revokeObjectURL(
+        varroaImageRef.current,
+      );
+    }
+
+    varroaImageRef.current =
+      imageUrl;
+
+    setVarroaImage(imageUrl);
+    setVarroaImageVersion(
+      (version) => version + 1,
+    );
+  }
+
+  function scheduleNextVarroaFrame(
+    delay = VARROA_SCAN_INTERVAL_MS,
+  ) {
+    if (!liveScanActiveRef.current) {
+      return;
+    }
+
+    if (captureTimerRef.current) {
+      clearTimeout(
+        captureTimerRef.current,
+      );
+    }
+
+    captureTimerRef.current =
+      setTimeout(() => {
+        captureLiveFrame();
+      }, delay);
+  }
+
   function stopCamera() {
+    liveScanActiveRef.current = false;
+    setLiveVarroaActive(false);
+
     if (captureTimerRef.current) {
       clearTimeout(
         captureTimerRef.current,
@@ -990,6 +1077,13 @@ function HiveDetail({
 
       captureTimerRef.current = null;
     }
+
+    if (varroaAbortControllerRef.current) {
+      varroaAbortControllerRef.current.abort();
+      varroaAbortControllerRef.current = null;
+    }
+
+    predictionInFlightRef.current = false;
 
     if (streamRef.current) {
       streamRef.current
@@ -1007,14 +1101,21 @@ function HiveDetail({
 
     setCameraOpen(false);
     setCameraLoading(false);
+    setVarroaLoading(false);
   }
 
   useEffect(() => {
     return () => {
+      liveScanActiveRef.current = false;
+
       if (captureTimerRef.current) {
         clearTimeout(
           captureTimerRef.current,
         );
+      }
+
+      if (varroaAbortControllerRef.current) {
+        varroaAbortControllerRef.current.abort();
       }
 
       if (streamRef.current) {
@@ -1025,8 +1126,10 @@ function HiveDetail({
           });
       }
 
-      if (varroaImage) {
-        URL.revokeObjectURL(varroaImage);
+      if (varroaImageRef.current) {
+        URL.revokeObjectURL(
+          varroaImageRef.current,
+        );
       }
     };
   }, []);
@@ -1048,17 +1151,15 @@ function HiveDetail({
 
     setVarroaError('');
     setVarroaResult(null);
-
-    if (varroaImage) {
-      URL.revokeObjectURL(
-        varroaImage,
-      );
-    }
-
-    setVarroaImage(null);
+    setVarroaFrameCount(0);
+    setVarroaLastScanAt(null);
+    setLatestVarroaImageUrl(null);
+    varroaAlertNotifiedRef.current = false;
 
     setCameraOpen(true);
     setCameraLoading(true);
+    liveScanActiveRef.current = true;
+    setLiveVarroaActive(true);
 
     try {
       const stream =
@@ -1117,10 +1218,7 @@ function HiveDetail({
 
         setCameraLoading(false);
 
-        captureTimerRef.current =
-          setTimeout(() => {
-            captureFrame();
-          }, 1200);
+        scheduleNextVarroaFrame(300);
       };
 
       waitForVideo();
@@ -1161,7 +1259,16 @@ function HiveDetail({
      CAPTURE CAMERA FRAME
      ========================================================== */
 
-  function captureFrame() {
+  function captureLiveFrame() {
+    if (!liveScanActiveRef.current) {
+      return;
+    }
+
+    if (predictionInFlightRef.current) {
+      scheduleNextVarroaFrame(350);
+      return;
+    }
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
@@ -1217,6 +1324,10 @@ function HiveDetail({
 
     canvas.toBlob(
       async (blob) => {
+        if (!liveScanActiveRef.current) {
+          return;
+        }
+
         if (!blob) {
           setVarroaError(
             'Unable to create image from camera.',
@@ -1246,38 +1357,26 @@ function HiveDetail({
             },
           );
 
-        /*
-         * Keep captured image locally
-         * in browser memory for preview.
-         */
-
         const imageUrl =
           URL.createObjectURL(
             blob,
           );
 
-        setVarroaImage(
-          imageUrl,
-        );
-
-        /*
-         * Stop webcam immediately
-         * after one frame is captured.
-         */
-
-        stopCamera();
-
-        /*
-         * Send exactly this captured
-         * File to the backend.
-         */
-
         await sendVarroaImage(
           imageFile,
+          {
+            imageUrl,
+            frameSize: {
+              width,
+              height,
+            },
+          },
         );
+
+        scheduleNextVarroaFrame();
       },
       'image/jpeg',
-      0.92,
+      VARROA_IMAGE_QUALITY,
     );
   }
 
@@ -1287,6 +1386,7 @@ function HiveDetail({
 
   async function sendVarroaImage(
     imageFile,
+    options = {},
   ) {
     if (!(imageFile instanceof File)) {
       setVarroaError(
@@ -1295,9 +1395,20 @@ function HiveDetail({
       return;
     }
 
+    const {
+      imageUrl = null,
+      frameSize = null,
+    } = options;
+
+    predictionInFlightRef.current = true;
     setVarroaLoading(true);
     setVarroaError('');
-    setVarroaResult(null);
+
+    if (imageUrl) {
+      setLatestVarroaImageUrl(
+        imageUrl,
+      );
+    }
 
     try {
       const token =
@@ -1305,30 +1416,28 @@ function HiveDetail({
           'honeychain_token',
         );
 
-      /*
-       * IMPORTANT:
-       * This is multipart/form-data.
-       *
-       * Do NOT manually set the
-       * Content-Type header.
-       */
-
       const formData =
         new FormData();
 
-      /*
-       * Backend should use:
-       *
-       * upload.single('image')
-       *
-       * or equivalent.
-       */
-
       formData.append(
-        'image',
+        'file',
         imageFile,
         imageFile.name,
       );
+
+      if (hiveId) {
+        formData.append(
+          'hiveId',
+          hiveId,
+        );
+      }
+
+      if (hiveFarmId) {
+        formData.append(
+          'farmId',
+          hiveFarmId,
+        );
+      }
 
       /*
        * VITE_API_URL should point to
@@ -1341,23 +1450,20 @@ function HiveDetail({
 
       const baseUrl = String(
         import.meta.env
-          .VITE_API_URL || '',
+          .VITE_API_URL ||
+          import.meta.env
+            .VITE_API_BASE_URL ||
+          'http://localhost:5000',
       ).replace(/\/$/, '');
 
       const endpoint =
         `${baseUrl}/api/alerts/varroa`;
 
-      console.log(
-        'Sending Varroa image to:',
-        endpoint,
-      );
+      const controller =
+        new AbortController();
 
-      console.log(
-        'File:',
-        imageFile.name,
-        imageFile.type,
-        imageFile.size,
-      );
+      varroaAbortControllerRef.current =
+        controller;
 
       const response =
         await fetch(
@@ -1373,6 +1479,8 @@ function HiveDetail({
               : {},
 
             body: formData,
+            signal:
+              controller.signal,
           },
         );
 
@@ -1384,11 +1492,6 @@ function HiveDetail({
       } catch {
         data = null;
       }
-
-      console.log(
-        'Varroa API response:',
-        data,
-      );
 
       if (!response.ok) {
         throw new Error(
@@ -1426,20 +1529,51 @@ function HiveDetail({
       }
 
       setVarroaResult(
-        normalizedResult,
+        {
+          ...normalizedResult,
+          frame: frameSize,
+          scannedAt:
+            new Date().toISOString(),
+        },
       );
 
-    } catch (err) {
-      console.error(
-        'Varroa detection error:',
-        err,
+      setVarroaFrameCount(
+        (count) => count + 1,
       );
+
+      setVarroaLastScanAt(
+        new Date(),
+      );
+
+      const detected =
+        normalizedResult?.detected ===
+          true ||
+        Number(normalizedResult?.count) >
+          0;
+
+      if (
+        detected &&
+        normalizedResult?.savedAlert &&
+        !varroaAlertNotifiedRef.current
+      ) {
+        varroaAlertNotifiedRef.current = true;
+        await onVarroaAlert?.(
+          normalizedResult.savedAlert,
+        );
+      }
+
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        return;
+      }
 
       setVarroaError(
         err?.message ||
           'Unable to analyze the captured image.',
       );
     } finally {
+      predictionInFlightRef.current = false;
+      varroaAbortControllerRef.current = null;
       setVarroaLoading(false);
     }
   }
@@ -1863,7 +1997,7 @@ function HiveDetail({
                       </h3>
 
                       <p className="mt-1 text-xs text-gray dark:text-muted">
-                        Capture a hive image and scan for Varroa mites.
+                        Open the camera for continuous Varroa mite scanning.
                       </p>
 
                     </div>
@@ -1897,7 +2031,7 @@ function HiveDetail({
                           className="animate-spin"
                         />
 
-                        Analyzing Image...
+                        Starting Live Scan...
                       </>
                     ) : (
                       <>
@@ -1905,7 +2039,7 @@ function HiveDetail({
                           size={17}
                         />
 
-                        Scan for Varroa
+                        Start Live Scan
                       </>
                     )}
 
@@ -1947,6 +2081,9 @@ function HiveDetail({
                     }
                     imageUrl={
                       varroaImage
+                    }
+                    imageVersion={
+                      varroaImageVersion
                     }
                   />
                 )}
@@ -1992,11 +2129,11 @@ function HiveDetail({
                 <div>
 
                   <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
-                    Camera Scan
+                    Live Camera Scan
                   </p>
 
                   <h3 className="mt-1 text-sm font-semibold text-white">
-                    Position the hive in view
+                    Real-time Varroa detection
                   </h3>
 
                 </div>
@@ -2046,13 +2183,32 @@ function HiveDetail({
                   </div>
                 )}
 
+                {!cameraLoading && varroaResult && (
+                  <VarroaVideoOverlay
+                    result={varroaResult}
+                  />
+                )}
+
               </div>
 
-              <div className="px-5 py-4 border-t border-white/10">
+              <div className="px-5 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
-                <p className="text-xs text-white/70">
-                  One frame will be captured automatically and analyzed using the YOLO Varroa model.
-                </p>
+                <VarroaLiveStatus
+                  result={varroaResult}
+                  loading={varroaLoading}
+                  frameCount={varroaFrameCount}
+                  lastScanAt={varroaLastScanAt}
+                  active={liveVarroaActive}
+                />
+
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 border border-white/20 text-white px-4 py-2.5 text-xs font-semibold hover:border-gold hover:text-gold transition-colors"
+                >
+                  <X size={15} />
+                  Stop Scan
+                </button>
 
               </div>
 
@@ -2075,16 +2231,16 @@ function HiveDetail({
 
 
 /* ============================================================
-   VARROA RESULT
+   VARROA LIVE STATUS
    ============================================================ */
 
-function VarroaResult({
+function VarroaLiveStatus({
   result,
-  imageUrl,
+  loading,
+  frameCount,
+  lastScanAt,
+  active,
 }) {
-  const detected =
-    result?.detected === true;
-
   const detections =
     Array.isArray(
       result?.detections,
@@ -2096,6 +2252,203 @@ function VarroaResult({
     Number(result?.count) ||
     detections.length ||
     0;
+
+  const detected =
+    result?.detected === true ||
+    count > 0;
+
+  const bestConfidence =
+    detections.reduce(
+      (best, detection) =>
+        Math.max(
+          best,
+          Number(detection?.confidence) || 0,
+        ),
+      0,
+    );
+
+  let statusText =
+    'Waiting for live frames...';
+
+  if (detected) {
+    statusText = loading
+      ? `${count} Varroa mite${count === 1 ? '' : 's'} detected - scanning next frame`
+      : `${count} Varroa mite${count === 1 ? '' : 's'} detected`;
+  } else if (loading) {
+    statusText =
+      'Analyzing live frame...';
+  } else if (frameCount > 0) {
+    statusText = 'No Varroa detected';
+  } else if (!active) {
+    statusText = 'Live scan stopped';
+  }
+
+  return (
+    <div className="min-w-0">
+
+      <div className="flex flex-wrap items-center gap-2">
+
+        <span
+          className={`inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] font-semibold ${
+            detected
+              ? 'text-red-400'
+              : 'text-green-400'
+          }`}
+        >
+          {loading && (
+            <LoaderCircle
+              size={13}
+              className="animate-spin"
+            />
+          )}
+          {statusText}
+        </span>
+
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.12em] text-white/60">
+
+        <span>
+          Frames: {frameCount}
+        </span>
+
+        <span>
+          Interval: {VARROA_SCAN_INTERVAL_MS / 1000}s
+        </span>
+
+        {bestConfidence > 0 && (
+          <span>
+            Best: {(bestConfidence * 100).toFixed(0)}%
+          </span>
+        )}
+
+        {lastScanAt && (
+          <span>
+            Last: {lastScanAt.toLocaleTimeString()}
+          </span>
+        )}
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* ============================================================
+   VARROA VIDEO OVERLAY
+   ============================================================ */
+
+function VarroaVideoOverlay({
+  result,
+}) {
+  const detections =
+    Array.isArray(
+      result?.detections,
+    )
+      ? result.detections
+      : [];
+
+  const imageSize =
+    result?.frame || {
+      width: 1,
+      height: 1,
+    };
+
+  const count =
+    Number(result?.count) ||
+    detections.length ||
+    0;
+
+  const detected =
+    result?.detected === true ||
+    count > 0;
+
+  const bestConfidence =
+    detections.reduce(
+      (best, detection) =>
+        Math.max(
+          best,
+          Number(detection?.confidence) || 0,
+        ),
+      0,
+    );
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {detected && (
+        <div className="absolute left-4 right-4 top-4 z-10 border border-red-400/70 bg-red-600/90 px-4 py-3 text-white shadow-lg">
+
+          <div className="flex items-center gap-3">
+
+            <AlertTriangle
+              size={22}
+              className="shrink-0"
+            />
+
+            <div className="min-w-0">
+
+              <p className="text-sm font-bold uppercase tracking-[0.12em]">
+                Varroa Detected
+              </p>
+
+              <p className="mt-1 text-xs text-white/85">
+                {count} mite{count === 1 ? '' : 's'} found
+                {bestConfidence > 0
+                  ? ` - ${(bestConfidence * 100).toFixed(0)}% confidence`
+                  : ''}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      <DetectionBoxes
+        detections={detections}
+        imageSize={imageSize}
+      />
+    </div>
+  );
+}
+
+
+/* ============================================================
+   VARROA RESULT
+   ============================================================ */
+
+function VarroaResult({
+  result,
+  imageUrl,
+  imageVersion,
+}) {
+  const detections =
+    Array.isArray(
+      result?.detections,
+    )
+      ? result.detections
+      : [];
+
+  const count =
+    Number(result?.count) ||
+    detections.length ||
+    0;
+
+  const detected =
+    result?.detected === true ||
+    count > 0;
+
+  const bestConfidence =
+    detections.reduce(
+      (best, detection) =>
+        Math.max(
+          best,
+          Number(detection?.confidence) || 0,
+        ),
+      0,
+    );
 
   return (
     <div className="mt-6 border border-black/10 dark:border-white/10 overflow-hidden">
@@ -2146,9 +2499,15 @@ function VarroaResult({
                 }`}
               >
                 {detected
-                  ? 'Infected'
-                  : 'Not Infected'}
+                  ? 'Varroa Detected'
+                  : 'No Varroa Detected'}
               </h4>
+
+              {detected && (
+                <p className="mt-1 text-xs text-red-500">
+                  Immediate hive inspection recommended.
+                </p>
+              )}
 
             </div>
 
@@ -2170,11 +2529,44 @@ function VarroaResult({
               {count}
             </p>
 
+            {bestConfidence > 0 && (
+              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-gray dark:text-muted">
+                Best {(bestConfidence * 100).toFixed(0)}%
+              </p>
+            )}
+
           </div>
 
         </div>
 
       </div>
+
+      {detected && (
+        <div className="border-b border-red-500/30 bg-red-500/10 px-5 py-4">
+
+          <div className="flex items-start gap-3 text-red-600">
+
+            <AlertTriangle
+              size={18}
+              className="mt-0.5 shrink-0"
+            />
+
+            <div className="min-w-0">
+
+              <p className="text-sm font-semibold">
+                Varroa mite detected in the latest analyzed frame.
+              </p>
+
+              <p className="mt-1 text-xs text-gray dark:text-muted">
+                Review the marked bounding boxes and inspect this hive.
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
       {/* ==================================================
           CAPTURED IMAGE
@@ -2184,11 +2576,12 @@ function VarroaResult({
         <div className="p-5">
 
           <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted mb-3">
-            Captured Image
+            Latest Analyzed Frame
           </p>
 
           <BoundingBoxImage
             imageUrl={imageUrl}
+            imageVersion={imageVersion}
             detections={detections}
           />
 
@@ -2305,37 +2698,12 @@ function VarroaResult({
    BOUNDING BOX IMAGE
    ============================================================ */
 
-function BoundingBoxImage({
-  imageUrl,
+function DetectionBoxes({
   detections,
+  imageSize,
 }) {
-  const [imageSize, setImageSize] =
-    useState({
-      width: 1,
-      height: 1,
-    });
-
-  function handleImageLoad(event) {
-    setImageSize({
-      width:
-        event.currentTarget
-          .naturalWidth || 1,
-      height:
-        event.currentTarget
-          .naturalHeight || 1,
-    });
-  }
-
   return (
-    <div className="relative w-full overflow-hidden bg-black border border-black/10 dark:border-white/10">
-
-      <img
-        src={imageUrl}
-        alt="Captured hive for Varroa detection"
-        onLoad={handleImageLoad}
-        className="block w-full h-auto"
-      />
-
+    <>
       {detections.map(
         (detection, index) => {
           const bbox =
@@ -2357,6 +2725,14 @@ function BoundingBoxImage({
           const y2 =
             Number(bbox.y2);
 
+          const sourceWidth =
+            Number(imageSize?.width) ||
+            1;
+
+          const sourceHeight =
+            Number(imageSize?.height) ||
+            1;
+
           if (
             !Number.isFinite(x1) ||
             !Number.isFinite(y1) ||
@@ -2367,28 +2743,24 @@ function BoundingBoxImage({
           }
 
           const left =
-            (x1 /
-              imageSize.width) *
-            100;
+            (x1 / sourceWidth) * 100;
 
           const top =
-            (y1 /
-              imageSize.height) *
-            100;
+            (y1 / sourceHeight) * 100;
 
           const width =
             ((x2 - x1) /
-              imageSize.width) *
+              sourceWidth) *
             100;
 
           const height =
             ((y2 - y1) /
-              imageSize.height) *
+              sourceHeight) *
             100;
 
           return (
             <div
-              key={index}
+              key={`${detection?.class_id || 'varroa'}-${index}`}
               className="absolute border-2 border-blue-500 pointer-events-none"
               style={{
                 left: `${left}%`,
@@ -2421,6 +2793,47 @@ function BoundingBoxImage({
           );
         },
       )}
+    </>
+  );
+}
+
+function BoundingBoxImage({
+  imageUrl,
+  imageVersion,
+  detections,
+}) {
+  const [imageSize, setImageSize] =
+    useState({
+      width: 1,
+      height: 1,
+    });
+
+  function handleImageLoad(event) {
+    setImageSize({
+      width:
+        event.currentTarget
+          .naturalWidth || 1,
+      height:
+        event.currentTarget
+          .naturalHeight || 1,
+    });
+  }
+
+  return (
+    <div className="relative w-full overflow-hidden bg-black border border-black/10 dark:border-white/10">
+
+      <img
+        key={imageVersion}
+        src={imageUrl}
+        alt="Captured hive for Varroa detection"
+        onLoad={handleImageLoad}
+        className="block w-full h-auto"
+      />
+
+      <DetectionBoxes
+        detections={detections}
+        imageSize={imageSize}
+      />
 
     </div>
   );

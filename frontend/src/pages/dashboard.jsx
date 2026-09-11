@@ -84,6 +84,113 @@ function extractYieldKg(item) {
   return 0;
 }
 
+function getAlertHiveId(alert) {
+  const hive =
+    alert?.hive ||
+    alert?.hiveId;
+
+  return String(
+    getId(hive) ||
+      hive ||
+      ''
+  );
+}
+
+
+function getAlertFarmId(alert) {
+  const farm =
+    alert?.farm ||
+    alert?.farmId;
+
+  return String(
+    getId(farm) ||
+      farm ||
+      ''
+  );
+}
+
+
+function buildAlertHistoryData(
+  openAlerts,
+  resolvedAlerts
+) {
+  const isHiveAlert = (alert) =>
+    !!getAlertHiveId(alert);
+
+  const isFarmAlert = (alert) =>
+    !!getAlertFarmId(alert);
+
+  return {
+    openAll: openAlerts,
+    openHive: openAlerts.filter(isHiveAlert),
+    openFarm: openAlerts.filter(isFarmAlert),
+    resolvedAll: resolvedAlerts,
+    resolvedHive: resolvedAlerts.filter(isHiveAlert),
+    resolvedFarm: resolvedAlerts.filter(isFarmAlert),
+  };
+}
+
+
+function buildRiskMapFromAlerts(openAlerts) {
+  const riskMap = {};
+
+  openAlerts.forEach((alert) => {
+    if (
+      String(alert?.type || '').toLowerCase() !==
+      'varroa'
+    ) {
+      return;
+    }
+
+    const hiveId = getAlertHiveId(alert);
+
+    if (!hiveId) {
+      return;
+    }
+
+    riskMap[hiveId] = {
+      risk: 'Infected',
+      status: 'Infected',
+      source: 'varroa_alert',
+      alert,
+    };
+  });
+
+  return riskMap;
+}
+
+
+function mergeOpenAlert(
+  openAlerts,
+  nextAlert
+) {
+  const nextId = getId(nextAlert);
+  const nextHiveId = getAlertHiveId(nextAlert);
+  const nextType = String(nextAlert?.type || '');
+
+  const withoutDuplicate = openAlerts.filter(
+    (alert) => {
+      const sameId =
+        nextId &&
+        String(getId(alert)) === String(nextId);
+
+      const sameHiveType =
+        nextHiveId &&
+        nextType &&
+        getAlertHiveId(alert) === nextHiveId &&
+        String(alert?.type || '') === nextType &&
+        String(alert?.status || 'open') === 'open';
+
+      return !sameId && !sameHiveType;
+    }
+  );
+
+  return [
+    nextAlert,
+    ...withoutDuplicate,
+  ];
+}
+
 
 /* ============================================================
    MAIN DASHBOARD
@@ -403,51 +510,12 @@ export default function Dashboard() {
          ALERT HISTORY
          -------------------------------------------------------- */
 
-      const isHiveAlert = (a) =>
-        !!(
-          getId(a?.hive) ||
-          a?.hive ||
-          a?.hiveId
-        );
-
-
-      const isFarmAlert = (a) =>
-        !!(
-          getId(a?.farm) ||
-          a?.farm ||
-          a?.farmId
-        );
-
-
-      setHistoryData({
-
-        openAll:
+      setHistoryData(
+        buildAlertHistoryData(
           allOpenAlerts,
-
-        openHive:
-          allOpenAlerts.filter(
-            isHiveAlert
-          ),
-
-        openFarm:
-          allOpenAlerts.filter(
-            isFarmAlert
-          ),
-
-        resolvedAll:
-          allResolvedAlerts,
-
-        resolvedHive:
-          allResolvedAlerts.filter(
-            isHiveAlert
-          ),
-
-        resolvedFarm:
-          allResolvedAlerts.filter(
-            isFarmAlert
-          ),
-
-      });
+          allResolvedAlerts
+        )
+      );
 
 
       /* --------------------------------------------------------
@@ -529,22 +597,15 @@ export default function Dashboard() {
          -------------------------------------------------------- */
 
       /*
-       * IMPORTANT:
-       *
-       * Disease-risk API call has been removed.
-       *
-       * Your previous code was calling:
-       *
-       * /api/yield/disease-risk/:hiveId
-       *
-       * If this backend route does not exist, there is no reason
-       * for Dashboard.jsx to request it.
-       *
-       * We keep risks as {} so existing components remain
-       * compatible and do not crash.
+       * Disease-risk API call has been removed, but open Varroa
+       * alerts are persisted and should mark affected hives.
        */
 
-      setRisks({});
+      setRisks(
+        buildRiskMapFromAlerts(
+          allOpenAlerts
+        )
+      );
 
 
     } catch (err) {
@@ -850,6 +911,36 @@ export default function Dashboard() {
       setActionLoading(false);
 
     }
+  }
+
+
+  function registerVarroaAlert(savedAlert) {
+    if (!savedAlert) {
+      return;
+    }
+
+    setAlerts((currentAlerts) => {
+      const nextAlerts =
+        mergeOpenAlert(
+          currentAlerts,
+          savedAlert
+        );
+
+      setHistoryData(
+        buildAlertHistoryData(
+          nextAlerts,
+          resolvedAlerts
+        )
+      );
+
+      setRisks(
+        buildRiskMapFromAlerts(
+          nextAlerts
+        )
+      );
+
+      return nextAlerts;
+    });
   }
 
 
@@ -1200,6 +1291,7 @@ export default function Dashboard() {
                 risks={risks}
                 onCreate={createHive}
                 onOpenHive={setSelectedHive}
+                onVarroaAlert={registerVarroaAlert}
                 actionLoading={actionLoading}
               />
 
@@ -1326,6 +1418,7 @@ export default function Dashboard() {
               getId(selectedHive)
             ]
           }
+          onVarroaAlert={registerVarroaAlert}
           onClose={() =>
             setSelectedHive(null)
           }
