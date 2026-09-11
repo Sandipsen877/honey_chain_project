@@ -55,10 +55,10 @@ function TrainingSection() {
   const materials = [
     {
       number: '01',
-      title: 'Beekeeping Basics',
+      title: 'Intro to beekeeping basics.',
       description:
         'Introduction to hive management, bee colonies and seasonal care.',
-      url: 'https://www.fao.org',
+      url: 'https://alison.com/course/beekeeping-101-introduction-to-beekeeping',
       tag: 'Fundamentals',
     },
     {
@@ -66,7 +66,7 @@ function TrainingSection() {
       title: 'Honey Bee Health',
       description:
         'Practical approaches to monitoring colony health and early disease signs.',
-      url: 'https://www.usda.gov',
+      url: 'https://madhukranti.in/nbb/',
       tag: 'Health',
     },
     {
@@ -74,7 +74,7 @@ function TrainingSection() {
       title: 'Sustainable Beekeeping',
       description:
         'Open educational resources for sustainable apiary practices and ecology.',
-      url: 'https://www.open.edu',
+      url: 'https://www.madhumakhiwala.com/training-programme?srsltid=AfmBOoqQkNC7TdN20DzYEC-xGoEr25khAVM04fheRPsfFCl37UksptzL',
       tag: 'Sustainability',
     },
   ];
