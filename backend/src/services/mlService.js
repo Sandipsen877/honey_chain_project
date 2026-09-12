@@ -49,24 +49,48 @@ async function predictYield(params) {
  * chronological honey-yield observations rather than total hive weight.
  */
 async function predictHoneyYield(history) {
-  const yieldMlServiceUrl = getYieldMlServiceUrl();
+  // Prefer dedicated yield URL; fall back to main ML service on 8000
+  const yieldMlServiceUrl =
+    getYieldMlServiceUrl() || getMlServiceUrl();
+
   if (!yieldMlServiceUrl) {
-    const error = new Error("YIELD_ML_SERVICE_URL is not configured");
+    const error = new Error(
+      "YIELD_ML_SERVICE_URL (or ML_SERVICE_URL) is not configured",
+    );
     error.statusCode = 503;
     throw error;
   }
 
   try {
+    // MUST match FastAPI route: @app.post("/predict/yield")
     const { data } = await axios.post(
-      `${yieldMlServiceUrl}/predict`,
+      `${yieldMlServiceUrl}/predict/yield`,
       { history },
-      { timeout: 15000 }
+      { timeout: 15000 },
     );
-    return { ...data, source: "yield_ml_service" };
+
+    const kg =
+      data.predicted_honey_weight_7_days_kg ??
+      data.estimatedYieldKg ??
+      data.predictedYield;
+
+    return {
+      ...data,
+      estimatedYieldKg:
+        kg != null ? Number(kg) : 0,
+      source: "ml_service",
+    };
   } catch (err) {
-    const detail = err.response?.data?.detail;
-    console.warn("[mlService] yield prediction call failed:", detail || err.message);
-    const error = new Error(detail || "Yield ML service is unavailable");
+    const detail =
+      err.response?.data?.detail ||
+      err.response?.data?.error;
+    console.warn(
+      "[mlService] yield prediction call failed:",
+      detail || err.message,
+    );
+    const error = new Error(
+      detail || "Yield ML service is unavailable",
+    );
     error.statusCode = err.response?.status || 502;
     throw error;
   }

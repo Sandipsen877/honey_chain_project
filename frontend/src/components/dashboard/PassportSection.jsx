@@ -1164,19 +1164,17 @@ const canGenerateQr = overallResult === 'PASS';
               )}
 
 
-              {qrData.publicUrl && (
-                <a
-                  href={
-                    qrData.publicUrl
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-5 inline-flex items-center gap-2 text-xs text-gold underline"
-                >
-                  Open Public Passport
-                  <ExternalLink size={13} />
-                </a>
-              )}
+              {qrData && (
+  <a
+    href={`/passport/${batchId}`}
+    target="_blank"
+    rel="noreferrer"
+    className="mt-5 inline-flex items-center gap-2 text-xs text-gold underline"
+  >
+    Open Public Passport
+    <ExternalLink size={13} />
+  </a>
+)}
 
             </div>
           )}

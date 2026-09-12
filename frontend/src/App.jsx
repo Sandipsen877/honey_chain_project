@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import About from './pages/About';
 import Register from './pages/Register';
 import Dashboard from './pages/dashboard';
+import PublicPassport from './pages/PublicPassport';
 
 
 /*
@@ -120,6 +121,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            
+            {/* Public QR passport — no login required */}
+<Route path="passport/:batchId" element={<PublicPassport />} />
 
 
             {/* ==================================================
