@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   Boxes,
@@ -9,6 +10,9 @@ import {
   Sprout,
   Tractor,
   TrendingUp,
+   X,
+  Image as ImageIcon,
+  ExternalLink,
 } from 'lucide-react';
 
 import {
@@ -37,8 +41,36 @@ export default function DashboardHome({
   yieldEstimate,
   onOpenSection,
   onResolveAlert,
+  onVarroaClick,
   actionLoading,
 }) {
+   const [selectedVarroaAlert, setSelectedVarroaAlert] = useState(null);
+
+  useEffect(() => {
+    if (!selectedVarroaAlert) return;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedVarroaAlert(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [selectedVarroaAlert]);
+
+  const handleVarroaClick = (alert) => {
+    if (!alert) return;
+
+    setSelectedVarroaAlert(alert);
+
+    if (onVarroaClick) {
+      onVarroaClick(alert);
+    }
+  };
   return (
     <div className="w-full min-w-0 space-y-5 sm:space-y-6">
 
@@ -277,6 +309,7 @@ export default function DashboardHome({
                         alert={alert}
                         hives={hives}
                         farms={farms}
+                        onClick={() => handleVarroaClick(alert)}
                       />
                     ))}
 
@@ -361,6 +394,7 @@ export default function DashboardHome({
                   farms={farms}
                   onResolve={onResolveAlert}
                   actionLoading={actionLoading}
+                  onVarroaClick={handleVarroaClick}
                 />
               ))}
 
@@ -425,6 +459,15 @@ export default function DashboardHome({
         </div>
 
       </section>
+
+      {selectedVarroaAlert && (
+  <VarroaImageModal
+    alert={selectedVarroaAlert}
+    hives={hives}
+    farms={farms}
+    onClose={() => setSelectedVarroaAlert(null)}
+  />
+)}
 
     </div>
   );
@@ -542,30 +585,63 @@ function FarmOverviewItem({
 /* ============================================================
    VARROA RISK ITEM (Disease Risk section)
    ============================================================ */
-function VarroaRiskItem({ alert, hives = [], farms = [] }) {
+function VarroaRiskItem({
+  alert,
+  hives = [],
+  farms = [],
+  onClick,
+}) {
+  const imageUrl = alert?.imageUrl;
+
   return (
-    <div className="p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!imageUrl}
+      className={`w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 transition-colors ${
+        imageUrl
+          ? 'cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
+          : 'cursor-default'
+      }`}
+    >
       <div className="min-w-0 flex items-center gap-3 sm:gap-4">
         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-red-500/30 bg-red-500/5">
-          <AlertCircle size={15} className="text-red-500" />
+          <AlertCircle
+            size={15}
+            className="text-red-500"
+          />
         </div>
 
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">
             {alert?.message || 'Varroa detected'}
           </p>
+
           <p className="mt-1.5 text-[11px] sm:text-xs text-gray dark:text-muted truncate">
             {getAlertTarget(alert, hives, farms)}
           </p>
+
+          {imageUrl && (
+            <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-gold">
+              View detected image
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="shrink-0">
+      <div className="shrink-0 flex items-center gap-2">
+        {imageUrl && (
+          <ImageIcon
+            size={14}
+            className="text-gold"
+          />
+        )}
+
         <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border border-red-500/40 text-red-500 bg-red-500/5">
           Varroa
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -578,9 +654,12 @@ function AlertItem({
   hives = [],
   farms = [],
   onResolve,
+  onVarroaClick,
   actionLoading,
 }) {
   const status = alert?.status || 'open';
+  const isVarroa = String(alert?.type || '').toLowerCase() === 'varroa';
+const hasDetectionImage = Boolean(alert?.imageUrl);
 
   const title =
     alert?.title ||
@@ -595,7 +674,38 @@ function AlertItem({
     'An alert requires attention.';
 
   return (
-    <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+    <div
+  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${
+    isVarroa && hasDetectionImage
+      ? 'cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
+      : ''
+  }`}
+  onClick={
+    isVarroa && hasDetectionImage
+      ? () => onVarroaClick?.(alert)
+      : undefined
+  }
+  role={
+    isVarroa && hasDetectionImage
+      ? 'button'
+      : undefined
+  }
+  tabIndex={
+    isVarroa && hasDetectionImage
+      ? 0
+      : undefined
+  }
+  onKeyDown={
+    isVarroa && hasDetectionImage
+      ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onVarroaClick?.(alert);
+          }
+        }
+      : undefined
+  }
+>
       <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-red-500/20 bg-red-500/5">
         <AlertCircle size={17} className="text-red-500" />
       </div>
@@ -616,13 +726,186 @@ function AlertItem({
       </div>
 
       <button
-        onClick={() => onResolve(getId(alert))}
-        disabled={actionLoading || !getId(alert)}
-        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 border border-black/10 dark:border-white/10 text-xs font-medium hover:border-gold hover:text-gold disabled:opacity-50 transition-colors"
-      >
-        <CheckCircle2 size={14} />
-        Resolve
-      </button>
+  onClick={(event) => {
+    event.stopPropagation();
+    onResolve(getId(alert));
+  }}
+  disabled={actionLoading || !getId(alert)}
+  className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 border border-black/10 dark:border-white/10 text-xs font-medium hover:border-gold hover:text-gold disabled:opacity-50 transition-colors"
+>
+  <CheckCircle2 size={14} />
+  Resolve
+</button>
+    </div>
+  );
+}
+
+function VarroaImageModal({
+  alert,
+  hives = [],
+  farms = [],
+  onClose,
+}) {
+  const imageUrl = alert?.imageUrl;
+
+  if (!imageUrl) {
+    return null;
+  }
+
+  const detectedAt =
+    alert?.createdAt
+      ? formatDate(alert.createdAt)
+      : 'Detection time unavailable';
+
+  const target = getAlertTarget(
+    alert,
+    hives,
+    farms,
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="varroa-modal-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-4xl max-h-[92vh] overflow-hidden border border-white/10 bg-black-card dark:bg-black shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5 sm:py-4 border-b border-white/10">
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gold">
+              Varroa Detection
+            </p>
+
+            <h2
+              id="varroa-modal-title"
+              className="mt-1 text-base sm:text-lg font-semibold text-cream truncate"
+            >
+              Detected Image
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Varroa detection"
+            className="w-9 h-9 shrink-0 flex items-center justify-center border border-white/10 text-muted hover:text-cream hover:border-gold transition-colors"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        {/* Image */}
+        <div className="bg-black p-3 sm:p-5">
+          <div className="relative w-full max-h-[58vh] flex items-center justify-center overflow-hidden border border-white/10 bg-black">
+            <img
+              src={imageUrl}
+              alt="Varroa detection captured by the HoneyChain inspection system"
+              className="block max-w-full max-h-[58vh] w-auto h-auto object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+
+                const fallback =
+                  event.currentTarget.nextElementSibling;
+
+                if (fallback) {
+                  fallback.classList.remove('hidden');
+                }
+              }}
+            />
+
+            <div className="hidden absolute inset-0 min-h-[240px] items-center justify-center p-6 text-center">
+              <div>
+                <ImageIcon
+                  size={32}
+                  className="mx-auto text-muted"
+                />
+
+                <p className="mt-3 text-sm text-cream">
+                  Unable to load detection image
+                </p>
+
+                <p className="mt-1 text-xs text-muted">
+                  The saved image may no longer be available.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Information */}
+        <div className="px-4 py-4 sm:px-5 border-t border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <InfoItem
+              label="Detection"
+              value={alert?.message || 'Varroa detected'}
+            />
+
+            <InfoItem
+              label="Target"
+              value={target}
+            />
+
+            <InfoItem
+              label="Detected At"
+              value={detectedAt}
+            />
+          </div>
+
+          {alert?.suggestedAction && (
+            <div className="mt-4 p-3 sm:p-4 border border-gold/20 bg-gold/5">
+              <p className="text-[9px] uppercase tracking-[0.18em] text-gold">
+                Suggested Action
+              </p>
+
+              <p className="mt-1.5 text-xs sm:text-sm leading-5 text-muted">
+                {alert.suggestedAction}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-[10px] text-muted">
+              Image saved by HoneyChain detection service.
+            </p>
+
+            <a
+              href={imageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-white/10 text-xs text-cream hover:border-gold hover:text-gold transition-colors"
+            >
+              Open Full Image
+              <ExternalLink size={13} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoItem({ label, value }) {
+  return (
+    <div className="min-w-0 border border-white/10 p-3">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-muted">
+        {label}
+      </p>
+
+      <p className="mt-1.5 text-xs sm:text-sm text-cream break-words">
+        {value || '—'}
+      </p>
     </div>
   );
 }

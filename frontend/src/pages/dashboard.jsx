@@ -715,6 +715,7 @@ setYieldEstimate({
                 yieldEstimate={yieldEstimate}
                 onOpenSection={openSection}
                 onResolveAlert={resolveAlert}
+                
                 actionLoading={actionLoading}
               />
             )}
