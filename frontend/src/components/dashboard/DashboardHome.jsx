@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
+
 import {
   AlertCircle,
   Boxes,
   CheckCircle2,
   ChevronRight,
+  ExternalLink,
   Hexagon,
+  Image as ImageIcon,
   MapPin,
   Plus,
   Sprout,
   Tractor,
   TrendingUp,
-   X,
-  Image as ImageIcon,
-  ExternalLink,
+  X,
 } from 'lucide-react';
 
 import {
@@ -35,16 +36,19 @@ export default function DashboardHome({
   statistics,
   farms,
   hives,
-  alerts,            // open varroa + open health_ml
-  varroaAlerts = [], // only open varroa (for Disease Risk)
+  alerts,
+  varroaAlerts = [],
   risks,
   yieldEstimate,
   onOpenSection,
   onResolveAlert,
-  onVarroaClick,
   actionLoading,
 }) {
-   const [selectedVarroaAlert, setSelectedVarroaAlert] = useState(null);
+  const [selectedVarroaAlert, setSelectedVarroaAlert] = useState(null);
+
+  /* ==========================================================
+     ESCAPE KEY FOR MODAL
+  ========================================================== */
 
   useEffect(() => {
     if (!selectedVarroaAlert) return;
@@ -62,15 +66,16 @@ export default function DashboardHome({
     };
   }, [selectedVarroaAlert]);
 
+  /* ==========================================================
+     OPEN VARROA MODAL
+  ========================================================== */
+
   const handleVarroaClick = (alert) => {
     if (!alert) return;
 
     setSelectedVarroaAlert(alert);
-
-    if (onVarroaClick) {
-      onVarroaClick(alert);
-    }
   };
+
   return (
     <div className="w-full min-w-0 space-y-5 sm:space-y-6">
 
@@ -229,6 +234,7 @@ export default function DashboardHome({
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-3 sm:mb-4">
 
             <div>
+
               <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gold">
                 Operations
               </p>
@@ -236,6 +242,7 @@ export default function DashboardHome({
               <h2 className="mt-1 text-lg sm:text-xl font-semibold">
                 Apiary Overview
               </h2>
+
             </div>
 
             <div className="text-[9px] uppercase tracking-[0.15em] text-gray dark:text-muted">
@@ -273,7 +280,7 @@ export default function DashboardHome({
             </SectionCard>
 
             {/* ==================================================
-                DISEASE RISK — ONLY OPEN VARROA ALERTS
+                DISEASE RISK
             ================================================== */}
 
             <SectionCard className="overflow-hidden min-w-0">
@@ -304,14 +311,14 @@ export default function DashboardHome({
                 <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden scrollbar-thin divide-y divide-black/5 dark:divide-white/10">
 
                   {varroaAlerts.map((alert) => (
-                      <VarroaRiskItem
-                        key={getId(alert)}
-                        alert={alert}
-                        hives={hives}
-                        farms={farms}
-                        onClick={() => handleVarroaClick(alert)}
-                      />
-                    ))}
+                    <VarroaRiskItem
+                      key={getId(alert)}
+                      alert={alert}
+                      hives={hives}
+                      farms={farms}
+                      onClick={() => handleVarroaClick(alert)}
+                    />
+                  ))}
 
                 </div>
 
@@ -325,7 +332,7 @@ export default function DashboardHome({
       )}
 
       {/* ======================================================
-          ACTIVE ALERTS (open varroa + open health_ml)
+          ACTIVE ALERTS
       ======================================================= */}
 
       <SectionCard className="overflow-hidden min-w-0">
@@ -356,9 +363,11 @@ export default function DashboardHome({
           </div>
 
           <button
+            type="button"
             onClick={() => onOpenSection('history')}
             className="group shrink-0 inline-flex items-center gap-1 text-[10px] sm:text-xs text-gray dark:text-muted hover:text-gold transition-colors"
           >
+
             <span className="hidden xs:inline">
               Alert history
             </span>
@@ -371,6 +380,7 @@ export default function DashboardHome({
               size={13}
               className="group-hover:translate-x-0.5 transition-transform"
             />
+
           </button>
 
         </div>
@@ -386,17 +396,18 @@ export default function DashboardHome({
         ) : (
 
           <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto overflow-x-hidden scrollbar-thin divide-y divide-black/5 dark:divide-white/10">
-              {alerts.map((alert) => (
-                <AlertItem
-                  key={getId(alert)}
-                  alert={alert}
-                  hives={hives}
-                  farms={farms}
-                  onResolve={onResolveAlert}
-                  actionLoading={actionLoading}
-                  onVarroaClick={handleVarroaClick}
-                />
-              ))}
+
+            {alerts.map((alert) => (
+              <AlertItem
+                key={getId(alert)}
+                alert={alert}
+                hives={hives}
+                farms={farms}
+                onResolve={onResolveAlert}
+                actionLoading={actionLoading}
+                onVarroaClick={handleVarroaClick}
+              />
+            ))}
 
           </div>
 
@@ -460,14 +471,18 @@ export default function DashboardHome({
 
       </section>
 
+      {/* ======================================================
+          VARROA IMAGE MODAL
+      ======================================================= */}
+
       {selectedVarroaAlert && (
-  <VarroaImageModal
-    alert={selectedVarroaAlert}
-    hives={hives}
-    farms={farms}
-    onClose={() => setSelectedVarroaAlert(null)}
-  />
-)}
+        <VarroaImageModal
+          alert={selectedVarroaAlert}
+          hives={hives}
+          farms={farms}
+          onClose={() => setSelectedVarroaAlert(null)}
+        />
+      )}
 
     </div>
   );
@@ -498,6 +513,7 @@ function DashboardSectionHeader({
       </div>
 
       <button
+        type="button"
         onClick={onClick}
         className="group shrink-0 inline-flex items-center gap-1 text-[10px] sm:text-xs text-gray dark:text-muted hover:text-gold transition-colors"
       >
@@ -526,7 +542,7 @@ function FarmOverviewItem({
   const farmHives = hives.filter(
     (hive) =>
       getId(hive?.farm) === farmId ||
-      hive?.farm === farmId
+      String(hive?.farm) === String(farmId)
   );
 
   return (
@@ -535,10 +551,12 @@ function FarmOverviewItem({
       <div className="min-w-0 flex items-center gap-3 sm:gap-4">
 
         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-gold/20 bg-gold/5">
+
           <Tractor
             size={15}
             className="text-gold"
           />
+
         </div>
 
         <div className="min-w-0">
@@ -583,36 +601,35 @@ function FarmOverviewItem({
 }
 
 /* ============================================================
-   VARROA RISK ITEM (Disease Risk section)
+   VARROA RISK ITEM
    ============================================================ */
+
 function VarroaRiskItem({
   alert,
   hives = [],
   farms = [],
   onClick,
 }) {
-  const imageUrl = alert?.imageUrl;
-
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={!imageUrl}
-      className={`w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 transition-colors ${
-        imageUrl
-          ? 'cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
-          : 'cursor-default'
-      }`}
+      onClick={() => onClick?.(alert)}
+      className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
     >
+
       <div className="min-w-0 flex items-center gap-3 sm:gap-4">
+
         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-red-500/30 bg-red-500/5">
+
           <AlertCircle
             size={15}
             className="text-red-500"
           />
+
         </div>
 
         <div className="min-w-0">
+
           <p className="text-sm font-medium truncate">
             {alert?.message || 'Varroa detected'}
           </p>
@@ -621,16 +638,19 @@ function VarroaRiskItem({
             {getAlertTarget(alert, hives, farms)}
           </p>
 
-          {imageUrl && (
-            <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-gold">
-              View detected image
-            </p>
-          )}
+          <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-gold">
+            {alert?.imageUrl
+              ? 'View detected image'
+              : 'View detection details'}
+          </p>
+
         </div>
+
       </div>
 
       <div className="shrink-0 flex items-center gap-2">
-        {imageUrl && (
+
+        {alert?.imageUrl && (
           <ImageIcon
             size={14}
             className="text-gold"
@@ -640,13 +660,15 @@ function VarroaRiskItem({
         <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border border-red-500/40 text-red-500 bg-red-500/5">
           Varroa
         </span>
+
       </div>
+
     </button>
   );
 }
 
 /* ============================================================
-   ALERT ITEM (Active Alerts)
+   ACTIVE ALERT ITEM
    ============================================================ */
 
 function AlertItem({
@@ -658,8 +680,9 @@ function AlertItem({
   actionLoading,
 }) {
   const status = alert?.status || 'open';
-  const isVarroa = String(alert?.type || '').toLowerCase() === 'varroa';
-const hasDetectionImage = Boolean(alert?.imageUrl);
+
+  const isVarroa =
+    String(alert?.type || '').toLowerCase() === 'varroa';
 
   const title =
     alert?.title ||
@@ -673,47 +696,56 @@ const hasDetectionImage = Boolean(alert?.imageUrl);
     alert?.details ||
     'An alert requires attention.';
 
+  const handleAlertClick = () => {
+    if (!isVarroa) return;
+
+    onVarroaClick?.(alert);
+  };
+
   return (
     <div
-  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${
-    isVarroa && hasDetectionImage
-      ? 'cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
-      : ''
-  }`}
-  onClick={
-    isVarroa && hasDetectionImage
-      ? () => onVarroaClick?.(alert)
-      : undefined
-  }
-  role={
-    isVarroa && hasDetectionImage
-      ? 'button'
-      : undefined
-  }
-  tabIndex={
-    isVarroa && hasDetectionImage
-      ? 0
-      : undefined
-  }
-  onKeyDown={
-    isVarroa && hasDetectionImage
-      ? (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onVarroaClick?.(alert);
-          }
-        }
-      : undefined
-  }
->
+      className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${
+        isVarroa
+          ? 'cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
+          : ''
+      }`}
+      onClick={isVarroa ? handleAlertClick : undefined}
+      role={isVarroa ? 'button' : undefined}
+      tabIndex={isVarroa ? 0 : undefined}
+      onKeyDown={
+        isVarroa
+          ? (event) => {
+              if (
+                event.key === 'Enter' ||
+                event.key === ' '
+              ) {
+                event.preventDefault();
+                handleAlertClick();
+              }
+            }
+          : undefined
+      }
+    >
+
       <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-red-500/20 bg-red-500/5">
-        <AlertCircle size={17} className="text-red-500" />
+
+        <AlertCircle
+          size={17}
+          className="text-red-500"
+        />
+
       </div>
 
       <div className="flex-1 min-w-0">
+
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium break-words">{title}</p>
+
+          <p className="text-sm font-medium break-words">
+            {title}
+          </p>
+
           <StatusBadge status={status} />
+
         </div>
 
         <p className="mt-1 text-xs sm:text-sm leading-5 text-gray dark:text-muted break-words">
@@ -723,22 +755,40 @@ const hasDetectionImage = Boolean(alert?.imageUrl);
         <p className="mt-1.5 text-[9px] sm:text-[10px] text-gray dark:text-muted">
           {getAlertTarget(alert, hives, farms)}
         </p>
+
+        {isVarroa && (
+          <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-gold">
+            {alert?.imageUrl
+              ? 'Click to view detected image'
+              : 'Click to view detection'}
+          </p>
+        )}
+
       </div>
 
       <button
-  onClick={(event) => {
-    event.stopPropagation();
-    onResolve(getId(alert));
-  }}
-  disabled={actionLoading || !getId(alert)}
-  className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 border border-black/10 dark:border-white/10 text-xs font-medium hover:border-gold hover:text-gold disabled:opacity-50 transition-colors"
->
-  <CheckCircle2 size={14} />
-  Resolve
-</button>
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onResolve?.(getId(alert));
+        }}
+        disabled={
+          actionLoading ||
+          !getId(alert)
+        }
+        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 border border-black/10 dark:border-white/10 text-xs font-medium hover:border-gold hover:text-gold disabled:opacity-50 transition-colors"
+      >
+        <CheckCircle2 size={14} />
+        Resolve
+      </button>
+
     </div>
   );
 }
+
+/* ============================================================
+   VARROA IMAGE MODAL
+   ============================================================ */
 
 function VarroaImageModal({
   alert,
@@ -746,21 +796,20 @@ function VarroaImageModal({
   farms = [],
   onClose,
 }) {
-  const imageUrl = alert?.imageUrl;
+  const imageUrl = alert?.imageUrl || '';
 
-  if (!imageUrl) {
-    return null;
-  }
+  const [imageFailed, setImageFailed] = useState(
+    !imageUrl
+  );
 
-  const detectedAt =
-    alert?.createdAt
-      ? formatDate(alert.createdAt)
-      : 'Detection time unavailable';
+  const detectedAt = alert?.createdAt
+    ? formatDate(alert.createdAt)
+    : 'Detection time unavailable';
 
   const target = getAlertTarget(
     alert,
     hives,
-    farms,
+    farms
   );
 
   return (
@@ -769,20 +818,33 @@ function VarroaImageModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="varroa-modal-title"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
 
-      {/* Modal */}
+      {/* ==================================================
+          BACKDROP
+      ================================================== */}
+
+      <button
+        type="button"
+        aria-label="Close Varroa detection modal"
+        onClick={onClose}
+        className="absolute inset-0 w-full h-full bg-black/75 backdrop-blur-sm cursor-default"
+      />
+
+      {/* ==================================================
+          MODAL
+      ================================================== */}
+
       <div className="relative z-10 w-full max-w-4xl max-h-[92vh] overflow-hidden border border-white/10 bg-black-card dark:bg-black shadow-2xl">
-        {/* Header */}
+
+        {/* ==================================================
+            HEADER
+        ================================================== */}
+
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5 sm:py-4 border-b border-white/10">
+
           <div className="min-w-0">
+
             <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gold">
               Varroa Detection
             </p>
@@ -793,6 +855,7 @@ function VarroaImageModal({
             >
               Detected Image
             </h2>
+
           </div>
 
           <button
@@ -803,52 +866,72 @@ function VarroaImageModal({
           >
             <X size={17} />
           </button>
+
         </div>
 
-        {/* Image */}
+        {/* ==================================================
+            IMAGE
+        ================================================== */}
+
         <div className="bg-black p-3 sm:p-5">
-          <div className="relative w-full max-h-[58vh] flex items-center justify-center overflow-hidden border border-white/10 bg-black">
-            <img
-              src={imageUrl}
-              alt="Varroa detection captured by the HoneyChain inspection system"
-              className="block max-w-full max-h-[58vh] w-auto h-auto object-contain"
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
 
-                const fallback =
-                  event.currentTarget.nextElementSibling;
+          <div className="relative w-full min-h-[240px] sm:min-h-[320px] max-h-[58vh] flex items-center justify-center overflow-hidden border border-white/10 bg-black">
 
-                if (fallback) {
-                  fallback.classList.remove('hidden');
-                }
-              }}
-            />
+            {!imageFailed && imageUrl ? (
 
-            <div className="hidden absolute inset-0 min-h-[240px] items-center justify-center p-6 text-center">
-              <div>
-                <ImageIcon
-                  size={32}
-                  className="mx-auto text-muted"
-                />
+              <img
+                src={imageUrl}
+                alt="Varroa detection captured by the HoneyChain inspection system"
+                className="block max-w-full max-h-[58vh] w-auto h-auto object-contain"
+                onError={() => {
+                  setImageFailed(true);
+                }}
+              />
 
-                <p className="mt-3 text-sm text-cream">
-                  Unable to load detection image
-                </p>
+            ) : (
 
-                <p className="mt-1 text-xs text-muted">
-                  The saved image may no longer be available.
-                </p>
+              <div className="flex min-h-[240px] w-full items-center justify-center p-6 text-center">
+
+                <div>
+
+                  <ImageIcon
+                    size={36}
+                    className="mx-auto text-muted"
+                  />
+
+                  <p className="mt-3 text-sm text-cream">
+                    Detection image unavailable
+                  </p>
+
+                  <p className="mt-1 max-w-sm text-xs leading-5 text-muted">
+                    This Varroa detection was recorded,
+                    but an image is not available for this alert.
+                  </p>
+
+                </div>
+
               </div>
-            </div>
+
+            )}
+
           </div>
+
         </div>
 
-        {/* Information */}
-        <div className="px-4 py-4 sm:px-5 border-t border-white/10">
+        {/* ==================================================
+            INFORMATION
+        ================================================== */}
+
+        <div className="px-4 py-4 sm:px-5 border-t border-white/10 overflow-y-auto max-h-[28vh]">
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
             <InfoItem
               label="Detection"
-              value={alert?.message || 'Varroa detected'}
+              value={
+                alert?.message ||
+                'Varroa detected'
+              }
             />
 
             <InfoItem
@@ -860,10 +943,13 @@ function VarroaImageModal({
               label="Detected At"
               value={detectedAt}
             />
+
           </div>
 
           {alert?.suggestedAction && (
+
             <div className="mt-4 p-3 sm:p-4 border border-gold/20 bg-gold/5">
+
               <p className="text-[9px] uppercase tracking-[0.18em] text-gold">
                 Suggested Action
               </p>
@@ -871,34 +957,57 @@ function VarroaImageModal({
               <p className="mt-1.5 text-xs sm:text-sm leading-5 text-muted">
                 {alert.suggestedAction}
               </p>
+
             </div>
+
           )}
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
             <p className="text-[10px] text-muted">
               Image saved by HoneyChain detection service.
             </p>
 
-            <a
-              href={imageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => event.stopPropagation()}
-              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-white/10 text-xs text-cream hover:border-gold hover:text-gold transition-colors"
-            >
-              Open Full Image
-              <ExternalLink size={13} />
-            </a>
+            {imageUrl && !imageFailed && (
+
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-white/10 text-xs text-cream hover:border-gold hover:text-gold transition-colors"
+              >
+                Open Full Image
+
+                <ExternalLink size={13} />
+
+              </a>
+
+            )}
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }
 
-function InfoItem({ label, value }) {
+/* ============================================================
+   INFO ITEM
+   ============================================================ */
+
+function InfoItem({
+  label,
+  value,
+}) {
   return (
     <div className="min-w-0 border border-white/10 p-3">
+
       <p className="text-[9px] uppercase tracking-[0.16em] text-muted">
         {label}
       </p>
@@ -906,6 +1015,7 @@ function InfoItem({ label, value }) {
       <p className="mt-1.5 text-xs sm:text-sm text-cream break-words">
         {value || '—'}
       </p>
+
     </div>
   );
 }
@@ -923,6 +1033,7 @@ function QuickAction({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="group relative w-full min-w-0 text-left bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 p-4 sm:p-5 overflow-hidden hover:border-gold transition-all duration-300"
     >
@@ -932,10 +1043,12 @@ function QuickAction({
       <div className="flex items-start justify-between gap-3">
 
         <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center border border-gold/20 bg-gold/5">
+
           <Icon
             size={17}
             className="text-gold"
           />
+
         </div>
 
         <span className="text-[8px] sm:text-[9px] font-medium tracking-[0.15em] text-gray dark:text-muted">
@@ -962,34 +1075,98 @@ function QuickAction({
 
 function formatYield(yieldEstimate) {
   if (!yieldEstimate) return '—';
+
   const kg = yieldEstimate.estimatedYieldKg;
+
   if (kg == null) return '—';
+
   return `${kg} kg`;
 }
 
-/**
- * Safe farm location helper
- * Fixes the crash: Objects are not valid as a React child
- * (location is sometimes stored as { area, state, lat, lng })
- */
-function getFarmLocation(farm) {
-  if (!farm) return 'Location not set';
+/* ============================================================
+   DATE FORMATTER
+   ============================================================ */
 
-  // If location is an object → convert to readable string
-  if (farm.location && typeof farm.location === 'object') {
-    const { area, state, lat, lng } = farm.location;
-    const parts = [];
-
-    if (area) parts.push(String(area));
-    if (state) parts.push(String(state));
-    if (lat != null && lng != null) {
-      parts.push(`${lat}, ${lng}`);
-    }
-
-    return parts.length > 0 ? parts.join(', ') : 'Location not set';
+function formatDate(value) {
+  if (!value) {
+    return 'Detection time unavailable';
   }
 
-  // Normal string cases
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Detection time unavailable';
+  }
+
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/* ============================================================
+   FARM LOCATION
+   ============================================================ */
+
+/**
+ * Safe farm location helper.
+ *
+ * Location can sometimes be an object such as:
+ * {
+ *   area,
+ *   state,
+ *   lat,
+ *   lng
+ * }
+ *
+ * React cannot directly render an object,
+ * so convert it to a readable string.
+ */
+
+function getFarmLocation(farm) {
+  if (!farm) {
+    return 'Location not set';
+  }
+
+  if (
+    farm.location &&
+    typeof farm.location === 'object'
+  ) {
+    const {
+      area,
+      state,
+      lat,
+      lng,
+    } = farm.location;
+
+    const parts = [];
+
+    if (area) {
+      parts.push(String(area));
+    }
+
+    if (state) {
+      parts.push(String(state));
+    }
+
+    if (
+      lat != null &&
+      lng != null
+    ) {
+      parts.push(
+        `${lat}, ${lng}`
+      );
+    }
+
+    return parts.length > 0
+      ? parts.join(', ')
+      : 'Location not set';
+  }
+
   return (
     farm.location ||
     farm.address ||
@@ -997,61 +1174,132 @@ function getFarmLocation(farm) {
     'Location not set'
   );
 }
-function getAlertTarget(alert, hives = [], farms = []) {
-  if (!alert) return 'Target unknown';
+
+/* ============================================================
+   ALERT TARGET
+   ============================================================ */
+
+function getAlertTarget(
+  alert,
+  hives = [],
+  farms = []
+) {
+  if (!alert) {
+    return 'Target unknown';
+  }
 
   const hiveId =
     getId(alert.hive) ||
     alert.hiveId ||
-    (typeof alert.hive === 'string' ? alert.hive : null);
+    (
+      typeof alert.hive === 'string'
+        ? alert.hive
+        : null
+    );
 
   const farmId =
     getId(alert.farm) ||
     alert.farmId ||
-    (typeof alert.farm === 'string' ? alert.farm : null);
+    (
+      typeof alert.farm === 'string'
+        ? alert.farm
+        : null
+    );
 
-  // 1) Prefer populated object on the alert itself
-  if (alert.hive && typeof alert.hive === 'object') {
+  /* ----------------------------------------------------------
+     1. POPULATED HIVE OBJECT
+  ---------------------------------------------------------- */
+
+  if (
+    alert.hive &&
+    typeof alert.hive === 'object'
+  ) {
     const code =
       alert.hive.hiveCode ||
       alert.hive.name ||
       getId(alert.hive);
-    if (code) return `Hive: ${code}`;
+
+    if (code) {
+      return `Hive: ${code}`;
+    }
   }
 
-  // 2) Look up hive in loaded hives list
+  /* ----------------------------------------------------------
+     2. LOOKUP HIVE
+  ---------------------------------------------------------- */
+
   if (hiveId) {
-    const hive = (Array.isArray(hives) ? hives : []).find(
-      (h) => String(getId(h)) === String(hiveId),
+    const hive = (
+      Array.isArray(hives)
+        ? hives
+        : []
+    ).find(
+      (h) =>
+        String(getId(h)) ===
+        String(hiveId)
     );
+
     if (hive) {
-      return `Hive: ${hive.hiveCode || hive.name || getId(hive)}`;
+      return `Hive: ${
+        hive.hiveCode ||
+        hive.name ||
+        getId(hive)
+      }`;
     }
+
     return `Hive: ${hiveId}`;
   }
 
-  // 3) Prefer populated farm on the alert
-  if (alert.farm && typeof alert.farm === 'object') {
+  /* ----------------------------------------------------------
+     3. POPULATED FARM OBJECT
+  ---------------------------------------------------------- */
+
+  if (
+    alert.farm &&
+    typeof alert.farm === 'object'
+  ) {
     const name =
       alert.farm.name ||
       alert.farm.farmCode ||
       getId(alert.farm);
-    if (name) return `Farm: ${name}`;
+
+    if (name) {
+      return `Farm: ${name}`;
+    }
   }
 
-  // 4) Look up farm in loaded farms list
+  /* ----------------------------------------------------------
+     4. LOOKUP FARM
+  ---------------------------------------------------------- */
+
   if (farmId) {
-    const farm = (Array.isArray(farms) ? farms : []).find(
-      (f) => String(getId(f)) === String(farmId),
+    const farm = (
+      Array.isArray(farms)
+        ? farms
+        : []
+    ).find(
+      (f) =>
+        String(getId(f)) ===
+        String(farmId)
     );
+
     if (farm) {
-      return `Farm: ${farm.name || farm.farmCode || getId(farm)}`;
+      return `Farm: ${
+        farm.name ||
+        farm.farmCode ||
+        getId(farm)
+      }`;
     }
+
     return `Farm: ${farmId}`;
   }
 
   return 'Target unknown';
 }
+
+/* ============================================================
+   QR CODE ICON
+   ============================================================ */
 
 function QrCodeIcon(props) {
   return (
@@ -1064,10 +1312,30 @@ function QrCodeIcon(props) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
+
+      <rect
+        x="3"
+        y="3"
+        width="7"
+        height="7"
+      />
+
+      <rect
+        x="14"
+        y="3"
+        width="7"
+        height="7"
+      />
+
+      <rect
+        x="3"
+        y="14"
+        width="7"
+        height="7"
+      />
+
       <path d="M14 14h.01M17 14h.01M14 17h.01M17 17h.01M20 14h.01M20 17h.01M14 20h.01M17 20h.01M20 20h.01" />
+
     </svg>
   );
 }
