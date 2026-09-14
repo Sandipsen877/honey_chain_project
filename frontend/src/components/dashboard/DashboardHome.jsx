@@ -272,11 +272,13 @@ export default function DashboardHome({
                 <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden scrollbar-thin divide-y divide-black/5 dark:divide-white/10">
 
                   {varroaAlerts.map((alert) => (
-                    <VarroaRiskItem
-                      key={getId(alert)}
-                      alert={alert}
-                    />
-                  ))}
+                      <VarroaRiskItem
+                        key={getId(alert)}
+                        alert={alert}
+                        hives={hives}
+                        farms={farms}
+                      />
+                    ))}
 
                 </div>
 
@@ -351,15 +353,16 @@ export default function DashboardHome({
         ) : (
 
           <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto overflow-x-hidden scrollbar-thin divide-y divide-black/5 dark:divide-white/10">
-
-            {alerts.map((alert) => (
-              <AlertItem
-                key={getId(alert)}
-                alert={alert}
-                onResolve={onResolveAlert}
-                actionLoading={actionLoading}
-              />
-            ))}
+              {alerts.map((alert) => (
+                <AlertItem
+                  key={getId(alert)}
+                  alert={alert}
+                  hives={hives}
+                  farms={farms}
+                  onResolve={onResolveAlert}
+                  actionLoading={actionLoading}
+                />
+              ))}
 
           </div>
 
@@ -539,32 +542,22 @@ function FarmOverviewItem({
 /* ============================================================
    VARROA RISK ITEM (Disease Risk section)
    ============================================================ */
-
-function VarroaRiskItem({ alert }) {
+function VarroaRiskItem({ alert, hives = [], farms = [] }) {
   return (
     <div className="p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
-
       <div className="min-w-0 flex items-center gap-3 sm:gap-4">
-
         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-red-500/30 bg-red-500/5">
-          <AlertCircle
-            size={15}
-            className="text-red-500"
-          />
+          <AlertCircle size={15} className="text-red-500" />
         </div>
 
         <div className="min-w-0">
-
           <p className="text-sm font-medium truncate">
             {alert?.message || 'Varroa detected'}
           </p>
-
           <p className="mt-1.5 text-[11px] sm:text-xs text-gray dark:text-muted truncate">
-            {getAlertTarget(alert)}
+            {getAlertTarget(alert, hives, farms)}
           </p>
-
         </div>
-
       </div>
 
       <div className="shrink-0">
@@ -572,7 +565,6 @@ function VarroaRiskItem({ alert }) {
           Varroa
         </span>
       </div>
-
     </div>
   );
 }
@@ -583,6 +575,8 @@ function VarroaRiskItem({ alert }) {
 
 function AlertItem({
   alert,
+  hives = [],
+  farms = [],
   onResolve,
   actionLoading,
 }) {
@@ -600,42 +594,16 @@ function AlertItem({
     alert?.details ||
     'An alert requires attention.';
 
-  const isVarroa = String(alert?.type || '').toLowerCase() === 'varroa';
-
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-
-      <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
-        isVarroa
-          ? 'border-red-500/30 bg-red-500/5'
-          : 'border-orange-500/30 bg-orange-500/5'
-      }`}>
-        <AlertCircle
-          size={17}
-          className={isVarroa ? 'text-red-500' : 'text-orange-500'}
-        />
+      <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-red-500/20 bg-red-500/5">
+        <AlertCircle size={17} className="text-red-500" />
       </div>
 
       <div className="flex-1 min-w-0">
-
         <div className="flex flex-wrap items-center gap-2">
-
-          <p className="text-sm font-medium break-words">
-            {title}
-          </p>
-
+          <p className="text-sm font-medium break-words">{title}</p>
           <StatusBadge status={status} />
-
-          {isVarroa ? (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-red-500/40 text-red-500">
-              Varroa
-            </span>
-          ) : (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-orange-500/40 text-orange-500">
-              Health
-            </span>
-          )}
-
         </div>
 
         <p className="mt-1 text-xs sm:text-sm leading-5 text-gray dark:text-muted break-words">
@@ -643,9 +611,8 @@ function AlertItem({
         </p>
 
         <p className="mt-1.5 text-[9px] sm:text-[10px] text-gray dark:text-muted">
-          {getAlertTarget(alert)}
+          {getAlertTarget(alert, hives, farms)}
         </p>
-
       </div>
 
       <button
@@ -656,7 +623,6 @@ function AlertItem({
         <CheckCircle2 size={14} />
         Resolve
       </button>
-
     </div>
   );
 }
@@ -748,15 +714,59 @@ function getFarmLocation(farm) {
     'Location not set'
   );
 }
-
-function getAlertTarget(alert) {
+function getAlertTarget(alert, hives = [], farms = []) {
   if (!alert) return 'Target unknown';
 
-  if (alert?.hive?.hiveCode) return `Hive: ${alert.hive.hiveCode}`;
-  if (alert?.hive?.name) return `Hive: ${alert.hive.name}`;
-  if (alert?.hiveId) return `Hive ID: ${alert.hiveId}`;
-  if (alert?.farm?.name) return `Farm: ${alert.farm.name}`;
-  if (alert?.farmId) return `Farm ID: ${alert.farmId}`;
+  const hiveId =
+    getId(alert.hive) ||
+    alert.hiveId ||
+    (typeof alert.hive === 'string' ? alert.hive : null);
+
+  const farmId =
+    getId(alert.farm) ||
+    alert.farmId ||
+    (typeof alert.farm === 'string' ? alert.farm : null);
+
+  // 1) Prefer populated object on the alert itself
+  if (alert.hive && typeof alert.hive === 'object') {
+    const code =
+      alert.hive.hiveCode ||
+      alert.hive.name ||
+      getId(alert.hive);
+    if (code) return `Hive: ${code}`;
+  }
+
+  // 2) Look up hive in loaded hives list
+  if (hiveId) {
+    const hive = (Array.isArray(hives) ? hives : []).find(
+      (h) => String(getId(h)) === String(hiveId),
+    );
+    if (hive) {
+      return `Hive: ${hive.hiveCode || hive.name || getId(hive)}`;
+    }
+    return `Hive: ${hiveId}`;
+  }
+
+  // 3) Prefer populated farm on the alert
+  if (alert.farm && typeof alert.farm === 'object') {
+    const name =
+      alert.farm.name ||
+      alert.farm.farmCode ||
+      getId(alert.farm);
+    if (name) return `Farm: ${name}`;
+  }
+
+  // 4) Look up farm in loaded farms list
+  if (farmId) {
+    const farm = (Array.isArray(farms) ? farms : []).find(
+      (f) => String(getId(f)) === String(farmId),
+    );
+    if (farm) {
+      return `Farm: ${farm.name || farm.farmCode || getId(farm)}`;
+    }
+    return `Farm: ${farmId}`;
+  }
+
   return 'Target unknown';
 }
 
