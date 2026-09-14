@@ -160,6 +160,13 @@ export const getSensorReadings = (hiveId) => {
   return request(`/api/sensors/readings/${hiveId}`);
 };
 
+export const submitSensorReading = (payload) => {
+  return request('/api/sensors/readings', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
 /* ---------------------------------------------------------
    Alert APIs
 --------------------------------------------------------- */

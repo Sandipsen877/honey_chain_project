@@ -15,7 +15,6 @@ import {
   Search,
   Thermometer,
   X,
-  Activity,
   AlertTriangle,
 } from 'lucide-react';
 
@@ -27,10 +26,12 @@ import {
 } from './DashboardUI';
 
 import {
-  apiRequest,
   getId,
-  getErrorMessage,
 } from '../../services/dashboardApi';
+
+import {
+  submitSensorReading,
+} from '../../services/platformService';
 
 const VARROA_SCAN_INTERVAL_MS = 1800;
 const VARROA_IMAGE_QUALITY = 0.82;
@@ -44,8 +45,10 @@ function HivesSection({
   farms,
   hives,
   risks,
+  alerts = [],
   onCreate,
   onVarroaAlert,
+  onSensorReadingSubmitted,
   actionLoading,
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -63,6 +66,43 @@ function HivesSection({
     () => Array.isArray(hives) ? hives : [],
     [hives],
   );
+
+  const safeAlerts = useMemo(
+  () => Array.isArray(alerts) ? alerts : [],
+  [alerts],
+);
+
+const activeAlertsByHive = useMemo(() => {
+  const map = new Map();
+
+  safeAlerts
+    .filter((alert) => {
+      const status = String(
+        alert?.status || '',
+      ).toLowerCase();
+
+      return status === 'open';
+    })
+    .forEach((alert) => {
+      const alertHiveId = getId(
+        alert?.hive || alert?.hiveId,
+      );
+
+      if (!alertHiveId) {
+        return;
+      }
+
+      const key = String(alertHiveId);
+
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+
+      map.get(key).push(alert);
+    });
+
+  return map;
+}, [safeAlerts]);
 
   /* ==========================================================
      FILTERED HIVES
@@ -492,6 +532,8 @@ function HivesSection({
         </section>
       )}
 
+      
+
       {/* ======================================================
           HIVE DETAIL
       ====================================================== */}
@@ -500,10 +542,19 @@ function HivesSection({
         <HiveDetail
           hive={selectedHive}
           farms={safeFarms}
+          activeAlerts={
+    activeAlertsByHive.get(
+      String(getId(selectedHive)),
+    ) || []
+  }
           onVarroaAlert={onVarroaAlert}
+          onSensorReadingSubmitted={
+      onSensorReadingSubmitted
+    }
           onClose={closeHiveDetails}
         />
       )}
+      
 
     </div>
   );
@@ -714,6 +765,239 @@ function HiveForm({
   );
 }
 
+function SensorReadingForm({
+  hiveId,
+  farmId,
+  onSubmitted,
+}) {
+  const [form, setForm] = useState({
+    temperature: '',
+    humidity: '',
+    outside_temperature: '',
+    outside_humidity: '',
+    pressure: '',
+    co2: '',
+    tvoc: '',
+    light: '',
+    bee_in: '',
+    bee_out: '',
+  });
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const [success, setSuccess] =
+    useState('');
+
+  function handleChange(event) {
+    const {
+      name,
+      value,
+    } = event.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const payload = {
+       hive: hiveId,
+      farm: farmId,
+      temperatureC: Number(form.temperature),
+      humidityPct: Number(form.humidity),
+      outside_temperature: Number(form.outside_temperature),
+      outside_humidity: Number(form.outside_humidity),
+      pressure: Number(form.pressure),
+      co2: Number(form.co2),
+      tvoc: Number(form.tvoc),
+      light: Number(form.light),
+      bee_in: Number(form.bee_in),
+      bee_out: Number(form.bee_out),
+
+        source: 'manual',
+      };
+
+      const result = await submitSensorReading(
+        payload,
+      );
+
+      setSuccess(
+        'Sensor reading submitted successfully.',
+      );
+
+      await onSubmitted?.(result);
+
+      setForm({
+        temperature: '',
+        humidity: '',
+        outside_temperature: '',
+        outside_humidity: '',
+        pressure: '',
+        co2: '',
+        tvoc: '',
+        light: '',
+        bee_in: '',
+        bee_out: '',
+      });
+    } catch (err) {
+      setError(
+        err?.message ||
+          'Failed to submit sensor reading.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fields = [
+    {
+      name: 'temperature',
+      label: 'Hive Temperature °C',
+      step: '0.1',
+    },
+    {
+      name: 'humidity',
+      label: 'Hive Humidity %',
+      step: '0.1',
+    },
+    {
+      name: 'outside_temperature',
+      label: 'Outside Temperature °C',
+      step: '0.1',
+    },
+    {
+      name: 'outside_humidity',
+      label: 'Outside Humidity %',
+      step: '0.1',
+    },
+    {
+      name: 'pressure',
+      label: 'Pressure hPa',
+      step: '0.1',
+    },
+    {
+      name: 'co2',
+      label: 'CO₂ ppm',
+      step: '1',
+    },
+    {
+      name: 'tvoc',
+      label: 'TVOC ppb',
+      step: '1',
+    },
+    {
+      name: 'light',
+      label: 'Light',
+      step: '1',
+    },
+    {
+      name: 'bee_in',
+      label: 'Bees In',
+      step: '1',
+    },
+    {
+      name: 'bee_out',
+      label: 'Bees Out',
+      step: '1',
+    },
+  ];
+
+  return (
+    <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
+          <Thermometer
+            size={18}
+            className="text-gold"
+          />
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+            Manual Sensor Input
+          </p>
+
+          <h3 className="mt-1 font-semibold">
+            Submit Sensor Reading
+          </h3>
+
+          <p className="mt-1 text-xs text-gray dark:text-muted">
+            Enter the latest sensor values for this hive.
+          </p>
+        </div>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="mt-5"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {fields.map((field) => (
+            <div key={field.name}>
+              <label
+                htmlFor={`sensor-${field.name}`}
+                className="block text-[10px] uppercase tracking-[0.14em] text-gray dark:text-muted mb-2"
+              >
+                {field.label}
+              </label>
+
+              <input
+                id={`sensor-${field.name}`}
+                name={field.name}
+                type="number"
+                step={field.step}
+                value={form[field.name]}
+                onChange={handleChange}
+                required
+                className="w-full border border-black/10 dark:border-white/10 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-gold transition-colors"
+              />
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div className="mt-4 border border-red-500/30 bg-red-500/5 p-3">
+            <p className="text-xs text-red-500">
+              {error}
+            </p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mt-4 border border-green-500/30 bg-green-500/5 p-3">
+            <p className="text-xs text-green-600 dark:text-green-400">
+              {success}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="border border-gold bg-gold text-black px-5 py-2.5 text-xs font-semibold hover:bg-transparent hover:text-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? 'Submitting...'
+              : 'Submit Sensor Reading'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 /* ============================================================
    HIVE DETAIL
@@ -722,7 +1006,9 @@ function HiveForm({
 function HiveDetail({
   hive,
   farms,
+  activeAlerts = [],
   onVarroaAlert,
+  onSensorReadingSubmitted,
   onClose,
 }) {
   const hiveId = getId(hive);
@@ -730,19 +1016,6 @@ function HiveDetail({
   const safeFarms = Array.isArray(farms)
     ? farms
     : [];
-
-  /* ==========================================================
-     HEALTH STATE
-     ========================================================== */
-
-  const [healthData, setHealthData] =
-    useState(null);
-
-  const [healthLoading, setHealthLoading] =
-    useState(true);
-
-  const [healthError, setHealthError] =
-    useState('');
 
   /* ==========================================================
      VARROA STATE
@@ -878,149 +1151,7 @@ function HiveDetail({
       },
     );
 
-  //generate hive data sensor
-
-const generateHiveSensorData = useCallback(() => {
-  const source = String(hiveId || hive?.hiveCode || 'HIVE');
-
-  // Create a stable hash from the hive ID
-  let hash = 0;
-  for (let i = 0; i < source.length; i += 1) {
-    hash = (hash * 31 + source.charCodeAt(i)) % 100000;
-  }
-
-  const variation = hash % 100; // 0 – 99
-
-  // Decide the "health scenario" based on the hash
-  // 0-54  → Healthy
-  // 55-74 → Mild issue
-  // 75-89 → Needs attention
-  // 90-99 → Critical
-  const scenario = variation;
-
-  let temperature, humidity, outside_temperature, outside_humidity;
-  let pressure, co2, tvoc, light, bee_in, bee_out;
-
-  if (scenario < 55) {
-    // ========== HEALTHY ==========
-    temperature = Number((33.5 + (variation % 15) / 10).toFixed(1));       // 33.5 – 34.9
-    humidity = Number((55 + (variation % 12)).toFixed(1));                 // 55 – 66
-    outside_temperature = Number((26 + (variation % 20) / 10).toFixed(1));
-    outside_humidity = Number((60 + (variation % 15)).toFixed(1));
-    pressure = Number((1010 + (variation % 10) / 10).toFixed(1));
-    co2 = 450 + (variation % 200);                                        // normal
-    tvoc = 120 + (variation % 150);
-    light = 200 + (variation % 250);
-    bee_in = 25 + (variation % 20);
-    bee_out = 28 + (variation % 18);
-  } else if (scenario < 75) {
-    // ========== MILD ISSUE ==========
-    temperature = Number((35.5 + (variation % 20) / 10).toFixed(1));       // slightly high
-    humidity = Number((72 + (variation % 10)).toFixed(1));                 // higher humidity
-    outside_temperature = Number((29 + (variation % 15) / 10).toFixed(1));
-    outside_humidity = Number((70 + (variation % 12)).toFixed(1));
-    pressure = Number((1005 + (variation % 8) / 10).toFixed(1));
-    co2 = 900 + (variation % 400);                                        // elevated
-    tvoc = 350 + (variation % 250);
-    light = 150 + (variation % 180);
-    bee_in = 12 + (variation % 10);                                       // lower activity
-    bee_out = 14 + (variation % 12);
-  } else if (scenario < 90) {
-    // ========== NEEDS ATTENTION ==========
-    temperature = Number((37.2 + (variation % 25) / 10).toFixed(1));       // high
-    humidity = Number((82 + (variation % 10)).toFixed(1));                 // high humidity
-    outside_temperature = Number((31 + (variation % 18) / 10).toFixed(1));
-    outside_humidity = Number((78 + (variation % 10)).toFixed(1));
-    pressure = Number((998 + (variation % 10) / 10).toFixed(1));
-    co2 = 1600 + (variation % 600);                                       // high CO2
-    tvoc = 600 + (variation % 400);
-    light = 80 + (variation % 120);
-    bee_in = 5 + (variation % 8);                                         // low activity
-    bee_out = 6 + (variation % 9);
-  } else {
-    // ========== CRITICAL ==========
-    temperature = Number((39.5 + (variation % 20) / 10).toFixed(1));       // very high
-    humidity = Number((90 + (variation % 8)).toFixed(1));                  // very high
-    outside_temperature = Number((33 + (variation % 15) / 10).toFixed(1));
-    outside_humidity = Number((85 + (variation % 8)).toFixed(1));
-    pressure = Number((990 + (variation % 8) / 10).toFixed(1));
-    co2 = 2800 + (variation % 800);                                       // dangerous
-    tvoc = 900 + (variation % 500);
-    light = 40 + (variation % 80);
-    bee_in = 1 + (variation % 4);                                         // almost no activity
-    bee_out = 2 + (variation % 5);
-  }
-
-  return {
-    hive_id: String(hive?.hiveCode || hiveId || 'HIVE'),
-    temperature,
-    humidity,
-    outside_temperature,
-    outside_humidity,
-    pressure,
-    co2,
-    tvoc,
-    light,
-    bee_in,
-    bee_out,
-  };
-}, [hiveId, hive?.hiveCode]);
-  /* ==========================================================
-     OVERALL HEALTH API
-     ========================================================== */
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchHealth() {
-      setHealthLoading(true);
-      setHealthError('');
-      setHealthData(null);
-
-      try {
-        const sensorData =
-          generateHiveSensorData();
-
-        const response =
-          await apiRequest(
-            '/api/alerts/predict',
-            {
-              method: 'POST',
-              body: JSON.stringify(
-                sensorData,
-              ),
-            },
-          );
-
-        if (!cancelled) {
-          setHealthData({
-            ...response,
-            sensorData,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setHealthError(
-            getErrorMessage(err),
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setHealthLoading(false);
-        }
-      }
-    }
-
-    fetchHealth();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    hiveId,
-    generateHiveSensorData,
-  ]);
-
+  
   /* ==========================================================
      CAMERA CLEANUP
      ========================================================== */
@@ -1572,37 +1703,6 @@ const generateHiveSensorData = useCallback(() => {
     }
   }
 
-  /* ==========================================================
-     HEALTH STATUS CLASS
-     ========================================================== */
-
-  function getHealthStatusClass(
-    status,
-  ) {
-    const normalized =
-      String(status || '')
-        .toLowerCase();
-
-    if (
-      normalized ===
-      'healthy'
-    ) {
-      return 'text-green-600 border-green-600/30 bg-green-600/5';
-    }
-
-    if (
-      normalized.includes(
-        'warning',
-      ) ||
-      normalized.includes(
-        'moderate',
-      )
-    ) {
-      return 'text-amber-600 border-amber-500/30 bg-amber-500/5';
-    }
-
-    return 'text-red-600 border-red-500/30 bg-red-500/5';
-  }
 
   return (
     <>
@@ -1759,207 +1859,101 @@ const generateHiveSensorData = useCallback(() => {
 
               </div>
 
+
               {/* ==================================================
-                  OVERALL HIVE HEALTH
-              ================================================== */}
+    SENSOR READING
+================================================== */}
 
-              <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+<SensorReadingForm
+  hiveId={hiveId}
+  farmId={hiveFarmId}
 
-                <div className="flex items-start gap-3">
+  onSubmitted={onSensorReadingSubmitted}
 
-                  <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
-                    <Activity
-                      size={18}
-                      className="text-gold"
-                    />
-                  </div>
+/>
 
-                  <div className="min-w-0">
+{/* ==================================================
+    ACTIVE HIVE ALERTS
+================================================== */}
 
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
-                      Live Analysis
-                    </p>
+{activeAlerts.length > 0 && (
+  <div className="mt-5 sm:mt-6 border border-red-500/30 bg-red-500/5 p-5 sm:p-6">
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 border border-red-500/30 flex items-center justify-center shrink-0">
+        <AlertTriangle
+          size={18}
+          className="text-red-500"
+        />
+      </div>
 
-                    <h3 className="mt-1 font-semibold">
-                      Overall Hive Health
-                    </h3>
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-red-500 font-semibold">
+          Active Warning
+        </p>
 
-                    <p className="mt-1 text-xs text-gray dark:text-muted">
-                      Sensor-based health prediction for this hive
-                    </p>
+        <h3 className="mt-1 font-semibold">
+          Hive requires attention
+        </h3>
 
-                  </div>
+        <p className="mt-1 text-xs text-gray dark:text-muted">
+          This hive currently has an open alert.
+        </p>
+      </div>
+    </div>
 
-                </div>
+    <div className="mt-5 space-y-3">
+      {activeAlerts.map((alert, index) => {
+        const severity = String(
+          alert?.severity || 'warning',
+        ).toLowerCase();
 
-                {healthLoading ? (
+        return (
+          <div
+            key={
+              getId(alert) ||
+              `${hiveId}-alert-${index}`
+            }
+            className="border border-black/10 dark:border-white/10 bg-cream-card dark:bg-black-card p-4"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">
+                  {alert?.title ||
+                    alert?.type ||
+                    'Hive Health Alert'}
+                </p>
 
-                  <div className="mt-6 border border-black/10 dark:border-white/10 p-6 flex flex-col items-center justify-center">
+                {alert?.message && (
+                  <p className="mt-1 text-xs text-gray dark:text-muted">
+                    {alert.message}
+                  </p>
+                )}
 
-                    <LoaderCircle
-                      size={26}
-                      className="animate-spin text-gold"
-                    />
-
-                    <p className="mt-3 text-sm text-gray dark:text-muted">
-                      Analyzing hive health...
-                    </p>
-
-                  </div>
-
-                ) : healthError ? (
-
-                  <div className="mt-6 border border-red-500/30 bg-red-500/5 p-5">
-
-                    <div className="flex items-start gap-3">
-
-                      <AlertTriangle
-                        size={19}
-                        className="text-red-500 shrink-0"
-                      />
-
-                      <div>
-
-                        <p className="text-sm font-semibold">
-                          Health analysis unavailable
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray dark:text-muted">
-                          {healthError}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                ) : healthData ? (
-
-                  <div className="mt-6">
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black/10 dark:bg-white/10">
-
-                      <HealthStat
-                        label="Health Score"
-                        value={`${healthData.health_score ?? '—'}/100`}
-                      />
-
-                      <HealthStat
-                        label="Health Status"
-                        value={
-                          healthData.health_status ||
-                          'Unknown'
-                        }
-                        valueClass={
-                          getHealthStatusClass(
-                            healthData.health_status,
-                          )
-                        }
-                      />
-
-                      <HealthStat
-                        label="Bee Activity"
-                        value={
-                          healthData.bee_activity ??
-                          '—'
-                        }
-                      />
-
-                      <HealthStat
-                        label="Inspection"
-                        value={
-                          healthData.inspection_required
-                            ? 'Required'
-                            : 'Not Required'
-                        }
-                        valueClass={
-                          healthData.inspection_required
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }
-                      />
-
-                    </div>
-
-                    {healthData.sensorData && (
-                      <div className="mt-5 border border-black/10 dark:border-white/10 p-5">
-
-                        <div className="flex items-center gap-2">
-
-                          <Thermometer
-                            size={16}
-                            className="text-gold"
-                          />
-
-                          <h4 className="text-sm font-semibold">
-                            Sensor Snapshot
-                          </h4>
-
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-
-                          <SensorValue
-                            label="Temperature"
-                            value={`${healthData.sensorData.temperature}°C`}
-                          />
-
-                          <SensorValue
-                            label="Humidity"
-                            value={`${healthData.sensorData.humidity}%`}
-                          />
-
-                          <SensorValue
-                            label="Outside Temp."
-                            value={`${healthData.sensorData.outside_temperature}°C`}
-                          />
-
-                          <SensorValue
-                            label="CO₂"
-                            value={`${healthData.sensorData.co2} ppm`}
-                          />
-
-                          <SensorValue
-                            label="TVOC"
-                            value={`${healthData.sensorData.tvoc}`}
-                          />
-
-                          <SensorValue
-                            label="Light"
-                            value={`${healthData.sensorData.light}`}
-                          />
-
-                          <SensorValue
-                            label="Bee In"
-                            value={
-                              healthData.sensorData.beе_in ??
-                              healthData.sensorData.bee_in
-                            }
-                          />
-
-                          <SensorValue
-                            label="Bee Out"
-                            value={
-                              healthData.sensorData.bee_out
-                            }
-                          />
-
-                          <SensorValue
-                            label="Pressure"
-                            value={`${healthData.sensorData.pressure} hPa`}
-                          />
-
-                        </div>
-
-                      </div>
-                    )}
-
-                  </div>
-
-                ) : null}
-
+                {alert?.createdAt && (
+                  <p className="mt-2 text-[10px] text-gray dark:text-muted">
+                    {new Date(
+                      alert.createdAt,
+                    ).toLocaleString()}
+                  </p>
+                )}
               </div>
+
+              <span
+                className={`shrink-0 px-2.5 py-1 text-[9px] uppercase tracking-wider font-semibold border ${
+                  severity === 'critical'
+                    ? 'border-red-500/40 text-red-500'
+                    : 'border-gold/40 text-gold'
+                }`}
+              >
+                {severity}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
 
               {/* ==================================================
                   VARROA DETECTION
@@ -2834,33 +2828,6 @@ function BoundingBoxImage({
 }
 
 
-/* ============================================================
-   HEALTH STAT
-   ============================================================ */
-
-function HealthStat({
-  label,
-  value,
-  valueClass = '',
-}) {
-  return (
-    <div className="bg-cream-card dark:bg-black-card p-5 min-w-0">
-
-      <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted">
-        {label}
-      </p>
-
-      <p
-        className={`mt-2 text-lg font-semibold break-words ${
-          valueClass || ''
-        }`}
-      >
-        {value || '—'}
-      </p>
-
-    </div>
-  );
-}
 
 
 /* ============================================================

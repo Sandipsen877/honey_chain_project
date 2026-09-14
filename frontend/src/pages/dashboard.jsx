@@ -737,10 +737,14 @@ setYieldEstimate({
                 farms={farms}
                 hives={hives}
                 risks={risks}
+                alerts={alerts}
                 onCreate={createHive}
                 onVarroaAlert={async () => {
                   await loadDashboard();
                 }}
+                onSensorReadingSubmitted={async () => {
+    await loadDashboard();
+  }}
                 actionLoading={actionLoading}
               />
             )}
