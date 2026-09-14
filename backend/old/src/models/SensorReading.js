@@ -8,18 +8,6 @@ const SensorReadingSchema = new Schema(
     temperatureC: { type: Number, required: true },
     humidityPct: { type: Number, required: true },
     weightKg: { type: Number }, // hive weight, useful proxy for nectar flow/honey accumulation
-
-    // Additional fields required by the ML health model (POST /predict/health).
-    // Optional so manual/legacy readings without full sensor coverage still save.
-    outsideTemperatureC: { type: Number },
-    outsideHumidityPct: { type: Number },
-    pressureHPa: { type: Number },
-    co2Ppm: { type: Number },
-    tvocPpb: { type: Number },
-    light: { type: Number },
-    beeIn: { type: Number },
-    beeOut: { type: Number },
-
     source: { type: String, enum: ["manual", "simulated", "device"], default: "manual" },
     recordedAt: { type: Date, default: Date.now },
   },

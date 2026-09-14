@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const LabReportSchema = new Schema(
   {
-    batch: { type: Schema.Types.ObjectId, ref: "Batch", required: true },
+    batch: { type: Schema.Types.ObjectId, ref: "Batch", required: true, unique: true },
     labName: { type: String, default: "KVIC Regional Testing Lab (mock)" },
     sampleId: { type: String, required: true },
     testedDate: { type: Date },
@@ -20,13 +20,8 @@ const LabReportSchema = new Schema(
 
     overallResult: { type: String, enum: ["pass", "fail", "pending"], default: "pending" },
     isMock: { type: Boolean, default: true },
-    verifiedBy: { type: Schema.Types.ObjectId, ref: "KvicAdmin" }, // set when a real KVIC admin files the report
   },
   { timestamps: true }
 );
-
-// Not unique anymore - a batch can accumulate several reports over time
-// (re-tests, corrections, etc.) and every one of them is kept.
-LabReportSchema.index({ batch: 1, createdAt: -1 });
 
 export default mongoose.model("LabReport", LabReportSchema);

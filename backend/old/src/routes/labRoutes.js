@@ -14,17 +14,11 @@ router.post("/submit/:batchId", async (req, res) => {
   }
 });
 
-// GET /api/lab/report/:batchId - fetch the latest report
+// GET /api/lab/report/:batchId - fetch the report once ready
 router.get("/report/:batchId", async (req, res) => {
   const report = await mockLabService.getReport(req.params.batchId);
   if (!report) return res.status(404).json({ error: "Report not ready or not found yet" });
   res.json(report);
-});
-
-// GET /api/lab/report/:batchId/history - every report ever filed for this batch
-router.get("/report/:batchId/history", async (req, res) => {
-  const reports = await mockLabService.getReportHistory(req.params.batchId);
-  res.json(reports);
 });
 
 export default router;

@@ -4,7 +4,6 @@ const router = express.Router();
 import Alert from "../models/Alert.js";
 import Hive from "../models/Hive.js";
 import { predictAlert, predictVarroa } from "../services/mlService.js";
-import { uploadImageBuffer } from "../services/cloudinaryService.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -105,29 +104,26 @@ router.post(
           ? ` Highest confidence ${(bestConfidence * 100).toFixed(0)}%.`
           : "";
 
-        // Store the frame that triggered the detection so it can be reviewed later.
-        let uploaded = null;
-        try {
-          uploaded = await uploadImageBuffer(imageFile.buffer, {
-            folder: "varroa-detections",
-            publicIdPrefix: String(hiveId),
-          });
-        } catch (uploadErr) {
-          console.warn("[alertRoutes] Cloudinary upload failed, saving alert without image:", uploadErr.message);
-        }
-
-        // A fresh Alert doc per detection (same pattern as temperature/humidity/health_ml
-        // alerts) rather than upserting one "open" alert - so every past detection (and
-        // its photo) stays queryable via GET /api/alerts?hiveId=&type=varroa.
-        savedAlert = await Alert.create({
-          hive: hiveId,
-          farm: farmId,
-          type: "varroa",
-          severity: "high",
-          message: `Varroa detected: ${count} mite${count === 1 ? "" : "s"} found.${confidenceText}`,
-          suggestedAction: "Inspect this hive immediately and start Varroa treatment protocol if confirmed.",
-          ...(uploaded ? { imageUrl: uploaded.url, imagePublicId: uploaded.publicId } : {}),
-        });
+        savedAlert = await Alert.findOneAndUpdate(
+          {
+            hive: hiveId,
+            type: "varroa",
+            status: "open",
+          },
+          {
+            $set: {
+              farm: farmId,
+              severity: "high",
+              message: `Varroa detected: ${count} mite${count === 1 ? "" : "s"} found.${confidenceText}`,
+              suggestedAction: "Inspect this hive immediately and start Varroa treatment protocol if confirmed.",
+            },
+          },
+          {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+          }
+        );
       }
 
       res.json({
@@ -140,13 +136,12 @@ router.post(
   }
 );
 
-// GET /api/alerts?farmId=&hiveId=&status=&type=
+// GET /api/alerts?farmId=&hiveId=&status=open
 router.get("/", async (req, res) => {
   const filter = {};
   if (req.query.farmId) filter.farm = req.query.farmId;
   if (req.query.hiveId) filter.hive = req.query.hiveId;
   if (req.query.status) filter.status = req.query.status;
-  if (req.query.type) filter.type = req.query.type;
   const alerts = await Alert.find(filter).sort({ createdAt: -1 }).limit(200);
   res.json(alerts);
 });

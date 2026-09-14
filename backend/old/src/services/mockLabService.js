@@ -81,13 +81,17 @@ async function submitSample(batchId, { delayMs = 5000 } = {}) {
   // would instead be a webhook/callback or a polled status endpoint.
   setTimeout(async () => {
     try {
-      await LabReport.create({
-        batch: batchId,
-        sampleId,
-        testedDate: new Date(),
-        ...template,
-        isMock: true,
-      });
+      await LabReport.findOneAndUpdate(
+        { batch: batchId },
+        {
+          batch: batchId,
+          sampleId,
+          testedDate: new Date(),
+          ...template,
+          isMock: true,
+        },
+        { upsert: true, new: true }
+      );
       await Batch.findByIdAndUpdate(batchId, { status: "tested" });
       console.log(`[mockLabService] report ready for batch ${batchId} (${sampleId})`);
     } catch (err) {
@@ -98,14 +102,8 @@ async function submitSample(batchId, { delayMs = 5000 } = {}) {
   return { sampleId, status: "submitted_for_testing", etaMs: delayMs };
 }
 
-// Most recent report for a batch (a batch can have several over time - re-tests, etc.)
 async function getReport(batchId) {
-  return LabReport.findOne({ batch: batchId }).sort({ createdAt: -1 });
+  return LabReport.findOne({ batch: batchId });
 }
 
-// Every report ever filed for a batch, newest first.
-async function getReportHistory(batchId) {
-  return LabReport.find({ batch: batchId }).sort({ createdAt: -1 });
-}
-
-export { submitSample, getReport, getReportHistory };
+export { submitSample, getReport };

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -14,7 +14,8 @@ import batchRoutes from "./src/routes/batchRoutes.js";
 import labRoutes from "./src/routes/labRoutes.js";
 import qrRoutes from "./src/routes/qrRoutes.js";
 import authRoutes from "./src/routes/authRoutes.js";
-import kvicRoutes from "./src/routes/kvicRoutes.js";
+
+dotenv.config();
 
 const app = express();
 
@@ -42,9 +43,6 @@ app.use("/api/yield", yieldRoutes);
 app.use("/api/batches", batchRoutes);
 app.use("/api/lab", labRoutes);
 app.use("/api/qr", qrRoutes);
-
-// KVIC admin dashboard (separate auth from keepers)
-app.use("/api/kvic", kvicRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.originalUrl}` });

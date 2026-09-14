@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import Hive from "../models/Hive.js";
 import SensorReading from "../models/SensorReading.js";
-import { evaluateReadingWithML } from "./alertService.js";
+import { evaluateReading } from "./alertEngine.js";
 
 let lastWeightByHive = {}; // in-memory cache: hiveId -> last simulated weight, for a gentle trend
 
@@ -12,8 +12,8 @@ function randomInRange(min, max) {
 /**
  * Generates one plausible reading for a hive: a mild daily temperature/humidity
  * pattern plus a slowly increasing weight (nectar accumulation), with a small
- * random chance of injecting an anomaly so the ML health model has something to
- * catch during a live demo.
+ * random chance of injecting an anomaly so the alert engine has something to catch
+ * during a live demo.
  */
 function generateReading(hive) {
   const hour = new Date().getHours();
@@ -21,25 +21,16 @@ function generateReading(hive) {
 
   let temperatureC = isDaytime ? randomInRange(33, 35.5) : randomInRange(31, 33.5);
   let humidityPct = randomInRange(50, 62);
-  let outsideTemperatureC = isDaytime ? randomInRange(22, 30) : randomInRange(14, 20);
-  let outsideHumidityPct = randomInRange(40, 70);
-  let pressureHPa = randomInRange(1005, 1020);
-  let co2Ppm = randomInRange(600, 1200);
-  let tvocPpb = randomInRange(50, 400);
-  let light = isDaytime ? randomInRange(300, 900) : randomInRange(0, 20);
-  let beeIn = Math.round(randomInRange(20, 80));
-  let beeOut = Math.round(randomInRange(20, 80));
 
   const baseWeight = lastWeightByHive[hive._id] ?? randomInRange(20, 28);
   let weightKg = Math.round((baseWeight + randomInRange(-0.1, 0.3)) * 10) / 10;
 
-  // ~8% chance of injecting a visible anomaly, useful for demoing the ML health model live
+  // ~8% chance of injecting a visible anomaly, useful for demoing the alert engine live
   const injectAnomaly = Math.random() < 0.08;
   if (injectAnomaly) {
     const anomalyType = Math.random();
-    if (anomalyType < 0.25) temperatureC += randomInRange(3, 5);
-    else if (anomalyType < 0.5) humidityPct += randomInRange(12, 20);
-    else if (anomalyType < 0.75) co2Ppm += randomInRange(1500, 2500);
+    if (anomalyType < 0.34) temperatureC += randomInRange(3, 5);
+    else if (anomalyType < 0.67) humidityPct += randomInRange(12, 20);
     else weightKg = Math.round(baseWeight * (1 - randomInRange(0.06, 0.12)) * 10) / 10;
   }
 
@@ -51,14 +42,6 @@ function generateReading(hive) {
     temperatureC,
     humidityPct,
     weightKg,
-    outsideTemperatureC,
-    outsideHumidityPct,
-    pressureHPa,
-    co2Ppm,
-    tvocPpb,
-    light,
-    beeIn,
-    beeOut,
     source: "simulated",
     recordedAt: new Date(),
   };
@@ -67,12 +50,13 @@ function generateReading(hive) {
 async function runSimulationTick() {
   const hives = await Hive.find({ status: "active" });
   for (const hive of hives) {
+    const previousReading = await SensorReading.findOne({ hive: hive._id }).sort({ recordedAt: -1 });
     const readingData = generateReading(hive);
     const saved = await SensorReading.create(readingData);
     try {
-      await evaluateReadingWithML(saved);
+      await evaluateReading(saved, previousReading);
     } catch (err) {
-      console.error(`[sensorSimulator] ML alert evaluation failed for hive ${hive._id}:`, err.message);
+      console.error(`[sensorSimulator] alert evaluation failed for hive ${hive._id}:`, err.message);
     }
   }
 }

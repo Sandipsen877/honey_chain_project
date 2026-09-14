@@ -1,17 +1,16 @@
 import express from "express";
 const router = express.Router();
 import SensorReading from "../models/SensorReading.js";
-import { evaluateReadingWithML } from "../services/alertService.js";
+import { evaluateReading } from "../services/alertEngine.js";
 
 // POST /api/sensors/readings - manually log a reading (keeper's manual-entry mode)
-// Alert creation now needs the full sensor field set the ML model expects
-// (outsideTemperatureC, outsideHumidityPct, pressureHPa, co2Ppm, tvocPpb, light,
-// beeIn, beeOut). Readings missing those fields still save, they just won't be
-// evaluated for an ML health alert.
 router.post("/readings", async (req, res) => {
   try {
+    const previousReading = await SensorReading.findOne({ hive: req.body.hive }).sort({
+      recordedAt: -1,
+    });
     const reading = await SensorReading.create({ ...req.body, source: req.body.source || "manual" });
-    const alerts = await evaluateReadingWithML(reading);
+    const alerts = await evaluateReading(reading, previousReading);
     res.status(201).json({ reading, alertsCreated: alerts.length });
   } catch (err) {
     res.status(400).json({ error: err.message });
