@@ -294,6 +294,8 @@ export default function Layout() {
       'honeychain_keeper'
     );
 
+    localStorage.removeItem('honeychain_yield_cache');
+
 
     /*
      * Close profile modal.

@@ -85,6 +85,50 @@ function extractYieldKg(item) {
 }
 
 /* ============================================================
+   ALERT TYPE HELPERS
+   ============================================================ */
+
+function isVarroaAlert(alert) {
+  if (!alert) return false;
+  const type = String(alert.type || '').toLowerCase();
+  return type === 'varroa';
+}
+
+function isHealthMlAlert(alert) {
+  if (!alert) return false;
+  const type = String(alert.type || '').toLowerCase();
+  return type === 'health_ml';
+}
+
+// Used for Active Alerts + Alert History
+function isAllowedAlert(alert) {
+  return isVarroaAlert(alert) || isHealthMlAlert(alert);
+}
+
+/* ============================================================
+   YIELD CACHE (per login session)
+   ============================================================ */
+
+const YIELD_CACHE_KEY = 'honeychain_yield_cache';
+
+function getYieldCache() {
+  try {
+    const raw = localStorage.getItem(YIELD_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setYieldCache(cache) {
+  try {
+    localStorage.setItem(YIELD_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore
+  }
+}
+
+/* ============================================================
    MAIN DASHBOARD
    ============================================================ */
 
@@ -95,7 +139,7 @@ export default function Dashboard() {
   const [hives, setHives] = useState([]);
   const [batches, setBatches] = useState([]);
 
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState([]);           // open varroa + open health_ml
   const [resolvedAlerts, setResolvedAlerts] = useState([]);
 
   const [yields, setYields] = useState({});
@@ -126,173 +170,255 @@ export default function Dashboard() {
      ============================================================ */
 
   async function loadDashboard() {
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    try {
-      const token = localStorage.getItem('honeychain_token');
+  try {
+    const token = localStorage.getItem('honeychain_token');
 
-      if (!token) {
-        throw new Error('Authentication token is missing.');
-      }
+    if (!token) {
+      throw new Error('Authentication token is missing.');
+    }
 
-      const meResponse = await getCurrentKeeper(token);
-      const currentKeeper = meResponse?.keeper || meResponse;
-      setKeeper(currentKeeper);
+    const meResponse = await getCurrentKeeper(token);
+    const currentKeeper = meResponse?.keeper || meResponse;
+    setKeeper(currentKeeper);
 
-      /* FARMS */
-      let loadedFarms = meResponse?.farms || [];
+    /* ============================================================
+       FARMS
+       ============================================================ */
+    let loadedFarms = meResponse?.farms || [];
 
-      if (!loadedFarms.length && getId(currentKeeper)) {
-        try {
-          const farmResponse = await apiRequest(
-            `/api/keepers/${getId(currentKeeper)}/farms`,
-          );
-          loadedFarms = farmResponse?.farms || farmResponse || [];
-        } catch {
-          loadedFarms = [];
-        }
-      }
-
-      if (!Array.isArray(loadedFarms)) {
+    if (!loadedFarms.length && getId(currentKeeper)) {
+      try {
+        const farmResponse = await apiRequest(
+          `/api/keepers/${getId(currentKeeper)}/farms`,
+        );
+        loadedFarms = farmResponse?.farms || farmResponse || [];
+      } catch {
         loadedFarms = [];
       }
+    }
 
-      setFarms(loadedFarms);
+    if (!Array.isArray(loadedFarms)) {
+      loadedFarms = [];
+    }
 
-      /* HIVES */
-      const hiveResults = await Promise.all(
-        loadedFarms.map(async (farm) => {
-          const farmId = getId(farm);
-          if (!farmId) return [];
+    setFarms(loadedFarms);
 
-          try {
-            const response = await apiRequest(
-              `/api/hives?farmId=${farmId}`,
-            );
-            const farmHives = response?.hives || response || [];
-            return Array.isArray(farmHives) ? farmHives : [];
-          } catch {
-            return [];
-          }
-        }),
-      );
+    /* ============================================================
+       HIVES
+       ============================================================ */
+    const hiveResults = await Promise.all(
+      loadedFarms.map(async (farm) => {
+        const farmId = getId(farm);
+        if (!farmId) return [];
 
-      setHives(hiveResults.flat());
+        try {
+          const response = await apiRequest(
+            `/api/hives?farmId=${farmId}`,
+          );
+          const farmHives = response?.hives || response || [];
+          return Array.isArray(farmHives) ? farmHives : [];
+        } catch {
+          return [];
+        }
+      }),
+    );
 
-      /* BATCHES */
-      let loadedBatches = [];
-      try {
+    const loadedHives = hiveResults.flat();
+    setHives(loadedHives);
+
+    /* ============================================================
+       BATCHES — only for the current logged-in keeper
+       ============================================================ */
+    let loadedBatches = [];
+
+    try {
+      const keeperId = getId(currentKeeper);
+
+      if (keeperId) {
+        const response = await apiRequest(
+          `/api/batches?keeperId=${encodeURIComponent(keeperId)}`
+        );
+        loadedBatches = response?.batches || response || [];
+      } else {
         const response = await apiRequest('/api/batches');
         loadedBatches = response?.batches || response || [];
-      } catch {
-        loadedBatches = [];
       }
-      if (!Array.isArray(loadedBatches)) {
-        loadedBatches = [];
-      }
-      setBatches(loadedBatches);
+    } catch {
+      loadedBatches = [];
+    }
 
-      /* ALERTS */
-      let allOpenAlerts = [];
-      let allResolvedAlerts = [];
+    if (!Array.isArray(loadedBatches)) {
+      loadedBatches = [];
+    }
 
+    setBatches(loadedBatches);
+
+    /* ============================================================
+       ALERTS
+       - Only alerts that belong to the current keeper’s farms/hives
+       - Active Alerts  → open varroa + open health_ml
+       - Alert History  → varroa + health_ml (open + resolved)
+       - Disease Risk   → only open varroa
+       ============================================================ */
+
+    const keeperFarmIds = new Set(
+      loadedFarms.map((f) => String(getId(f))).filter(Boolean)
+    );
+
+    const keeperHiveIds = new Set(
+      loadedHives.map((h) => String(getId(h))).filter(Boolean)
+    );
+
+    // Does this alert belong to the current keeper?
+    function belongsToCurrentKeeper(alert) {
+      if (!alert) return false;
+
+      const alertFarmId = String(
+        getId(alert.farm) || alert.farm || alert.farmId || ''
+      );
+      const alertHiveId = String(
+        getId(alert.hive) || alert.hive || alert.hiveId || ''
+      );
+
+      if (alertFarmId && keeperFarmIds.has(alertFarmId)) return true;
+      if (alertHiveId && keeperHiveIds.has(alertHiveId)) return true;
+
+      return false;
+    }
+
+    let allOpenAlerts = [];
+    let allResolvedAlerts = [];
+
+    try {
+      const openRes = await apiRequest('/api/alerts?status=open');
+      const rawOpen = Array.isArray(openRes) ? openRes : openRes?.alerts || [];
+      allOpenAlerts = rawOpen
+        .filter(isAllowedAlert)
+        .filter(belongsToCurrentKeeper);
+    } catch {
+      allOpenAlerts = [];
+    }
+
+    try {
+      const resolvedRes = await apiRequest('/api/alerts?status=resolved');
+      const rawResolved = Array.isArray(resolvedRes)
+        ? resolvedRes
+        : resolvedRes?.alerts || [];
+      allResolvedAlerts = rawResolved
+        .filter(isAllowedAlert)
+        .filter(belongsToCurrentKeeper);
+    } catch {
       try {
-        const openRes = await apiRequest('/api/alerts?status=open');
-        allOpenAlerts = Array.isArray(openRes)
-          ? openRes
-          : openRes?.alerts || [];
-      } catch {
-        allOpenAlerts = [];
-      }
+        const allRes = await apiRequest('/api/alerts');
+        const all = Array.isArray(allRes) ? allRes : allRes?.alerts || [];
 
-      try {
-        const resolvedRes = await apiRequest(
-          '/api/alerts?status=resolved',
-        );
-        allResolvedAlerts = Array.isArray(resolvedRes)
-          ? resolvedRes
-          : resolvedRes?.alerts || [];
-      } catch {
-        try {
-          const allRes = await apiRequest('/api/alerts');
-          const all = Array.isArray(allRes)
-            ? allRes
-            : allRes?.alerts || [];
-
-          allResolvedAlerts = all.filter(
+        allResolvedAlerts = all
+          .filter(isAllowedAlert)
+          .filter(belongsToCurrentKeeper)
+          .filter(
             (a) =>
               String(a?.status || '').toLowerCase() === 'resolved' ||
-              a?.resolved === true,
+              a?.resolved === true
           );
 
-          if (!allOpenAlerts.length) {
-            allOpenAlerts = all.filter(
-              (a) => String(a?.status || '').toLowerCase() === 'open',
-            );
-          }
-        } catch {
-          allResolvedAlerts = [];
+        if (!allOpenAlerts.length) {
+          allOpenAlerts = all
+            .filter(isAllowedAlert)
+            .filter(belongsToCurrentKeeper)
+            .filter((a) => String(a?.status || '').toLowerCase() === 'open');
         }
+      } catch {
+        allResolvedAlerts = [];
       }
-
-      setAlerts(allOpenAlerts);
-      setResolvedAlerts(allResolvedAlerts);
-
-      const isHiveAlert = (a) =>
-        !!(getId(a?.hive) || a?.hive || a?.hiveId);
-
-      const isFarmAlert = (a) =>
-        !!(getId(a?.farm) || a?.farm || a?.farmId);
-
-      setHistoryData({
-        openAll: allOpenAlerts,
-        openHive: allOpenAlerts.filter(isHiveAlert),
-        openFarm: allOpenAlerts.filter(isFarmAlert),
-        resolvedAll: allResolvedAlerts,
-        resolvedHive: allResolvedAlerts.filter(isHiveAlert),
-        resolvedFarm: allResolvedAlerts.filter(isFarmAlert),
-      });
-
-      /* YIELD — POST /api/yield/predict with 16 history rows */
-      const yieldMap = {};
-
-      await Promise.all(
-        loadedFarms.map(async (farm) => {
-          const farmId = getId(farm);
-          if (!farmId) return;
-
-          try {
-            const history = getRandomHistorySample(16);
-            const response = await apiRequest('/api/yield/predict', {
-              method: 'POST',
-              body: JSON.stringify({ history }),
-            });
-            yieldMap[farmId] = response;
-          } catch {
-            yieldMap[farmId] = null;
-          }
-        }),
-      );
-
-      setYields(yieldMap);
-
-      const totalKg = Object.values(yieldMap).reduce(
-        (sum, item) => sum + extractYieldKg(item),
-        0,
-      );
-
-      setYieldEstimate({
-        estimatedYieldKg: Math.round(totalKg * 10) / 10,
-        source: 'total',
-        farmCount: loadedFarms.length,
-      });
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
+
+    // Final safety filters
+    allOpenAlerts = allOpenAlerts
+      .filter(isAllowedAlert)
+      .filter(belongsToCurrentKeeper);
+
+    allResolvedAlerts = allResolvedAlerts
+      .filter(isAllowedAlert)
+      .filter(belongsToCurrentKeeper);
+
+    setAlerts(allOpenAlerts);
+    setResolvedAlerts(allResolvedAlerts);
+
+    const isHiveAlert = (a) =>
+      !!(getId(a?.hive) || a?.hive || a?.hiveId);
+
+    const isFarmAlert = (a) =>
+      !!(getId(a?.farm) || a?.farm || a?.farmId);
+
+    setHistoryData({
+      openAll: allOpenAlerts,
+      openHive: allOpenAlerts.filter(isHiveAlert),
+      openFarm: allOpenAlerts.filter(isFarmAlert),
+      resolvedAll: allResolvedAlerts,
+      resolvedHive: allResolvedAlerts.filter(isHiveAlert),
+      resolvedFarm: allResolvedAlerts.filter(isFarmAlert),
+    });
+
+    /* ============================================================
+   YIELD — call API only once per farm per login session
+   ============================================================ */
+const yieldMap = {};
+const cache = getYieldCache();
+const keeperId = getId(currentKeeper);
+
+await Promise.all(
+  loadedFarms.map(async (farm) => {
+    const farmId = getId(farm);
+    if (!farmId) return;
+
+    const cacheKey = `${keeperId}_${farmId}`;
+
+    // Already cached in this session → reuse
+    if (cache[cacheKey] !== undefined) {
+      yieldMap[farmId] = cache[cacheKey];
+      return;
+    }
+
+    // First time → call API with random sample
+    try {
+      const history = getRandomHistorySample(16);
+      const response = await apiRequest('/api/yield/predict', {
+        method: 'POST',
+        body: JSON.stringify({ history }),
+      });
+
+      yieldMap[farmId] = response;
+      cache[cacheKey] = response;
+    } catch {
+      yieldMap[farmId] = null;
+      cache[cacheKey] = null;
+    }
+  }),
+);
+
+// Save cache for the rest of the session
+setYieldCache(cache);
+setYields(yieldMap);
+
+const totalKg = Object.values(yieldMap).reduce(
+  (sum, item) => sum + extractYieldKg(item),
+  0,
+);
+
+setYieldEstimate({
+  estimatedYieldKg: Math.round(totalKg * 10) / 10,
+  source: 'total',
+  farmCount: loadedFarms.length,
+});
+  } catch (err) {
+    setError(getErrorMessage(err));
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     loadDashboard();
@@ -426,6 +552,12 @@ export default function Dashboard() {
       resolvedAlerts: resolvedAlerts.length,
     }),
     [farms, hives, batches, alerts, resolvedAlerts],
+  );
+
+  // Only open Varroa alerts for Disease Risk section
+  const openVarroaAlerts = useMemo(
+    () => alerts.filter(isVarroaAlert),
+    [alerts],
   );
 
   if (loading) {
@@ -577,7 +709,8 @@ export default function Dashboard() {
                 statistics={statistics}
                 farms={farms}
                 hives={hives}
-                alerts={alerts}
+                alerts={alerts}                       // open varroa + open health_ml
+                varroaAlerts={openVarroaAlerts}       // only open varroa (for Disease Risk)
                 risks={risks}
                 yieldEstimate={yieldEstimate}
                 onOpenSection={openSection}
@@ -602,7 +735,11 @@ export default function Dashboard() {
               <HivesSection
                 farms={farms}
                 hives={hives}
+                risks={risks}
                 onCreate={createHive}
+                onVarroaAlert={async () => {
+                  await loadDashboard();
+                }}
                 actionLoading={actionLoading}
               />
             )}
@@ -649,6 +786,7 @@ export default function Dashboard() {
         <FarmDetail
           farm={selectedFarm}
           hives={hives}
+          yields={yields}
           onClose={() => setSelectedFarm(null)}
           onCreateHive={createHive}
           onUpdateFarm={updateFarm}

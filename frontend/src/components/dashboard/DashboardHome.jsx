@@ -15,12 +15,12 @@ import {
   EmptyState,
   PageHeader,
   PrimaryButton,
-  RiskBadge,
   SectionCard,
   StatCard,
   StatusBadge,
 } from './DashboardUI';
 
+import { getId } from '../../services/dashboardApi';
 
 /* ============================================================
    MAIN DASHBOARD HOME
@@ -31,7 +31,8 @@ export default function DashboardHome({
   statistics,
   farms,
   hives,
-  alerts,
+  alerts,            // open varroa + open health_ml
+  varroaAlerts = [], // only open varroa (for Disease Risk)
   risks,
   yieldEstimate,
   onOpenSection,
@@ -60,7 +61,6 @@ export default function DashboardHome({
           ) : null
         }
       />
-
 
       {/* ======================================================
           STATISTICS
@@ -103,7 +103,6 @@ export default function DashboardHome({
         </div>
       </section>
 
-
       {/* ======================================================
           RESOLVED ALERT SUMMARY
       ======================================================= */}
@@ -144,7 +143,6 @@ export default function DashboardHome({
         </div>
 
       </SectionCard>
-
 
       {/* ======================================================
           NO FARMS
@@ -189,15 +187,12 @@ export default function DashboardHome({
         </SectionCard>
       )}
 
-
       {/* ======================================================
           FARM + HIVE OVERVIEW
       ======================================================= */}
 
       {farms.length > 0 && (
         <section className="w-full min-w-0">
-
-          {/* Section heading */}
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-3 sm:mb-4">
 
@@ -217,11 +212,7 @@ export default function DashboardHome({
 
           </div>
 
-
-          {/* Symmetric responsive layout */}
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-
 
             {/* ==================================================
                 FARM OVERVIEW
@@ -249,9 +240,8 @@ export default function DashboardHome({
 
             </SectionCard>
 
-
             {/* ==================================================
-                HIVE RISK OVERVIEW
+                DISEASE RISK — ONLY OPEN VARROA ALERTS
             ================================================== */}
 
             <SectionCard className="overflow-hidden min-w-0">
@@ -262,12 +252,12 @@ export default function DashboardHome({
                 onClick={() => onOpenSection('hives')}
               />
 
-              {hives.length === 0 ? (
+              {varroaAlerts.length === 0 ? (
 
                 <EmptyState
                   icon={Hexagon}
-                  title="No hives yet"
-                  text="Create a hive inside one of your farms to start monitoring hive health."
+                  title="No Varroa alerts"
+                  text="No open Varroa detections at the moment. All clear."
                   action={
                     <PrimaryButton
                       onClick={() => onOpenSection('hives')}
@@ -281,11 +271,10 @@ export default function DashboardHome({
 
                 <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden scrollbar-thin divide-y divide-black/5 dark:divide-white/10">
 
-                  {hives.map((hive) => (
-                    <HiveRiskItem
-                      key={getId(hive)}
-                      hive={hive}
-                      risk={risks[getId(hive)]}
+                  {varroaAlerts.map((alert) => (
+                    <VarroaRiskItem
+                      key={getId(alert)}
+                      alert={alert}
                     />
                   ))}
 
@@ -300,9 +289,8 @@ export default function DashboardHome({
         </section>
       )}
 
-
       {/* ======================================================
-          ACTIVE ALERTS
+          ACTIVE ALERTS (open varroa + open health_ml)
       ======================================================= */}
 
       <SectionCard className="overflow-hidden min-w-0">
@@ -352,13 +340,12 @@ export default function DashboardHome({
 
         </div>
 
-
         {alerts.length === 0 ? (
 
           <EmptyState
             icon={CheckCircle2}
             title="No active alerts"
-            text="Your monitored farms currently have no open alerts."
+            text="Your monitored farms currently have no open Varroa or health alerts."
           />
 
         ) : (
@@ -380,7 +367,6 @@ export default function DashboardHome({
 
       </SectionCard>
 
-
       {/* ======================================================
           QUICK ACTIONS
       ======================================================= */}
@@ -398,7 +384,6 @@ export default function DashboardHome({
           </h2>
 
         </div>
-
 
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
 
@@ -442,7 +427,6 @@ export default function DashboardHome({
   );
 }
 
-
 /* ============================================================
    DASHBOARD SECTION HEADER
    ============================================================ */
@@ -482,7 +466,6 @@ function DashboardSectionHeader({
     </div>
   );
 }
-
 
 /* ============================================================
    FARM OVERVIEW ITEM
@@ -537,7 +520,6 @@ function FarmOverviewItem({
 
       </div>
 
-
       <div className="shrink-0 min-w-[48px] sm:min-w-[55px] text-center border-l border-black/10 dark:border-white/10 pl-3 sm:pl-4">
 
         <p className="text-base sm:text-lg font-semibold">
@@ -554,55 +536,49 @@ function FarmOverviewItem({
   );
 }
 
-
 /* ============================================================
-   HIVE RISK ITEM
+   VARROA RISK ITEM (Disease Risk section)
    ============================================================ */
 
-function HiveRiskItem({
-  hive,
-  risk,
-}) {
+function VarroaRiskItem({ alert }) {
   return (
     <div className="p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
 
       <div className="min-w-0 flex items-center gap-3 sm:gap-4">
 
-        <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-gold/20 bg-gold/5">
-          <Hexagon
+        <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center border border-red-500/30 bg-red-500/5">
+          <AlertCircle
             size={15}
-            className="text-gold"
+            className="text-red-500"
           />
         </div>
 
         <div className="min-w-0">
 
           <p className="text-sm font-medium truncate">
-            {hive?.hiveCode ||
-              hive?.name ||
-              `Hive ${getId(hive)}`}
+            {alert?.message || 'Varroa detected'}
           </p>
 
           <p className="mt-1.5 text-[11px] sm:text-xs text-gray dark:text-muted truncate">
-            {getHiveFarmName(hive)}
+            {getAlertTarget(alert)}
           </p>
 
         </div>
 
       </div>
 
-
       <div className="shrink-0">
-        <RiskBadge risk={risk} />
+        <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border border-red-500/40 text-red-500 bg-red-500/5">
+          Varroa
+        </span>
       </div>
 
     </div>
   );
 }
 
-
 /* ============================================================
-   ALERT ITEM
+   ALERT ITEM (Active Alerts)
    ============================================================ */
 
 function AlertItem({
@@ -610,9 +586,7 @@ function AlertItem({
   onResolve,
   actionLoading,
 }) {
-  const status =
-    alert?.status ||
-    'open';
+  const status = alert?.status || 'open';
 
   const title =
     alert?.title ||
@@ -626,16 +600,21 @@ function AlertItem({
     alert?.details ||
     'An alert requires attention.';
 
+  const isVarroa = String(alert?.type || '').toLowerCase() === 'varroa';
+
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
 
-      <div className="w-9 h-9 shrink-0 flex items-center justify-center border border-red-500/20 bg-red-500/5">
+      <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
+        isVarroa
+          ? 'border-red-500/30 bg-red-500/5'
+          : 'border-orange-500/30 bg-orange-500/5'
+      }`}>
         <AlertCircle
           size={17}
-          className="text-red-500"
+          className={isVarroa ? 'text-red-500' : 'text-orange-500'}
         />
       </div>
-
 
       <div className="flex-1 min-w-0">
 
@@ -645,17 +624,23 @@ function AlertItem({
             {title}
           </p>
 
-          <StatusBadge
-            status={status}
-          />
+          <StatusBadge status={status} />
+
+          {isVarroa ? (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-red-500/40 text-red-500">
+              Varroa
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-orange-500/40 text-orange-500">
+              Health
+            </span>
+          )}
 
         </div>
-
 
         <p className="mt-1 text-xs sm:text-sm leading-5 text-gray dark:text-muted break-words">
           {message}
         </p>
-
 
         <p className="mt-1.5 text-[9px] sm:text-[10px] text-gray dark:text-muted">
           {getAlertTarget(alert)}
@@ -663,28 +648,18 @@ function AlertItem({
 
       </div>
 
-
       <button
-        onClick={() =>
-          onResolve(getId(alert))
-        }
-        disabled={
-          actionLoading ||
-          !getId(alert)
-        }
+        onClick={() => onResolve(getId(alert))}
+        disabled={actionLoading || !getId(alert)}
         className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 border border-black/10 dark:border-white/10 text-xs font-medium hover:border-gold hover:text-gold disabled:opacity-50 transition-colors"
       >
-        <CheckCircle2
-          size={14}
-        />
-
+        <CheckCircle2 size={14} />
         Resolve
       </button>
 
     </div>
   );
 }
-
 
 /* ============================================================
    QUICK ACTION
@@ -703,10 +678,7 @@ function QuickAction({
       className="group relative w-full min-w-0 text-left bg-cream-card dark:bg-black-card border border-black/10 dark:border-white/10 p-4 sm:p-5 overflow-hidden hover:border-gold transition-all duration-300"
     >
 
-      {/* Gold hover rail */}
-
       <div className="absolute top-0 left-0 w-full h-px bg-gold scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
-
 
       <div className="flex items-start justify-between gap-3">
 
@@ -723,244 +695,86 @@ function QuickAction({
 
       </div>
 
+      <h3 className="mt-4 text-sm font-semibold">
+        {title}
+      </h3>
 
-      <div className="mt-5 sm:mt-6 flex items-end justify-between gap-3">
-
-        <div className="min-w-0">
-
-          <p className="text-sm font-semibold truncate">
-            {title}
-          </p>
-
-          <p className="mt-1 text-[11px] sm:text-xs leading-5 text-gray dark:text-muted">
-            {text}
-          </p>
-
-        </div>
-
-        <ChevronRight
-          size={15}
-          className="shrink-0 text-gray dark:text-muted group-hover:text-gold group-hover:translate-x-1 transition-all duration-300"
-        />
-
-      </div>
+      <p className="mt-1.5 text-xs text-gray dark:text-muted">
+        {text}
+      </p>
 
     </button>
   );
 }
 
-
 /* ============================================================
    HELPERS
    ============================================================ */
 
-function getId(item) {
-  return (
-    item?._id ||
-    item?.id
-  );
+function formatYield(yieldEstimate) {
+  if (!yieldEstimate) return '—';
+  const kg = yieldEstimate.estimatedYieldKg;
+  if (kg == null) return '—';
+  return `${kg} kg`;
 }
 
+/**
+ * Safe farm location helper
+ * Fixes the crash: Objects are not valid as a React child
+ * (location is sometimes stored as { area, state, lat, lng })
+ */
+function getFarmLocation(farm) {
+  if (!farm) return 'Location not set';
 
-function formatYield(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ''
-  ) {
-    return '—';
-  }
+  // If location is an object → convert to readable string
+  if (farm.location && typeof farm.location === 'object') {
+    const { area, state, lat, lng } = farm.location;
+    const parts = [];
 
-  if (typeof value === 'number') {
-    return `${value} kg`;
-  }
-
-  if (typeof value === 'string') {
-    return value.includes('kg')
-      ? value
-      : `${value} kg`;
-  }
-
-  if (typeof value === 'object') {
-
-    const number =
-      value.estimatedYieldKg ??
-      value.estimatedYield ??
-      value.yieldEstimate ??
-      value.predictedYield ??
-      value.yield ??
-      value.value ??
-      value.amount ??
-      value.kg ??
-      value.quantity;
-
-    if (
-      number !== undefined &&
-      number !== null &&
-      number !== ''
-    ) {
-      return `${number} kg`;
+    if (area) parts.push(String(area));
+    if (state) parts.push(String(state));
+    if (lat != null && lng != null) {
+      parts.push(`${lat}, ${lng}`);
     }
 
-    return '—';
+    return parts.length > 0 ? parts.join(', ') : 'Location not set';
   }
 
-  return `${value} kg`;
-}
-
-
-function getFarmLocation(farm) {
-  const location =
-    farm?.location;
-
-  if (!location) {
-    return 'Location not provided';
-  }
-
-  if (
-    typeof location ===
-    'string'
-  ) {
-    return location;
-  }
-
-  const parts = [
-    location.area,
-    location.state,
-  ].filter(Boolean);
-
-  if (parts.length) {
-    return parts.join(', ');
-  }
-
-  if (
-    location.lat !==
-      undefined &&
-    location.lng !==
-      undefined
-  ) {
-    return `${location.lat}, ${location.lng}`;
-  }
-
-  return 'Location not provided';
-}
-
-
-function getHiveFarmName(hive) {
-  const farm =
-    hive?.farm;
-
-  if (!farm) {
-    return 'Farm not assigned';
-  }
-
-  if (
-    typeof farm ===
-    'string'
-  ) {
-    return `Farm: ${farm}`;
-  }
-
+  // Normal string cases
   return (
-    farm?.name ||
-    farm?.farmCode ||
-    'Farm assigned'
+    farm.location ||
+    farm.address ||
+    farm.region ||
+    'Location not set'
   );
 }
-
 
 function getAlertTarget(alert) {
-  if (alert?.hive) {
+  if (!alert) return 'Target unknown';
 
-    const hive =
-      alert.hive;
-
-    if (
-      typeof hive ===
-      'object'
-    ) {
-      return `Hive: ${
-        hive?.hiveCode ||
-        hive?.name ||
-        getId(hive)
-      }`;
-    }
-
-    return `Hive: ${hive}`;
-  }
-
-  if (alert?.farm) {
-
-    const farm =
-      alert.farm;
-
-    if (
-      typeof farm ===
-      'object'
-    ) {
-      return `Farm: ${
-        farm?.name ||
-        farm?.farmCode ||
-        getId(farm)
-      }`;
-    }
-
-    return `Farm: ${farm}`;
-  }
-
-  return 'HoneyChain monitoring system';
+  if (alert?.hive?.hiveCode) return `Hive: ${alert.hive.hiveCode}`;
+  if (alert?.hive?.name) return `Hive: ${alert.hive.name}`;
+  if (alert?.hiveId) return `Hive ID: ${alert.hiveId}`;
+  if (alert?.farm?.name) return `Farm: ${alert.farm.name}`;
+  if (alert?.farmId) return `Farm ID: ${alert.farmId}`;
+  return 'Target unknown';
 }
-
-
-/* ============================================================
-   QR ICON WRAPPER
-   ============================================================ */
 
 function QrCodeIcon(props) {
   return (
-    <span
-      className="inline-flex"
+    <svg
       {...props}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <svg
-        width="19"
-        height="19"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect
-          x="3"
-          y="3"
-          width="6"
-          height="6"
-        />
-
-        <rect
-          x="15"
-          y="3"
-          width="6"
-          height="6"
-        />
-
-        <rect
-          x="3"
-          y="15"
-          width="6"
-          height="6"
-        />
-
-        <path d="M15 15h3v3h-3z" />
-        <path d="M21 15v6" />
-        <path d="M15 21h3" />
-        <path d="M12 3v3" />
-        <path d="M12 9v3" />
-        <path d="M9 12h3" />
-        <path d="M15 12h6" />
-      </svg>
-    </span>
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+      <path d="M14 14h.01M17 14h.01M14 17h.01M17 17h.01M20 14h.01M20 17h.01M14 20h.01M17 20h.01M20 20h.01" />
+    </svg>
   );
 }

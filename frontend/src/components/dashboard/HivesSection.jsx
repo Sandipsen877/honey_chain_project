@@ -878,99 +878,93 @@ function HiveDetail({
       },
     );
 
-  /* ==========================================================
-     GENERATE DIFFERENT SENSOR DATA PER HIVE
-     ========================================================== */
+  //generate hive data sensor
 
-  const generateHiveSensorData = useCallback(() => {
-    const source = String(
-      hiveId ||
-        hive?.hiveCode ||
-        'HIVE',
-    );
+const generateHiveSensorData = useCallback(() => {
+  const source = String(hiveId || hive?.hiveCode || 'HIVE');
 
-    let hash = 0;
+  // Create a stable hash from the hive ID
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) % 100000;
+  }
 
-    for (
-      let i = 0;
-      i < source.length;
-      i += 1
-    ) {
-      hash =
-        (hash * 31 +
-          source.charCodeAt(i)) %
-        100000;
-    }
+  const variation = hash % 100; // 0 – 99
 
-    const variation = hash % 100;
+  // Decide the "health scenario" based on the hash
+  // 0-54  → Healthy
+  // 55-74 → Mild issue
+  // 75-89 → Needs attention
+  // 90-99 → Critical
+  const scenario = variation;
 
-    return {
-      hive_id: String(
-        hive?.hiveCode ||
-          hiveId ||
-          'HIVE',
-      ),
+  let temperature, humidity, outside_temperature, outside_humidity;
+  let pressure, co2, tvoc, light, bee_in, bee_out;
 
-      temperature: Number(
-        (
-          32 +
-          (variation % 35) / 10
-        ).toFixed(1),
-      ),
+  if (scenario < 55) {
+    // ========== HEALTHY ==========
+    temperature = Number((33.5 + (variation % 15) / 10).toFixed(1));       // 33.5 – 34.9
+    humidity = Number((55 + (variation % 12)).toFixed(1));                 // 55 – 66
+    outside_temperature = Number((26 + (variation % 20) / 10).toFixed(1));
+    outside_humidity = Number((60 + (variation % 15)).toFixed(1));
+    pressure = Number((1010 + (variation % 10) / 10).toFixed(1));
+    co2 = 450 + (variation % 200);                                        // normal
+    tvoc = 120 + (variation % 150);
+    light = 200 + (variation % 250);
+    bee_in = 25 + (variation % 20);
+    bee_out = 28 + (variation % 18);
+  } else if (scenario < 75) {
+    // ========== MILD ISSUE ==========
+    temperature = Number((35.5 + (variation % 20) / 10).toFixed(1));       // slightly high
+    humidity = Number((72 + (variation % 10)).toFixed(1));                 // higher humidity
+    outside_temperature = Number((29 + (variation % 15) / 10).toFixed(1));
+    outside_humidity = Number((70 + (variation % 12)).toFixed(1));
+    pressure = Number((1005 + (variation % 8) / 10).toFixed(1));
+    co2 = 900 + (variation % 400);                                        // elevated
+    tvoc = 350 + (variation % 250);
+    light = 150 + (variation % 180);
+    bee_in = 12 + (variation % 10);                                       // lower activity
+    bee_out = 14 + (variation % 12);
+  } else if (scenario < 90) {
+    // ========== NEEDS ATTENTION ==========
+    temperature = Number((37.2 + (variation % 25) / 10).toFixed(1));       // high
+    humidity = Number((82 + (variation % 10)).toFixed(1));                 // high humidity
+    outside_temperature = Number((31 + (variation % 18) / 10).toFixed(1));
+    outside_humidity = Number((78 + (variation % 10)).toFixed(1));
+    pressure = Number((998 + (variation % 10) / 10).toFixed(1));
+    co2 = 1600 + (variation % 600);                                       // high CO2
+    tvoc = 600 + (variation % 400);
+    light = 80 + (variation % 120);
+    bee_in = 5 + (variation % 8);                                         // low activity
+    bee_out = 6 + (variation % 9);
+  } else {
+    // ========== CRITICAL ==========
+    temperature = Number((39.5 + (variation % 20) / 10).toFixed(1));       // very high
+    humidity = Number((90 + (variation % 8)).toFixed(1));                  // very high
+    outside_temperature = Number((33 + (variation % 15) / 10).toFixed(1));
+    outside_humidity = Number((85 + (variation % 8)).toFixed(1));
+    pressure = Number((990 + (variation % 8) / 10).toFixed(1));
+    co2 = 2800 + (variation % 800);                                       // dangerous
+    tvoc = 900 + (variation % 500);
+    light = 40 + (variation % 80);
+    bee_in = 1 + (variation % 4);                                         // almost no activity
+    bee_out = 2 + (variation % 5);
+  }
 
-      humidity: Number(
-        (
-          60 +
-          (variation % 25)
-        ).toFixed(1),
-      ),
-
-      outside_temperature: Number(
-        (
-          28 +
-          (variation % 40) / 10
-        ).toFixed(1),
-      ),
-
-      outside_humidity: Number(
-        (
-          65 +
-          (variation % 20)
-        ).toFixed(1),
-      ),
-
-      pressure: Number(
-        (
-          1005 +
-          (variation % 15) / 10
-        ).toFixed(1),
-      ),
-
-      co2:
-        900 +
-        (variation % 700),
-
-      tvoc:
-        300 +
-        (variation % 500),
-
-      light:
-        180 +
-        (variation % 300),
-
-      bee_in:
-        10 +
-        (variation % 15),
-
-      bee_out:
-        12 +
-        ((variation * 2) % 18),
-    };
-  }, [
-    hiveId,
-    hive?.hiveCode,
-  ]);
-
+  return {
+    hive_id: String(hive?.hiveCode || hiveId || 'HIVE'),
+    temperature,
+    humidity,
+    outside_temperature,
+    outside_humidity,
+    pressure,
+    co2,
+    tvoc,
+    light,
+    bee_in,
+    bee_out,
+  };
+}, [hiveId, hive?.hiveCode]);
   /* ==========================================================
      OVERALL HEALTH API
      ========================================================== */

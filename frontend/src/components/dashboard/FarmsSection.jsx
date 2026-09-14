@@ -392,6 +392,7 @@ function FarmForm({ onSubmit, onCancel, actionLoading, initialData = {} }) {
 function FarmDetail({
   farm,
   hives = [],
+  yields = {},
   onClose,
   onCreateHive,
   onUpdateFarm,
@@ -399,9 +400,7 @@ function FarmDetail({
 }) {
   const [showHiveForm, setShowHiveForm] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [yieldData, setYieldData] = useState(null);
-  const [yieldLoading, setYieldLoading] = useState(false);
-  const [yieldError, setYieldError] = useState('');
+  
 
   const farmId = getId(farm);
   const safeHives = Array.isArray(hives) ? hives : [];
@@ -409,43 +408,11 @@ function FarmDetail({
     (hive) => getId(hive?.farm) === farmId || hive?.farm === farmId,
   );
 
-  useEffect(() => {
-    if (!farmId) return;
+  const yieldData = yields?.[farmId] || null;
+  const yieldLoading = false;
+  const yieldError = '';
 
-    let cancelled = false;
-
-    async function loadYield() {
-      setYieldLoading(true);
-      setYieldError('');
-
-      try {
-        const history = getRandomHistorySample(16);
-        const response = await apiRequest('/api/yield/predict', {
-          method: 'POST',
-          body: JSON.stringify({ history }),
-        });
-
-        if (!cancelled) {
-          setYieldData(response);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setYieldData(null);
-          setYieldError(getErrorMessage(err));
-        }
-      } finally {
-        if (!cancelled) {
-          setYieldLoading(false);
-        }
-      }
-    }
-
-    loadYield();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [farmId]);
+ 
 
   return (
     <DetailOverlay
