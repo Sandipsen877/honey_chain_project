@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Beaker,
-  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Eye,
@@ -24,6 +23,7 @@ import {
   getKvicBatches,
   getKvicReports,
   getKvicReportHistory,
+  submitKvicLabReport,
 } from '../../services/kvicApi';
 
 
@@ -55,9 +55,7 @@ function displayValue(value) {
 
   if (Array.isArray(value)) {
     return value
-      .map((item) =>
-        displayValue(item)
-      )
+      .map((item) => displayValue(item))
       .join(', ');
   }
 
@@ -337,8 +335,7 @@ function getReportForBatch(
       }
 
       const reportBatchId =
-        typeof reportBatch ===
-        'object'
+        typeof reportBatch === 'object'
           ? getId(reportBatch)
           : reportBatch;
 
@@ -374,6 +371,7 @@ function ReportStatus({
 
   const result = String(
     report?.overallResult ||
+      report?.overall_result ||
       report?.result ||
       ''
   ).toLowerCase();
@@ -395,7 +393,7 @@ function ReportStatus({
     result === 'failed'
   ) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400">
         <AlertTriangle size={13} />
         Failed
       </span>
@@ -408,6 +406,7 @@ function ReportStatus({
 
       {displayValue(
         report?.overallResult ||
+          report?.overall_result ||
           report?.result
       )}
     </span>
@@ -441,6 +440,507 @@ function InfoCard({
 
 /*
 |--------------------------------------------------------------------------
+| FORM FIELD
+|--------------------------------------------------------------------------
+*/
+
+function FormField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder = '',
+  required = false,
+  step,
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+        {label}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        placeholder={placeholder}
+        required={required}
+        step={step}
+        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+      />
+    </div>
+  );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| LAB REPORT SUBMISSION FORM
+|--------------------------------------------------------------------------
+*/
+
+function LabReportSubmissionForm({
+  batch,
+  report,
+  submitting,
+  submitError,
+  submitSuccess,
+  onSubmit,
+}) {
+  const [form, setForm] = useState({
+    labName: '',
+    sampleId: '',
+    testedDate: '',
+    moisturePct: '',
+    hmfMgPerKg: '',
+    reducingSugarPct: '',
+    sucrosePct: '',
+    fructoseGlucoseRatio: '',
+    c4SugarTestResult: 'pass',
+    diastaseActivity: '',
+    pollenFloralSource: '',
+    overallResult: 'pass',
+  });
+
+  const existingReport = Boolean(report);
+
+  const updateField = (
+    field,
+    value
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmit = async (
+    event
+  ) => {
+    event.preventDefault();
+
+    if (existingReport) {
+      return;
+    }
+
+    const payload = {
+      labName:
+        form.labName.trim(),
+
+      sampleId:
+        form.sampleId.trim(),
+
+      testedDate:
+        form.testedDate
+          ? new Date(
+              form.testedDate
+            ).toISOString()
+          : new Date().toISOString(),
+
+      moisturePct:
+        Number(form.moisturePct),
+
+      hmfMgPerKg:
+        Number(form.hmfMgPerKg),
+
+      reducingSugarPct:
+        Number(
+          form.reducingSugarPct
+        ),
+
+      sucrosePct:
+        Number(form.sucrosePct),
+
+      fructoseGlucoseRatio:
+        Number(
+          form.fructoseGlucoseRatio
+        ),
+
+      c4SugarTestResult:
+        form.c4SugarTestResult,
+
+      diastaseActivity:
+        Number(
+          form.diastaseActivity
+        ),
+
+      pollenFloralSource:
+        form.pollenFloralSource.trim(),
+
+      overallResult:
+        form.overallResult,
+    };
+
+    await onSubmit(payload);
+  };
+
+  return (
+    <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 dark:border-amber-500/20 dark:bg-amber-500/5">
+
+      {/* HEADER */}
+
+      <div className="mb-5 flex items-start gap-3">
+
+        <div className="rounded-xl bg-amber-500/10 p-2 text-amber-600">
+          <Beaker size={18} />
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-zinc-900 dark:text-white">
+            Submit Laboratory Report
+          </h3>
+
+          <p className="mt-1 text-xs text-zinc-500">
+            KVIC administrator can submit
+            the laboratory verification
+            results for this batch.
+          </p>
+        </div>
+
+      </div>
+
+
+      {/* EXISTING REPORT */}
+
+      {existingReport ? (
+        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-600 dark:text-green-400">
+          A laboratory report already
+          exists for this batch. A new
+          report cannot be submitted here.
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
+
+          {/* BASIC INFORMATION */}
+
+          <div>
+
+            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
+              Report Information
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+
+              <FormField
+                label="Laboratory Name"
+                value={form.labName}
+                onChange={(value) =>
+                  updateField(
+                    'labName',
+                    value
+                  )
+                }
+                placeholder="KVIC Regional Testing Lab"
+                required
+              />
+
+              <FormField
+                label="Sample ID"
+                value={form.sampleId}
+                onChange={(value) =>
+                  updateField(
+                    'sampleId',
+                    value
+                  )
+                }
+                placeholder="SMPL-A1B2C3D4"
+                required
+              />
+
+              <FormField
+                label="Tested Date"
+                type="datetime-local"
+                value={form.testedDate}
+                onChange={(value) =>
+                  updateField(
+                    'testedDate',
+                    value
+                  )
+                }
+                required
+              />
+
+              <FormField
+                label="Pollen / Floral Source"
+                value={
+                  form.pollenFloralSource
+                }
+                onChange={(value) =>
+                  updateField(
+                    'pollenFloralSource',
+                    value
+                  )
+                }
+                placeholder="Mixed floral"
+                required
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* LABORATORY MEASUREMENTS */}
+
+          <div>
+
+            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
+              Laboratory Measurements
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+              <FormField
+                label="Moisture (%)"
+                type="number"
+                step="0.01"
+                value={
+                  form.moisturePct
+                }
+                onChange={(value) =>
+                  updateField(
+                    'moisturePct',
+                    value
+                  )
+                }
+                placeholder="18.4"
+                required
+              />
+
+              <FormField
+                label="HMF (mg/kg)"
+                type="number"
+                step="0.01"
+                value={
+                  form.hmfMgPerKg
+                }
+                onChange={(value) =>
+                  updateField(
+                    'hmfMgPerKg',
+                    value
+                  )
+                }
+                placeholder="14.2"
+                required
+              />
+
+              <FormField
+                label="Reducing Sugar (%)"
+                type="number"
+                step="0.01"
+                value={
+                  form.reducingSugarPct
+                }
+                onChange={(value) =>
+                  updateField(
+                    'reducingSugarPct',
+                    value
+                  )
+                }
+                placeholder="69.8"
+                required
+              />
+
+              <FormField
+                label="Sucrose (%)"
+                type="number"
+                step="0.01"
+                value={
+                  form.sucrosePct
+                }
+                onChange={(value) =>
+                  updateField(
+                    'sucrosePct',
+                    value
+                  )
+                }
+                placeholder="4.1"
+                required
+              />
+
+              <FormField
+                label="Fructose / Glucose Ratio"
+                type="number"
+                step="0.01"
+                value={
+                  form.fructoseGlucoseRatio
+                }
+                onChange={(value) =>
+                  updateField(
+                    'fructoseGlucoseRatio',
+                    value
+                  )
+                }
+                placeholder="1.19"
+                required
+              />
+
+              <FormField
+                label="Diastase Activity"
+                type="number"
+                step="0.01"
+                value={
+                  form.diastaseActivity
+                }
+                onChange={(value) =>
+                  updateField(
+                    'diastaseActivity',
+                    value
+                  )
+                }
+                placeholder="11.9"
+                required
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* TEST RESULTS */}
+
+          <div>
+
+            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
+              Test Results
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+
+              {/* C4 TEST */}
+
+              <div>
+
+                <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  C4 Sugar Test
+                </label>
+
+                <select
+                  value={
+                    form.c4SugarTestResult
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      'c4SugarTestResult',
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                >
+
+                  <option value="pass">
+                    Pass
+                  </option>
+
+                  <option value="fail">
+                    Fail
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              {/* OVERALL RESULT */}
+
+              <div>
+
+                <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  Overall Result
+                </label>
+
+                <select
+                  value={
+                    form.overallResult
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      'overallResult',
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                >
+
+                  <option value="pass">
+                    Pass
+                  </option>
+
+                  <option value="fail">
+                    Fail
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* ERRORS */}
+
+          {submitError && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400">
+              {submitError}
+            </div>
+          )}
+
+
+          {/* SUCCESS */}
+
+          {submitSuccess && (
+            <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-600 dark:text-green-400">
+              {submitSuccess}
+            </div>
+          )}
+
+
+          {/* SUBMIT BUTTON */}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+
+            {submitting ? (
+              <>
+                <LoaderCircle
+                  size={17}
+                  className="animate-spin"
+                />
+
+                Submitting Report...
+              </>
+            ) : (
+              <>
+                <FlaskConical
+                  size={17}
+                />
+
+                Submit Lab Report
+              </>
+            )}
+
+          </button>
+
+        </form>
+      )}
+
+    </section>
+  );
+}
+
+
+/*
+|--------------------------------------------------------------------------
 | BATCH DETAILS MODAL
 |--------------------------------------------------------------------------
 */
@@ -451,6 +951,10 @@ function BatchDetailsModal({
   history,
   historyLoading,
   historyError,
+  submittingReport,
+  reportSubmitError,
+  reportSubmitSuccess,
+  onSubmitLabReport,
   onLoadHistory,
   onClose,
 }) {
@@ -471,19 +975,20 @@ function BatchDetailsModal({
 
         {/* MODAL HEADER */}
 
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-6 py-5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-6 py-5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
 
           <div>
+
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">
               Batch Details
             </p>
 
             <h2 className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">
-              {displayValue(
-                batchCode
-              )}
+              {displayValue(batchCode)}
             </h2>
+
           </div>
+
 
           <button
             type="button"
@@ -492,6 +997,7 @@ function BatchDetailsModal({
           >
             <X size={20} />
           </button>
+
         </div>
 
 
@@ -506,9 +1012,7 @@ function BatchDetailsModal({
                 status
               )}`}
             >
-              {getStatusLabel(
-                status
-              )}
+              {getStatusLabel(status)}
             </span>
 
             <ReportStatus
@@ -524,31 +1028,23 @@ function BatchDetailsModal({
 
             <InfoCard
               label="Farm"
-              value={getFarmName(
-                batch
-              )}
+              value={getFarmName(batch)}
             />
 
             <InfoCard
               label="Keeper"
-              value={getKeeperName(
-                batch
-              )}
+              value={getKeeperName(batch)}
             />
 
             <InfoCard
               label="Quantity"
-              value={formatQuantity(
-                batch
-              )}
+              value={formatQuantity(batch)}
             />
 
             <InfoCard
               label="Created"
               value={formatDate(
-                getCreatedDate(
-                  batch
-                )
+                getCreatedDate(batch)
               )}
             />
 
@@ -567,7 +1063,7 @@ function BatchDetailsModal({
           </div>
 
 
-          {/* LAB REPORT */}
+          {/* EXISTING LAB REPORT */}
 
           <section className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
 
@@ -578,6 +1074,7 @@ function BatchDetailsModal({
               </div>
 
               <div>
+
                 <h3 className="font-semibold text-zinc-900 dark:text-white">
                   Laboratory Report
                 </h3>
@@ -586,6 +1083,7 @@ function BatchDetailsModal({
                   Latest report associated
                   with this batch
                 </p>
+
               </div>
 
             </div>
@@ -603,6 +1101,7 @@ function BatchDetailsModal({
                   label="Result"
                   value={
                     report?.overallResult ||
+                    report?.overall_result ||
                     report?.result
                   }
                 />
@@ -611,6 +1110,7 @@ function BatchDetailsModal({
                   label="Report Date"
                   value={formatDate(
                     report?.createdAt ||
+                      report?.testedDate ||
                       report?.date
                   )}
                 />
@@ -629,10 +1129,44 @@ function BatchDetailsModal({
                   }
                 />
 
+                <InfoCard
+                  label="Sample ID"
+                  value={
+                    report?.sampleId
+                  }
+                />
+
+                <InfoCard
+                  label="Tested Date"
+                  value={formatDate(
+                    report?.testedDate
+                  )}
+                />
+
               </div>
             )}
 
           </section>
+
+
+          {/* SUBMIT LAB REPORT */}
+
+          <LabReportSubmissionForm
+            batch={batch}
+            report={report}
+            submitting={
+              submittingReport
+            }
+            submitError={
+              reportSubmitError
+            }
+            submitSuccess={
+              reportSubmitSuccess
+            }
+            onSubmit={
+              onSubmitLabReport
+            }
+          />
 
 
           {/* REPORT HISTORY */}
@@ -648,6 +1182,7 @@ function BatchDetailsModal({
                 </div>
 
                 <div>
+
                   <h3 className="font-semibold text-zinc-900 dark:text-white">
                     Report History
                   </h3>
@@ -656,6 +1191,7 @@ function BatchDetailsModal({
                     Previous laboratory
                     reports
                   </p>
+
                 </div>
 
               </div>
@@ -663,12 +1199,8 @@ function BatchDetailsModal({
 
               <button
                 type="button"
-                onClick={
-                  onLoadHistory
-                }
-                disabled={
-                  historyLoading
-                }
+                onClick={onLoadHistory}
+                disabled={historyLoading}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:hover:bg-zinc-900"
               >
 
@@ -723,13 +1255,13 @@ function BatchDetailsModal({
                           <div>
 
                             <p className="font-medium text-zinc-900 dark:text-white">
-                              Report #
-                              {index + 1}
+                              Report #{index + 1}
                             </p>
 
                             <p className="text-xs text-zinc-500">
                               {formatDate(
                                 item?.createdAt ||
+                                  item?.testedDate ||
                                   item?.date
                               )}
                             </p>
@@ -766,6 +1298,7 @@ function BatchDetailsModal({
         </div>
 
       </div>
+
     </div>
   );
 }
@@ -822,6 +1355,21 @@ export default function KvicBatches() {
     setHistoryError,
   ] = useState('');
 
+  const [
+    submittingReport,
+    setSubmittingReport,
+  ] = useState(false);
+
+  const [
+    reportSubmitError,
+    setReportSubmitError,
+  ] = useState('');
+
+  const [
+    reportSubmitSuccess,
+    setReportSubmitSuccess,
+  ] = useState('');
+
 
   /*
   |--------------------------------------------------------------------------
@@ -831,6 +1379,7 @@ export default function KvicBatches() {
 
   const loadData = async () => {
     try {
+
       setLoading(true);
       setError('');
 
@@ -878,7 +1427,9 @@ export default function KvicBatches() {
       );
 
     } finally {
+
       setLoading(false);
+
     }
   };
 
@@ -928,6 +1479,7 @@ export default function KvicBatches() {
                 .toLowerCase()
                 .includes(query)
           );
+
         }
       );
 
@@ -1015,7 +1567,12 @@ export default function KvicBatches() {
     );
 
     setHistory([]);
+
     setHistoryError('');
+
+    setReportSubmitError('');
+
+    setReportSubmitSuccess('');
   };
 
 
@@ -1026,11 +1583,125 @@ export default function KvicBatches() {
   */
 
   const closeBatch = () => {
+
     setSelectedBatch(null);
+
     setSelectedReport(null);
+
     setHistory([]);
+
     setHistoryError('');
+
+    setReportSubmitError('');
+
+    setReportSubmitSuccess('');
+
   };
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | SUBMIT LAB REPORT
+  |--------------------------------------------------------------------------
+  */
+
+  const handleSubmitLabReport =
+    async (payload) => {
+
+      if (!selectedBatch) {
+        return;
+      }
+
+      const batchId =
+        getId(selectedBatch);
+
+      if (!batchId) {
+
+        setReportSubmitError(
+          'Batch ID is not available.'
+        );
+
+        return;
+      }
+
+      try {
+
+        setSubmittingReport(
+          true
+        );
+
+        setReportSubmitError('');
+
+        setReportSubmitSuccess('');
+
+        await submitKvicLabReport(
+          batchId,
+          {
+            ...payload,
+            batch: batchId,
+          }
+        );
+
+        setReportSubmitSuccess(
+          'Laboratory report submitted successfully.'
+        );
+
+        /*
+         * Reload all batch/report data.
+         */
+        await loadData();
+
+        /*
+         * Fetch reports again so that
+         * the selected batch immediately
+         * gets its new report.
+         */
+        const refreshedReportsResponse =
+          await getKvicReports();
+
+        const refreshedReports =
+          Array.isArray(
+            refreshedReportsResponse
+          )
+            ? refreshedReportsResponse
+            : refreshedReportsResponse?.reports ||
+              refreshedReportsResponse?.data ||
+              [];
+
+        setReports(
+          refreshedReports
+        );
+
+        const updatedReport =
+          getReportForBatch(
+            refreshedReports,
+            selectedBatch
+          );
+
+        setSelectedReport(
+          updatedReport || null
+        );
+
+      } catch (err) {
+
+        console.error(
+          'KVIC lab report submission error:',
+          err
+        );
+
+        setReportSubmitError(
+          err?.message ||
+            'Failed to submit laboratory report.'
+        );
+
+      } finally {
+
+        setSubmittingReport(
+          false
+        );
+
+      }
+    };
 
 
   /*
@@ -1050,9 +1721,11 @@ export default function KvicBatches() {
         getId(selectedBatch);
 
       if (!batchId) {
+
         setHistoryError(
           'Batch ID is not available.'
         );
+
         return;
       }
 
@@ -1128,6 +1801,7 @@ export default function KvicBatches() {
               className="mb-4 inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-zinc-900 dark:hover:text-white"
             >
               <ArrowLeft size={16} />
+
               Back
             </button>
 
@@ -1535,9 +2209,7 @@ export default function KvicBatches() {
             0 && (
             <p className="mt-4 text-xs text-zinc-500">
               Showing{' '}
-              {
-                filteredBatches.length
-              }{' '}
+              {filteredBatches.length}{' '}
               of{' '}
               {batches.length}{' '}
               batches
@@ -1563,6 +2235,18 @@ export default function KvicBatches() {
           }
           historyError={
             historyError
+          }
+          submittingReport={
+            submittingReport
+          }
+          reportSubmitError={
+            reportSubmitError
+          }
+          reportSubmitSuccess={
+            reportSubmitSuccess
+          }
+          onSubmitLabReport={
+            handleSubmitLabReport
           }
           onLoadHistory={
             loadHistory

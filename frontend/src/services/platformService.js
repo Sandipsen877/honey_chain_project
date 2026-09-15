@@ -263,12 +263,7 @@ export const updateBatch = (batchId, payload) => {
    Laboratory / Digital Passport APIs
 --------------------------------------------------------- */
 
-export const submitLab = (batchId, payload = {}) => {
-  return request(`/api/lab/submit/${batchId}`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-};
+
 
 export const getLabReport = (batchId) => {
   return request(`/api/lab/report/${batchId}`);

@@ -42,54 +42,27 @@ const request = async (
   return data;
 };
 
-
-/* ================================
-   KVIC FARMS
-================================ */
-
 export const getKvicFarms = async () => {
   return request('/api/kvic/farms');
 };
 
-
-export const getKvicFarm = async (
-  farmId
-) => {
+export const getKvicFarm = async (farmId) => {
   if (!farmId) {
-    throw new Error(
-      'Farm ID is required.'
-    );
+    throw new Error('Farm ID is required.');
   }
 
-  return request(
-    `/api/kvic/farms/${farmId}`
-  );
+  return request(`/api/kvic/farms/${farmId}`);
 };
-
-
-/* ================================
-   KVIC BATCHES
-================================ */
 
 export const getKvicBatches = async (
   status = ''
 ) => {
   const query = status
-    ? `?status=${encodeURIComponent(
-        status
-      )}`
+    ? `?status=${encodeURIComponent(status)}`
     : '';
 
-  return request(
-    `/api/kvic/batches${query}`
-  );
+  return request(`/api/kvic/batches${query}`);
 };
-
-
-/* ================================
-   KVIC REPORTS
-   READ ONLY
-================================ */
 
 export const getKvicReports = async (
   overallResult = ''
@@ -100,26 +73,38 @@ export const getKvicReports = async (
       )}`
     : '';
 
-  return request(
-    `/api/kvic/reports${query}`
-  );
+  return request(`/api/kvic/reports${query}`);
 };
-
-
-/* ================================
-   REPORT HISTORY
-================================ */
 
 export const getKvicReportHistory = async (
   batchId
 ) => {
   if (!batchId) {
-    throw new Error(
-      'Batch ID is required.'
-    );
+    throw new Error('Batch ID is required.');
   }
 
   return request(
     `/api/kvic/reports/${batchId}/history`
+  );
+};
+
+/**
+ * Submit a laboratory report for a batch.
+ * This endpoint uses the KVIC admin authentication token.
+ */
+export const submitKvicLabReport = async (
+  batchId,
+  payload = {}
+) => {
+  if (!batchId) {
+    throw new Error('Batch ID is required.');
+  }
+
+  return request(
+    `/api/kvic/reports/${batchId}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
   );
 };
