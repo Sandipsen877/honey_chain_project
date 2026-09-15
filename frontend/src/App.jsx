@@ -19,6 +19,9 @@ import PublicPassport from './pages/PublicPassport';
 import KvicLogin from './pages/kvic/KvicLogin';
 import KvicRegister from './pages/kvic/KvicRegister';
 import KvicDashboard from './pages/kvic/KvicDashboard';
+import KvicFarms from './pages/kvic/KvicFarms';
+import KvicBatches from './pages/kvic/KvicBatches';
+
 
 
 import {
@@ -167,6 +170,24 @@ function App() {
               </KvicProtectedRoute>
             }
           />
+
+          <Route
+            path="/kvic/farms"
+            element={
+              <KvicProtectedRoute>
+                <KvicFarms />
+              </KvicProtectedRoute>
+            }
+          />
+
+          <Route
+  path="/kvic/batches"
+  element={
+    <KvicProtectedRoute>
+      <KvicBatches />
+    </KvicProtectedRoute>
+  }
+/>
           
 
 
