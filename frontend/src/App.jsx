@@ -1,5 +1,9 @@
-
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -12,107 +16,107 @@ import Register from './pages/Register';
 import Dashboard from './pages/dashboard';
 import PublicPassport from './pages/PublicPassport';
 
+import KvicLogin from './pages/kvic/KvicLogin';
+import KvicRegister from './pages/kvic/KvicRegister';
+import KvicDashboard from './pages/kvic/KvicDashboard';
 
-/*
- * ============================================================
- * PROTECTED ROUTE
- * ============================================================
- *
- * Checks whether the user has a HoneyChain login token.
- *
- * If token exists:
- *     → Allow access to dashboard
- *
- * If token does not exist:
- *     → Send user to Login page
- *
- * ============================================================
- */
+
+import {
+  isKvicAuthenticated,
+} from './services/kvicAuthService';
+
+
+/* ============================================================
+   BEEKEEPER PROTECTED ROUTE
+============================================================ */
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('honeychain_token');
+  const token =
+    localStorage.getItem(
+      'honeychain_token'
+    );
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
   return children;
 }
 
 
-/*
- * ============================================================
- * APP
- * ============================================================
- */
+/* ============================================================
+   KVIC PROTECTED ROUTE
+============================================================ */
+
+function KvicProtectedRoute({ children }) {
+  if (!isKvicAuthenticated()) {
+    return (
+      <Navigate
+        to="/kvic/login"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+
+/* ============================================================
+   APP
+============================================================ */
 
 function App() {
   return (
     <ThemeProvider>
+
       <BrowserRouter>
 
         <Routes>
 
           {/* ==================================================
-              MAIN LAYOUT
-          =================================================== */}
+              NORMAL HONEYCHAIN APPLICATION
+          ================================================== */}
 
-          <Route path="/" element={<Layout />}>
+          <Route
+            path="/"
+            element={<Layout />}
+          >
 
-            {/* ==================================================
-                HOME
-            =================================================== */}
-
+            {/* HOME */}
             <Route
               index
               element={<Home />}
             />
 
 
-            {/* ==================================================
-                ABOUT
-            =================================================== */}
-
+            {/* ABOUT */}
             <Route
               path="about"
               element={<About />}
             />
 
 
-            {/* ==================================================
-                LOGIN
-            =================================================== */}
-
+            {/* BEEKEEPER LOGIN */}
             <Route
               path="login"
               element={<Login />}
             />
 
 
-            {/* ==================================================
-                REGISTER
-            =================================================== */}
-
+            {/* BEEKEEPER REGISTER */}
             <Route
               path="register"
               element={<Register />}
             />
 
 
-            {/* ==================================================
-                DASHBOARD
-            ==================================================
-            
-                Dashboard is protected.
-
-                User must have:
-                    honeychain_token
-
-                Otherwise:
-                    /login
-
-            =================================================== */}
-
+            {/* BEEKEEPER DASHBOARD */}
             <Route
               path="dashboard"
               element={
@@ -121,28 +125,71 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
-            {/* Public QR passport — no login required */}
-<Route path="passport/:batchId" element={<PublicPassport />} />
 
 
-            {/* ==================================================
-                UNKNOWN PAGE
-            =================================================== */}
-
+            {/* PUBLIC PASSPORT */}
             <Route
-              path="*"
-              element={<Navigate to="/" replace />}
+              path="passport/:batchId"
+              element={<PublicPassport />}
             />
 
           </Route>
 
+
+          {/* ==================================================
+              KVIC ADMIN AUTHENTICATION
+          ================================================== */}
+
+          <Route
+            path="/kvic/login"
+            element={<KvicLogin />}
+          />
+
+
+          <Route
+            path="/kvic/register"
+            element={<KvicRegister />}
+          />
+
+
+          {/* ==================================================
+              KVIC ADMIN DASHBOARD
+              
+              We'll create KvicDashboard in the next step.
+          ================================================== */}
+
+          
+          <Route
+            path="/kvic/dashboard"
+            element={
+              <KvicProtectedRoute>
+                <KvicDashboard />
+              </KvicProtectedRoute>
+            }
+          />
+          
+
+
+          {/* ==================================================
+              UNKNOWN ROUTE
+          ================================================== */}
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/"
+                replace
+              />
+            }
+          />
+
         </Routes>
 
       </BrowserRouter>
+
     </ThemeProvider>
   );
 }
 
 export default App;
-
