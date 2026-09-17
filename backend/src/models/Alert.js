@@ -17,7 +17,19 @@ const AlertSchema = new Schema(
     sourceReading: { type: Schema.Types.ObjectId, ref: "SensorReading" },
     imageUrl: { type: String }, // most recent Varroa-detection photo, when type === "varroa"
     imagePublicId: { type: String },
+    detections: [
+  {
+    classId: Number,
+    className: String,
+    confidence: Number,
+    bbox: {
+      x1: Number,
+      y1: Number,
+      x2: Number,
+      y2: Number,
+    },
   },
+],},
   { timestamps: true }
 );
 

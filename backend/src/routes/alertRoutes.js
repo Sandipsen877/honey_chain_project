@@ -31,22 +31,28 @@ const ALERT_MODEL_FIELDS = [
 // POST /api/alerts/predict - run the FastAPI health/inspection alert model
 router.post("/predict", async (req, res) => {
   const missingFields = ALERT_MODEL_FIELDS.filter(
-    (field) => req.body[field] === undefined || req.body[field] === null
+    (field) => req.body[field] === undefined || req.body[field] === null,
   );
   if (missingFields.length) {
-    return res.status(400).json({ error: `Missing required fields: ${missingFields.join(", ")}` });
+    return res
+      .status(400)
+      .json({ error: `Missing required fields: ${missingFields.join(", ")}` });
   }
 
   const invalidNumericFields = ALERT_MODEL_FIELDS.slice(1).filter(
-    (field) => !Number.isFinite(Number(req.body[field]))
+    (field) => !Number.isFinite(Number(req.body[field])),
   );
   if (invalidNumericFields.length) {
-    return res.status(400).json({ error: `Fields must be numeric: ${invalidNumericFields.join(", ")}` });
+    return res.status(400).json({
+      error: `Fields must be numeric: ${invalidNumericFields.join(", ")}`,
+    });
   }
 
   try {
     // Send only the model contract fields, avoiding accidental API-field leakage.
-    const payload = Object.fromEntries(ALERT_MODEL_FIELDS.map((field) => [field, req.body[field]]));
+    const payload = Object.fromEntries(
+      ALERT_MODEL_FIELDS.map((field) => [field, req.body[field]]),
+    );
     const result = await predictAlert(payload);
     res.json(result);
   } catch (err) {
@@ -65,7 +71,9 @@ router.post(
     const imageFile = req.files?.file?.[0] || req.files?.image?.[0];
 
     if (!imageFile) {
-      return res.status(400).json({ error: "Upload one image in the 'file' field" });
+      return res
+        .status(400)
+        .json({ error: "Upload one image in the 'file' field" });
     }
 
     try {
@@ -78,7 +86,8 @@ router.post(
 
         if (!hiveId) {
           return res.status(400).json({
-            error: "hiveId is required when Varroa is detected so an alert can be saved",
+            error:
+              "hiveId is required when Varroa is detected so an alert can be saved",
             result,
           });
         }
@@ -90,15 +99,19 @@ router.post(
 
         if (!farmId) {
           return res.status(400).json({
-            error: "farmId is required when Varroa is detected so an alert can be saved",
+            error:
+              "farmId is required when Varroa is detected so an alert can be saved",
             result,
           });
         }
 
-        const detections = Array.isArray(result.detections) ? result.detections : [];
+        const detections = Array.isArray(result.detections)
+          ? result.detections
+          : [];
         const bestConfidence = detections.reduce(
-          (best, detection) => Math.max(best, Number(detection?.confidence) || 0),
-          0
+          (best, detection) =>
+            Math.max(best, Number(detection?.confidence) || 0),
+          0,
         );
         const count = Number(result.count) || detections.length || 0;
         const confidenceText = bestConfidence
@@ -113,7 +126,10 @@ router.post(
             publicIdPrefix: String(hiveId),
           });
         } catch (uploadErr) {
-          console.warn("[alertRoutes] Cloudinary upload failed, saving alert without image:", uploadErr.message);
+          console.warn(
+            "[alertRoutes] Cloudinary upload failed, saving alert without image:",
+            uploadErr.message,
+          );
         }
 
         // A fresh Alert doc per detection (same pattern as temperature/humidity/health_ml
@@ -125,8 +141,17 @@ router.post(
           type: "varroa",
           severity: "high",
           message: `Varroa detected: ${count} mite${count === 1 ? "" : "s"} found.${confidenceText}`,
-          suggestedAction: "Inspect this hive immediately and start Varroa treatment protocol if confirmed.",
-          ...(uploaded ? { imageUrl: uploaded.url, imagePublicId: uploaded.publicId } : {}),
+          suggestedAction:
+            "Inspect this hive immediately and start Varroa treatment protocol if confirmed.",
+          ...(uploaded
+            ? { imageUrl: uploaded.url, imagePublicId: uploaded.publicId }
+            : {}),
+          detections: detections.map((d) => ({
+            classId: d.class_id,
+            className: d.class_name,
+            confidence: d.confidence,
+            bbox: d.bbox,
+          })),
         });
       }
 
@@ -137,7 +162,7 @@ router.post(
     } catch (err) {
       res.status(err.statusCode || 500).json({ error: err.message });
     }
-  }
+  },
 );
 
 // GET /api/alerts?farmId=&hiveId=&status=&type=
@@ -153,7 +178,11 @@ router.get("/", async (req, res) => {
 
 // PATCH /api/alerts/:id/resolve
 router.patch("/:id/resolve", async (req, res) => {
-  const alert = await Alert.findByIdAndUpdate(req.params.id, { status: "resolved" }, { new: true });
+  const alert = await Alert.findByIdAndUpdate(
+    req.params.id,
+    { status: "resolved" },
+    { new: true },
+  );
   if (!alert) return res.status(404).json({ error: "Alert not found" });
   res.json(alert);
 });
