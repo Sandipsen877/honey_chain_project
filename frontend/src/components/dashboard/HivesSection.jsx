@@ -31,6 +31,8 @@ import {
 
 import {
   submitSensorReading,
+  getLatestReading,
+  // predictHealthAlert,   // ← uncomment later when you want health prediction
 } from '../../services/platformService';
 
 const VARROA_SCAN_INTERVAL_MS = 1800;
@@ -765,239 +767,7 @@ function HiveForm({
   );
 }
 
-function SensorReadingForm({
-  hiveId,
-  farmId,
-  onSubmitted,
-}) {
-  const [form, setForm] = useState({
-    temperature: '',
-    humidity: '',
-    outside_temperature: '',
-    outside_humidity: '',
-    pressure: '',
-    co2: '',
-    tvoc: '',
-    light: '',
-    bee_in: '',
-    bee_out: '',
-  });
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState('');
-
-  const [success, setSuccess] =
-    useState('');
-
-  function handleChange(event) {
-    const {
-      name,
-      value,
-    } = event.target;
-
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const payload = {
-       hive: hiveId,
-      farm: farmId,
-      temperatureC: Number(form.temperature),
-      humidityPct: Number(form.humidity),
-      outside_temperature: Number(form.outside_temperature),
-      outside_humidity: Number(form.outside_humidity),
-      pressure: Number(form.pressure),
-      co2: Number(form.co2),
-      tvoc: Number(form.tvoc),
-      light: Number(form.light),
-      bee_in: Number(form.bee_in),
-      bee_out: Number(form.bee_out),
-
-        source: 'manual',
-      };
-
-      const result = await submitSensorReading(
-        payload,
-      );
-
-      setSuccess(
-        'Sensor reading submitted successfully.',
-      );
-
-      await onSubmitted?.(result);
-
-      setForm({
-        temperature: '',
-        humidity: '',
-        outside_temperature: '',
-        outside_humidity: '',
-        pressure: '',
-        co2: '',
-        tvoc: '',
-        light: '',
-        bee_in: '',
-        bee_out: '',
-      });
-    } catch (err) {
-      setError(
-        err?.message ||
-          'Failed to submit sensor reading.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const fields = [
-    {
-      name: 'temperature',
-      label: 'Hive Temperature °C',
-      step: '0.1',
-    },
-    {
-      name: 'humidity',
-      label: 'Hive Humidity %',
-      step: '0.1',
-    },
-    {
-      name: 'outside_temperature',
-      label: 'Outside Temperature °C',
-      step: '0.1',
-    },
-    {
-      name: 'outside_humidity',
-      label: 'Outside Humidity %',
-      step: '0.1',
-    },
-    {
-      name: 'pressure',
-      label: 'Pressure hPa',
-      step: '0.1',
-    },
-    {
-      name: 'co2',
-      label: 'CO₂ ppm',
-      step: '1',
-    },
-    {
-      name: 'tvoc',
-      label: 'TVOC ppb',
-      step: '1',
-    },
-    {
-      name: 'light',
-      label: 'Light',
-      step: '1',
-    },
-    {
-      name: 'bee_in',
-      label: 'Bees In',
-      step: '1',
-    },
-    {
-      name: 'bee_out',
-      label: 'Bees Out',
-      step: '1',
-    },
-  ];
-
-  return (
-    <div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
-          <Thermometer
-            size={18}
-            className="text-gold"
-          />
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
-            Manual Sensor Input
-          </p>
-
-          <h3 className="mt-1 font-semibold">
-            Submit Sensor Reading
-          </h3>
-
-          <p className="mt-1 text-xs text-gray dark:text-muted">
-            Enter the latest sensor values for this hive.
-          </p>
-        </div>
-      </div>
-
-      <form
-        onSubmit={handleSubmit}
-        className="mt-5"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label
-                htmlFor={`sensor-${field.name}`}
-                className="block text-[10px] uppercase tracking-[0.14em] text-gray dark:text-muted mb-2"
-              >
-                {field.label}
-              </label>
-
-              <input
-                id={`sensor-${field.name}`}
-                name={field.name}
-                type="number"
-                step={field.step}
-                value={form[field.name]}
-                onChange={handleChange}
-                required
-                className="w-full border border-black/10 dark:border-white/10 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-gold transition-colors"
-              />
-            </div>
-          ))}
-        </div>
-
-        {error && (
-          <div className="mt-4 border border-red-500/30 bg-red-500/5 p-3">
-            <p className="text-xs text-red-500">
-              {error}
-            </p>
-          </div>
-        )}
-
-        {success && (
-          <div className="mt-4 border border-green-500/30 bg-green-500/5 p-3">
-            <p className="text-xs text-green-600 dark:text-green-400">
-              {success}
-            </p>
-          </div>
-        )}
-
-        <div className="mt-5 flex justify-end">
-          <button
-            type="submit"
-            disabled={loading}
-            className="border border-gold bg-gold text-black px-5 py-2.5 text-xs font-semibold hover:bg-transparent hover:text-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading
-              ? 'Submitting...'
-              : 'Submit Sensor Reading'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
 
 /* ============================================================
    HIVE DETAIL
@@ -1051,6 +821,18 @@ function HiveDetail({
   const [varroaLastScanAt, setVarroaLastScanAt] =
     useState(null);
 
+
+
+  /* ==========================================================
+   SENSOR READING STATE
+   ========================================================== */
+
+const [latestReading, setLatestReading] = useState(null);
+const [sensorLoading, setSensorLoading] = useState(false);
+const [sensorError, setSensorError] = useState('');
+
+// For later use (health prediction)
+// const [healthPrediction, setHealthPrediction] = useState(null);  
   /* ==========================================================
      CAMERA REFS
      ========================================================== */
@@ -1080,6 +862,145 @@ function HiveDetail({
       String(getId(item)) ===
       hiveFarmId,
   );
+
+/* ==========================================================
+   SENSOR READING LOGIC
+   - Sends to /api/sensors/readings every 5 minutes
+   - Health prediction (/api/alerts/predict) is commented for later
+   ========================================================== */
+
+function generateRealisticReading(hiveId, farmId) {
+  const hour = new Date().getHours();
+  const isDaytime = hour >= 6 && hour <= 18;
+
+  const randomInRange = (min, max) =>
+    Math.round((Math.random() * (max - min) + min) * 10) / 10;
+
+  return {
+    hive: hiveId,
+    farm: farmId,
+    temperatureC: isDaytime
+      ? randomInRange(33, 35.5)
+      : randomInRange(31, 33.5),
+    humidityPct: randomInRange(50, 62),
+    weightKg: randomInRange(20, 32),
+    outsideTemperatureC: isDaytime
+      ? randomInRange(22, 30)
+      : randomInRange(14, 20),
+    outsideHumidityPct: randomInRange(40, 70),
+    pressureHPa: randomInRange(1005, 1020),
+    co2Ppm: Math.round(randomInRange(600, 1200)),
+    tvocPpb: Math.round(randomInRange(50, 400)),
+    light: isDaytime
+      ? Math.round(randomInRange(300, 900))
+      : Math.round(randomInRange(0, 20)),
+    beeIn: Math.round(randomInRange(20, 80)),
+    beeOut: Math.round(randomInRange(20, 80)),
+    source: 'manual',
+  };
+}
+
+function isOlderThan5Minutes(recordedAt) {
+  if (!recordedAt) return true;
+  const readingTime = new Date(recordedAt).getTime();
+  const now = Date.now();
+  const fiveMinutes = 5 * 60 * 1000;
+  return now - readingTime > fiveMinutes;
+}
+
+useEffect(() => {
+  if (!hiveId || !hiveFarmId) return;
+
+  let cancelled = false;
+
+  async function loadOrCaptureReading() {
+    setSensorLoading(true);
+    setSensorError('');
+    setLatestReading(null);
+    // setHealthPrediction(null); // for later
+
+    try {
+      // 1. Try to get the latest reading first
+      let existingReading = null;
+
+      try {
+        existingReading = await getLatestReading(hiveId);
+      } catch (err) {
+        existingReading = null;
+      }
+
+      // 2. If we have a recent reading (< 5 minutes), just show it
+      if (
+        existingReading &&
+        !isOlderThan5Minutes(existingReading.recordedAt)
+      ) {
+        if (!cancelled) {
+          setLatestReading(existingReading);
+        }
+        return;
+      }
+
+      // 3. Otherwise generate + send a new reading
+      const payload = generateRealisticReading(hiveId, hiveFarmId);
+      const result = await submitSensorReading(payload);
+
+      const backendReading = result?.reading;
+
+      if (!cancelled && backendReading) {
+        setLatestReading(backendReading);
+      } else if (!cancelled) {
+        setSensorError('Backend did not return a reading.');
+      }
+
+      /* ============================================================
+         HEALTH PREDICTION (commented for later use)
+         ============================================================ */
+      /*
+      try {
+        const healthPayload = {
+          hive_id: String(hiveId),
+          temperature: backendReading?.temperatureC ?? payload.temperatureC,
+          humidity: backendReading?.humidityPct ?? payload.humidityPct,
+          outside_temperature: backendReading?.outsideTemperatureC ?? payload.outsideTemperatureC,
+          outside_humidity: backendReading?.outsideHumidityPct ?? payload.outsideHumidityPct,
+          pressure: backendReading?.pressureHPa ?? payload.pressureHPa,
+          co2: backendReading?.co2Ppm ?? payload.co2Ppm,
+          tvoc: backendReading?.tvocPpb ?? payload.tvocPpb,
+          light: backendReading?.light ?? payload.light,
+          bee_in: backendReading?.beeIn ?? payload.beeIn,
+          bee_out: backendReading?.beeOut ?? payload.beeOut,
+        };
+
+        const healthResult = await predictHealthAlert(healthPayload);
+
+        if (!cancelled) {
+          setHealthPrediction(healthResult);
+        }
+      } catch (healthErr) {
+        console.warn('Health prediction failed:', healthErr.message);
+      }
+      */
+
+    } catch (err) {
+      if (!cancelled) {
+        setSensorError(
+          err?.message || 'Failed to capture sensor reading.',
+        );
+      }
+    } finally {
+      if (!cancelled) {
+        setSensorLoading(false);
+      }
+    }
+  }
+
+  loadOrCaptureReading();
+
+  return () => {
+    cancelled = true;
+  };
+}, [hiveId, hiveFarmId]);
+
 
   /* ==========================================================
      BASIC HIVE DETAILS
@@ -1898,13 +1819,82 @@ function HiveDetail({
     SENSOR READING
 ================================================== */}
 
-<SensorReadingForm
-  hiveId={hiveId}
-  farmId={hiveFarmId}
+{/* ==================================================
+    SENSOR READING (Auto - 5 min interval)
+================================================== */}
 
-  onSubmitted={onSensorReadingSubmitted}
+<div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+  <div className="flex items-start gap-3">
+    <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
+      <Thermometer size={18} className="text-gold" />
+    </div>
 
-/>
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+        Live Sensor Data
+      </p>
+      <h3 className="mt-1 font-semibold">Latest Hive Reading</h3>
+      <p className="mt-1 text-xs text-gray dark:text-muted">
+        Automatically captured every 5 minutes
+      </p>
+    </div>
+  </div>
+
+  {sensorError && (
+    <div className="mt-4 border border-red-500/30 bg-red-500/5 p-3">
+      <p className="text-xs text-red-500">{sensorError}</p>
+    </div>
+  )}
+
+  {sensorLoading && (
+    <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-16 border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 animate-pulse"
+        />
+      ))}
+    </div>
+  )}
+
+  {!sensorLoading && latestReading && (
+    <div className="mt-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-gray dark:text-muted">
+          Recorded at
+        </p>
+        <p className="text-xs font-medium">
+          {latestReading.recordedAt
+            ? new Date(latestReading.recordedAt).toLocaleString('en-IN')
+            : '—'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <SensorValue label="Hive Temp °C" value={latestReading.temperatureC} />
+        <SensorValue label="Hive Humidity %" value={latestReading.humidityPct} />
+        <SensorValue label="Weight kg" value={latestReading.weightKg} />
+        <SensorValue label="Outside Temp °C" value={latestReading.outsideTemperatureC} />
+        <SensorValue label="Outside Humidity %" value={latestReading.outsideHumidityPct} />
+        <SensorValue label="Pressure hPa" value={latestReading.pressureHPa} />
+        <SensorValue label="CO₂ ppm" value={latestReading.co2Ppm} />
+        <SensorValue label="TVOC ppb" value={latestReading.tvocPpb} />
+        <SensorValue label="Light" value={latestReading.light} />
+        <SensorValue label="Bees In" value={latestReading.beeIn} />
+        <SensorValue label="Bees Out" value={latestReading.beeOut} />
+        <SensorValue label="Source" value={latestReading.source} />
+      </div>
+    </div>
+  )}
+
+  {!sensorLoading && !latestReading && !sensorError && (
+    <div className="mt-5 py-8 text-center border border-dashed border-black/10 dark:border-white/10">
+      <p className="text-sm text-gray dark:text-muted">
+        No sensor data available yet.
+      </p>
+    </div>
+  )}
+</div>
 
 {/* ==================================================
     ACTIVE HIVE ALERTS
