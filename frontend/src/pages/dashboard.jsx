@@ -543,6 +543,87 @@ setYieldEstimate({
     }
   }
 
+  /*
+   * Soft refresh after Varroa detection.
+   * Does NOT set loading=true, so HivesSection stays mounted
+   * and the hive detail card remains open with the result + image.
+   */
+  async function softRefreshAlerts(savedAlert) {
+    // Immediately show the new alert in the list (no full page reload)
+    if (savedAlert) {
+      setAlerts((prev) => {
+        const id = String(getId(savedAlert) || '');
+        const exists =
+          id &&
+          prev.some(
+            (a) => String(getId(a)) === id,
+          );
+        if (exists) return prev;
+        return [savedAlert, ...prev];
+      });
+
+      setHistoryData((prev) => {
+        const nextOpenAll = Array.isArray(prev?.openAll)
+          ? prev.openAll
+          : [];
+        const id = String(getId(savedAlert) || '');
+        const exists =
+          id &&
+          nextOpenAll.some(
+            (a) => String(getId(a)) === id,
+          );
+        if (exists) return prev;
+
+        const isHive = !!(
+          getId(savedAlert?.hive) ||
+          savedAlert?.hive ||
+          savedAlert?.hiveId
+        );
+        const isFarm = !!(
+          getId(savedAlert?.farm) ||
+          savedAlert?.farm ||
+          savedAlert?.farmId
+        );
+
+        return {
+          ...prev,
+          openAll: [savedAlert, ...nextOpenAll],
+          openHive: isHive
+            ? [savedAlert, ...(prev?.openHive || [])]
+            : prev?.openHive || [],
+          openFarm: isFarm
+            ? [savedAlert, ...(prev?.openFarm || [])]
+            : prev?.openFarm || [],
+        };
+      });
+    }
+
+    // Background sync from API (still no loading spinner)
+    try {
+      const openRes = await apiRequest('/api/alerts?status=open');
+      const rawOpen = Array.isArray(openRes)
+        ? openRes
+        : openRes?.alerts || [];
+
+      const filtered = rawOpen.filter(isAllowedAlert);
+      setAlerts(filtered);
+
+      const isHiveAlert = (a) =>
+        !!(getId(a?.hive) || a?.hive || a?.hiveId);
+      const isFarmAlert = (a) =>
+        !!(getId(a?.farm) || a?.farm || a?.farmId);
+
+      setHistoryData((prev) => ({
+        ...prev,
+        openAll: filtered,
+        openHive: filtered.filter(isHiveAlert),
+        openFarm: filtered.filter(isFarmAlert),
+      }));
+    } catch {
+      // Keep the optimistic alert if background fetch fails
+    }
+  }
+
   const statistics = useMemo(
     () => ({
       totalFarms: farms.length,
@@ -739,12 +820,13 @@ setYieldEstimate({
                 risks={risks}
                 alerts={alerts}
                 onCreate={createHive}
-                onVarroaAlert={async () => {
-                  await loadDashboard();
+                onVarroaAlert={async (savedAlert) => {
+                  // Soft refresh only — keeps hive detail card open
+                  await softRefreshAlerts(savedAlert);
                 }}
                 onSensorReadingSubmitted={async () => {
-    await loadDashboard();
-  }}
+                  await loadDashboard();
+                }}
                 actionLoading={actionLoading}
               />
             )}

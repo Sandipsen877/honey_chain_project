@@ -797,20 +797,25 @@ function VarroaImageModal({
   onClose,
 }) {
   const imageUrl = alert?.imageUrl || '';
+  const detections = Array.isArray(alert?.detections)
+    ? alert.detections
+    : [];
 
-  const [imageFailed, setImageFailed] = useState(
-    !imageUrl
-  );
+  const [imageFailed, setImageFailed] = useState(!imageUrl);
+  const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
 
   const detectedAt = alert?.createdAt
     ? formatDate(alert.createdAt)
     : 'Detection time unavailable';
 
-  const target = getAlertTarget(
-    alert,
-    hives,
-    farms
-  );
+  const target = getAlertTarget(alert, hives, farms);
+
+  function handleImageLoad(event) {
+    setImageSize({
+      width: event.currentTarget.naturalWidth || 1,
+      height: event.currentTarget.naturalHeight || 1,
+    });
+  }
 
   return (
     <div
@@ -819,11 +824,7 @@ function VarroaImageModal({
       aria-modal="true"
       aria-labelledby="varroa-modal-title"
     >
-
-      {/* ==================================================
-          BACKDROP
-      ================================================== */}
-
+      {/* BACKDROP */}
       <button
         type="button"
         aria-label="Close Varroa detection modal"
@@ -831,31 +832,26 @@ function VarroaImageModal({
         className="absolute inset-0 w-full h-full bg-black/75 backdrop-blur-sm cursor-default"
       />
 
-      {/* ==================================================
-          MODAL
-      ================================================== */}
-
+      {/* MODAL */}
       <div className="relative z-10 w-full max-w-4xl max-h-[92vh] overflow-hidden border border-white/10 bg-black-card dark:bg-black shadow-2xl">
 
-        {/* ==================================================
-            HEADER
-        ================================================== */}
-
+        {/* HEADER */}
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5 sm:py-4 border-b border-white/10">
-
           <div className="min-w-0">
-
             <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gold">
               Varroa Detection
             </p>
-
             <h2
               id="varroa-modal-title"
               className="mt-1 text-base sm:text-lg font-semibold text-cream truncate"
             >
               Detected Image
+              {detections.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-red-400">
+                  ({detections.length} mite{detections.length === 1 ? '' : 's'})
+                </span>
+              )}
             </h2>
-
           </div>
 
           <button
@@ -866,110 +862,115 @@ function VarroaImageModal({
           >
             <X size={17} />
           </button>
-
         </div>
 
-        {/* ==================================================
-            IMAGE
-        ================================================== */}
-
+        {/* IMAGE + BOUNDING BOXES */}
         <div className="bg-black p-3 sm:p-5">
-
           <div className="relative w-full min-h-[240px] sm:min-h-[320px] max-h-[58vh] flex items-center justify-center overflow-hidden border border-white/10 bg-black">
-
             {!imageFailed && imageUrl ? (
+              <div className="relative inline-block max-w-full max-h-[58vh]">
+                <img
+                  src={imageUrl}
+                  alt="Varroa detection captured by the HoneyChain inspection system"
+                  className="block max-w-full max-h-[58vh] w-auto h-auto object-contain"
+                  onLoad={handleImageLoad}
+                  onError={() => setImageFailed(true)}
+                />
 
-              <img
-                src={imageUrl}
-                alt="Varroa detection captured by the HoneyChain inspection system"
-                className="block max-w-full max-h-[58vh] w-auto h-auto object-contain"
-                onError={() => {
-                  setImageFailed(true);
-                }}
-              />
+                {detections.map((detection, index) => {
+                  const bbox = detection?.bbox;
+                  if (!bbox) return null;
 
+                  const x1 = Number(bbox.x1);
+                  const y1 = Number(bbox.y1);
+                  const x2 = Number(bbox.x2);
+                  const y2 = Number(bbox.y2);
+
+                  if (
+                    !Number.isFinite(x1) ||
+                    !Number.isFinite(y1) ||
+                    !Number.isFinite(x2) ||
+                    !Number.isFinite(y2)
+                  ) {
+                    return null;
+                  }
+
+                  const sourceWidth = imageSize.width || 1;
+                  const sourceHeight = imageSize.height || 1;
+
+                  const left = (x1 / sourceWidth) * 100;
+                  const top = (y1 / sourceHeight) * 100;
+                  const width = ((x2 - x1) / sourceWidth) * 100;
+                  const height = ((y2 - y1) / sourceHeight) * 100;
+
+                  return (
+                    <div
+                      key={`varroa-box-${index}`}
+                      className="absolute border-2 border-red-500 pointer-events-none"
+                      style={{
+                        left: `${left}%`,
+                        top: `${top}%`,
+                        width: `${width}%`,
+                        height: `${height}%`,
+                      }}
+                    >
+                      <span className="absolute -top-6 left-0 bg-red-500 text-white text-[9px] font-semibold px-1.5 py-1 whitespace-nowrap">
+                        {detection?.class_name || 'varroa'}{' '}
+                        {Number.isFinite(Number(detection?.confidence))
+                          ? `${(Number(detection.confidence) * 100).toFixed(0)}%`
+                          : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-
               <div className="flex min-h-[240px] w-full items-center justify-center p-6 text-center">
-
                 <div>
-
-                  <ImageIcon
-                    size={36}
-                    className="mx-auto text-muted"
-                  />
-
+                  <ImageIcon size={36} className="mx-auto text-muted" />
                   <p className="mt-3 text-sm text-cream">
                     Detection image unavailable
                   </p>
-
                   <p className="mt-1 max-w-sm text-xs leading-5 text-muted">
                     This Varroa detection was recorded,
                     but an image is not available for this alert.
                   </p>
-
                 </div>
-
               </div>
-
             )}
-
           </div>
-
         </div>
 
-        {/* ==================================================
-            INFORMATION
-        ================================================== */}
-
+        {/* INFORMATION */}
         <div className="px-4 py-4 sm:px-5 border-t border-white/10 overflow-y-auto max-h-[28vh]">
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
             <InfoItem
               label="Detection"
-              value={
-                alert?.message ||
-                'Varroa detected'
-              }
+              value={alert?.message || 'Varroa detected'}
             />
-
-            <InfoItem
-              label="Target"
-              value={target}
-            />
-
-            <InfoItem
-              label="Detected At"
-              value={detectedAt}
-            />
-
+            <InfoItem label="Target" value={target} />
+            <InfoItem label="Detected At" value={detectedAt} />
           </div>
 
           {alert?.suggestedAction && (
-
             <div className="mt-4 p-3 sm:p-4 border border-gold/20 bg-gold/5">
-
               <p className="text-[9px] uppercase tracking-[0.18em] text-gold">
                 Suggested Action
               </p>
-
               <p className="mt-1.5 text-xs sm:text-sm leading-5 text-muted">
                 {alert.suggestedAction}
               </p>
-
             </div>
-
           )}
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
             <p className="text-[10px] text-muted">
-              Image saved by HoneyChain detection service.
+              {detections.length > 0
+                ? `${detections.length} detection box${detections.length === 1 ? '' : 'es'} from YOLO model.`
+                : 'Image saved by HoneyChain detection service.'}
             </p>
 
             {imageUrl && !imageFailed && (
-
               <a
                 href={imageUrl}
                 target="_blank"
@@ -980,19 +981,13 @@ function VarroaImageModal({
                 className="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-white/10 text-xs text-cream hover:border-gold hover:text-gold transition-colors"
               >
                 Open Full Image
-
                 <ExternalLink size={13} />
-
               </a>
-
             )}
-
           </div>
-
         </div>
 
       </div>
-
     </div>
   );
 }

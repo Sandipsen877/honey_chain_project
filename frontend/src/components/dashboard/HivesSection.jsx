@@ -1156,20 +1156,26 @@ function HiveDetail({
      CAMERA CLEANUP
      ========================================================== */
 
-  function setLatestVarroaImageUrl(imageUrl) {
-    if (varroaImageRef.current) {
-      URL.revokeObjectURL(
-        varroaImageRef.current,
-      );
+  function setLatestVarroaImageUrl(nextUrl) {
+    const previous = varroaImageRef.current;
+
+    // Same URL — keep it (do not revoke, or the image breaks)
+    if (previous === nextUrl) {
+      return;
     }
 
-    varroaImageRef.current =
-      imageUrl;
+    // Only revoke previous blob: URLs (never remote https URLs)
+    if (
+      previous &&
+      typeof previous === 'string' &&
+      previous.startsWith('blob:')
+    ) {
+      URL.revokeObjectURL(previous);
+    }
 
-    setVarroaImage(imageUrl);
-    setVarroaImageVersion(
-      (version) => version + 1,
-    );
+    varroaImageRef.current = nextUrl;
+    setVarroaImage(nextUrl);
+    setVarroaImageVersion((version) => version + 1);
   }
 
   function scheduleNextVarroaFrame(
@@ -1653,38 +1659,66 @@ function HiveDetail({
         );
       }
 
-      setVarroaResult(
-        {
-          ...normalizedResult,
-          frame: frameSize,
-          scannedAt:
-            new Date().toISOString(),
-        },
-      );
-
-      setVarroaFrameCount(
-        (count) => count + 1,
-      );
-
-      setVarroaLastScanAt(
-        new Date(),
-      );
-
       const detected =
-        normalizedResult?.detected ===
-          true ||
-        Number(normalizedResult?.count) >
-          0;
+        normalizedResult?.detected === true ||
+        Number(normalizedResult?.count) > 0;
 
+      /*
+       * HIVE CARD RESULT (always):
+       * - "Varroa Detected" OR "No Varroa Detected"
+       * - The exact picture that was sent to the backend
+       *
+       * Prefer Cloudinary URL from savedAlert when present
+       * so the image remains after the camera closes.
+       */
+      const backendImageUrl =
+        normalizedResult?.savedAlert?.imageUrl ||
+        normalizedResult?.imageUrl ||
+        null;
+
+      // Keep the frame we just sent visible in the hive card
+      if (backendImageUrl) {
+        setLatestVarroaImageUrl(backendImageUrl);
+      } else if (imageUrl) {
+        setLatestVarroaImageUrl(imageUrl);
+      }
+
+      const resultPayload = {
+        ...normalizedResult,
+        frame: frameSize,
+        scannedAt: new Date().toISOString(),
+      };
+
+      // Always push status + image into hive details card
+      if (!varroaAlertNotifiedRef.current) {
+        setVarroaResult(resultPayload);
+        setVarroaFrameCount((count) => count + 1);
+        setVarroaLastScanAt(new Date());
+      }
+
+      /*
+       * On first detection:
+       * - Freeze this result in the hive card (one time)
+       * - Close ONLY the camera
+       * - Hive card stays open with Detected + sent picture
+       * - Notify dashboard for the alert list / modal
+       */
       if (
         detected &&
-        normalizedResult?.savedAlert &&
         !varroaAlertNotifiedRef.current
       ) {
         varroaAlertNotifiedRef.current = true;
-        await onVarroaAlert?.(
-          normalizedResult.savedAlert,
-        );
+
+        // Final freeze of the detected result
+        setVarroaResult(resultPayload);
+
+        stopCamera();
+
+        if (normalizedResult?.savedAlert) {
+          await onVarroaAlert?.(
+            normalizedResult.savedAlert,
+          );
+        }
       }
 
     } catch (err) {
@@ -1985,7 +2019,9 @@ function HiveDetail({
                       </h3>
 
                       <p className="mt-1 text-xs text-gray dark:text-muted">
-                        Open the camera for continuous Varroa mite scanning.
+                        Open the camera to scan. Each frame is sent to the backend.
+                        The result (Detected / Not Detected) and the sent picture
+                        appear below after analysis.
                       </p>
 
                     </div>
@@ -2564,7 +2600,7 @@ function VarroaResult({
         <div className="p-5">
 
           <p className="text-[10px] uppercase tracking-[0.18em] text-gray dark:text-muted mb-3">
-            Latest Analyzed Frame
+            Picture sent to backend
           </p>
 
           <BoundingBoxImage
@@ -2573,6 +2609,14 @@ function VarroaResult({
             detections={detections}
           />
 
+        </div>
+      )}
+
+      {!imageUrl && (
+        <div className="p-5">
+          <p className="text-xs text-gray dark:text-muted">
+            No captured frame available yet. Start a scan to send a picture to the backend.
+          </p>
         </div>
       )}
 
