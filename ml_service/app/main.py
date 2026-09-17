@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
+import numpy as np
 from fastapi import UploadFile, File, HTTPException
 from PIL import Image
 import io
@@ -39,6 +40,44 @@ class SensorData(BaseModel):
 
     bee_in: int
     bee_out: int
+
+class BeeHaveReading(BaseModel):
+
+    temperature: float
+    temperature_gradient: float
+
+    outside_temperature: float
+    outside_temperature_feels_like: float
+
+    temperature_difference: float
+
+    humidity: float
+    outside_humidity: float
+
+    wind: float
+    rain: float
+
+    co2: float
+    pressure: float
+
+
+class BeeHaveDay(BaseModel):
+
+    day: int
+
+    week_sin: float
+    week_cos: float
+
+    readings: List[BeeHaveReading]
+
+
+class BeeHave7DayRequest(BaseModel):
+
+    hive_id: str
+
+    current_weight_kg: float
+
+    days: List[BeeHaveDay]
 
 
 @app.get("/")
@@ -193,7 +232,7 @@ def varroa_health():
         "classes": model.names
     }
 
-@app.post("/predict/yield")
+"""@app.post("/predict/yield")
 def predict_yield(data: YieldPredictionRequest):
 
     if len(data.history) < 15:
@@ -271,4 +310,165 @@ def predict_yield(data: YieldPredictionRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Yield prediction failed: {e}"
+        )
+"""
+@app.post("/predict/yield",
+    summary="7-day hive weight forecast",
+    description=(
+        "Uses the BeeHave environmental model recursively "
+        "for a 7-day hive weight forecast."
+    )
+)
+def predict_beehave_7day(
+    data: BeeHave7DayRequest
+):
+
+    if len(data.days) != 7:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly 7 forecast days are required."
+        )
+
+    try:
+
+        model = models["BEEHAVE"]
+
+        current_weight = data.current_weight_kg
+
+        daily_forecast = []
+
+        cumulative_change = 0.0
+
+        for forecast_day in data.days:
+
+            if len(forecast_day.readings) != 144:
+
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Day {forecast_day.day} "
+                        f"must contain exactly 144 readings."
+                    )
+                )
+
+            # ------------------------------------------------
+            # Construct BeeHave raw input
+            # Shape = (1, 144, 40)
+            # ------------------------------------------------
+
+            raw = np.zeros(
+                (1, 144, 40),
+                dtype=float
+            )
+
+            raw[:, :, 2] = forecast_day.week_sin
+            raw[:, :, 3] = forecast_day.week_cos
+
+            for i, reading in enumerate(
+                forecast_day.readings
+            ):
+
+                raw[0, i, 4] = (
+                    reading.temperature
+                )
+
+                raw[0, i, 5] = (
+                    reading.temperature_gradient
+                )
+
+                raw[0, i, 6] = (
+                    reading.outside_temperature
+                )
+
+                raw[0, i, 7] = (
+                    reading.outside_temperature_feels_like
+                )
+
+                raw[0, i, 8] = (
+                    reading.temperature_difference
+                )
+
+                raw[0, i, 9] = (
+                    reading.humidity
+                )
+
+                raw[0, i, 10] = (
+                    reading.outside_humidity
+                )
+
+                raw[0, i, 11] = (
+                    reading.wind
+                )
+
+                raw[0, i, 12] = (
+                    reading.rain
+                )
+
+                raw[0, i, 13] = (
+                    reading.co2
+                )
+
+                raw[0, i, 14] = (
+                    reading.pressure
+                )
+
+            # ------------------------------------------------
+            # BeeHave prediction
+            # ------------------------------------------------
+
+            prediction = float(
+                model.predict(raw)[0]
+            )
+
+            cumulative_change += prediction
+
+            predicted_weight = (
+                current_weight
+                + cumulative_change
+            )
+
+            daily_forecast.append({
+
+                "day": forecast_day.day,
+
+                "predicted_weight_change_kg":
+                    round(prediction, 3),
+
+                "cumulative_weight_change_kg":
+                    round(cumulative_change, 3),
+
+                "predicted_weight_kg":
+                    round(predicted_weight, 3)
+            })
+
+        return {
+    "status": "ok",
+    "hive_id": data.hive_id,
+    "forecast_days": 7,
+    "predicted_7_day_weight_change_kg": round(
+        cumulative_change, 3
+    ),
+    "predicted_weight_after_7_days_kg": round(
+        current_weight + cumulative_change, 3
+    )
+}
+
+    except HTTPException:
+        raise
+
+    except ValueError as e:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"BeeHave 7-day prediction failed: {e}"
+            )
         )

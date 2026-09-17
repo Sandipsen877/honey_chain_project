@@ -8,3 +8,4 @@ pydantic
 ultralytics
 python-multipart
 pillow
+pylance
