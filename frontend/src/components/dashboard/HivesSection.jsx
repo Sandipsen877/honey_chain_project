@@ -884,22 +884,22 @@ function generateRealisticReading(hiveId, farmId) {
     hive: hiveId,
     farm: farmId,
     temperatureC: isDaytime
-      ? randomInRange(33, 35.5)
-      : randomInRange(31, 33.5),
-    humidityPct: randomInRange(50, 62),
-    weightKg: randomInRange(20, 32),
+      ? randomInRange(31, 35)
+      : randomInRange(27, 32),
+    humidityPct: randomInRange(55, 72),
+    weightKg: randomInRange(22, 38),
     outsideTemperatureC: isDaytime
-      ? randomInRange(22, 30)
-      : randomInRange(14, 20),
-    outsideHumidityPct: randomInRange(40, 70),
-    pressureHPa: randomInRange(1005, 1020),
-    co2Ppm: Math.round(randomInRange(600, 1200)),
-    tvocPpb: Math.round(randomInRange(50, 400)),
+      ? randomInRange(25, 38)
+      : randomInRange(18, 28),
+    outsideHumidityPct: randomInRange(45, 85),
+    pressureHPa: randomInRange(998, 1018),
+    co2Ppm: Math.round(randomInRange(1200, 4500)),
+    tvocPpb: Math.round(randomInRange(50, 500)),
     light: isDaytime
       ? Math.round(randomInRange(300, 900))
       : Math.round(randomInRange(0, 20)),
-    beeIn: Math.round(randomInRange(20, 80)),
-    beeOut: Math.round(randomInRange(20, 80)),
+    beeIn: Math.round(isDaytime ? randomInRange(30, 120) : randomInRange(0, 15)),
+    beeOut: Math.round(isDaytime ? randomInRange(30, 120) : randomInRange(0, 15)),
     source: 'manual',
   };
 }
