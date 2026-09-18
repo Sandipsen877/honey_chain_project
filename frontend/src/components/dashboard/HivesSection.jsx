@@ -2104,6 +2104,7 @@ useEffect(() => {
     healthPrediction && (
       <HealthPredictionResult
         prediction={healthPrediction}
+        reading={latestReading}
       />
     )}
 
@@ -3116,8 +3117,70 @@ function SensorValue({
 }
 
 
+function pickNumber(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') {
+      continue;
+    }
+    const n = Number(value);
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+  return null;
+}
+
+/**
+ * Backend may send:
+ * - array of strings
+ * - single string
+ * - array of objects
+ */
+function normalizeList(value) {
+  if (value == null) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item == null) return null;
+        if (typeof item === 'string') return item.trim();
+        if (typeof item === 'number' || typeof item === 'boolean') {
+          return String(item);
+        }
+        if (typeof item === 'object') {
+          return (
+            item.message ||
+            item.text ||
+            item.reason ||
+            item.factor ||
+            item.recommendation ||
+            item.label ||
+            JSON.stringify(item)
+          );
+        }
+        return String(item);
+      })
+      .filter((item) => item && String(item).trim().length > 0);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.includes('\n')) {
+      return trimmed
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [trimmed];
+  }
+
+  return [String(value)];
+}
+
 function HealthPredictionResult({
   prediction,
+  reading = null,
 }) {
   const status = String(
     prediction?.health_status ||
@@ -3125,25 +3188,54 @@ function HealthPredictionResult({
       'Unknown',
   );
 
-  const normalizedStatus =
-    status.toLowerCase();
+  const normalizedStatus = status.toLowerCase();
 
   const score = Number(
-    prediction?.health_score ??
-      prediction?.healthScore,
+    prediction?.health_score ?? prediction?.healthScore,
+  );
+  const hasScore = Number.isFinite(score);
+
+  // ---- Bee metrics (prediction first, then sensor reading) ----
+  const beeIn = pickNumber(
+    prediction?.bee_in,
+    prediction?.beeIn,
+    reading?.beeIn,
+    reading?.bee_in,
   );
 
-  const hasScore =
-    Number.isFinite(score);
+  const beeOut = pickNumber(
+    prediction?.bee_out,
+    prediction?.beeOut,
+    reading?.beeOut,
+    reading?.bee_out,
+  );
 
-  const activity =
-    prediction?.bee_activity ??
-    prediction?.beeActivity ??
-    '—';
+  const activity = pickNumber(
+    prediction?.bee_activity,
+    prediction?.beeActivity,
+    beeIn != null && beeOut != null ? beeIn + beeOut : null,
+  );
+
+  // bee_flow from ML, or compute as bee_in - bee_out
+  let beeFlow = pickNumber(
+    prediction?.bee_flow,
+    prediction?.beeFlow,
+  );
+  if (beeFlow == null && beeIn != null && beeOut != null) {
+    beeFlow = beeIn - beeOut;
+  }
 
   const inspectionRequired =
     prediction?.inspection_required ??
     prediction?.inspectionRequired;
+
+  const riskFactors = normalizeList(
+    prediction?.risk_factors ?? prediction?.riskFactors,
+  );
+
+  const recommendations = normalizeList(
+    prediction?.recommendations,
+  );
 
   const isHealthy =
     normalizedStatus === 'healthy' ||
@@ -3161,55 +3253,58 @@ function HealthPredictionResult({
       : 'border-gold/40 text-gold bg-gold/5';
 
   return (
-    <div className="mt-5">
+    <div className="mt-5 space-y-3">
 
       {/* Main Health Status */}
-
-      <div
-        className={`border p-5 ${statusClass}`}
-      >
-
+      <div className={`border p-5 ${statusClass}`}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
           <div>
-
             <p className="text-[10px] uppercase tracking-[0.18em] font-semibold opacity-80">
               Health Status
             </p>
-
             <p className="mt-2 text-xl font-semibold">
               {status}
             </p>
-
           </div>
 
           {hasScore && (
             <div className="text-left sm:text-right">
-
               <p className="text-[10px] uppercase tracking-[0.18em] opacity-80">
                 Health Score
               </p>
-
               <p className="mt-1 text-2xl font-semibold">
                 {score}
               </p>
-
             </div>
           )}
-
         </div>
-
       </div>
 
-      {/* Additional AI Results */}
-
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-
+      {/* Bee metrics grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <HealthInfo
           label="Bee Activity"
-          value={activity}
+          value={activity != null ? String(activity) : '—'}
         />
 
+        <HealthInfo
+          label="Bee Flow"
+          value={beeFlow != null ? String(beeFlow) : '—'}
+        />
+
+        <HealthInfo
+          label="Bees In"
+          value={beeIn != null ? String(beeIn) : '—'}
+        />
+
+        <HealthInfo
+          label="Bees Out"
+          value={beeOut != null ? String(beeOut) : '—'}
+        />
+      </div>
+
+      {/* Inspection */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <HealthInfo
           label="Inspection Required"
           value={
@@ -3219,10 +3314,59 @@ function HealthPredictionResult({
                 ? 'No'
                 : '—'
           }
+          highlight={inspectionRequired === true}
         />
-
       </div>
 
+      {/* Risk Factors */}
+      <div className="border border-black/10 dark:border-white/10 p-4 sm:p-5">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted font-semibold">
+          Risk Factors
+        </p>
+
+        {riskFactors.length === 0 ? (
+          <p className="mt-3 text-sm text-gray dark:text-muted">
+            No risk factors reported.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {riskFactors.map((item, index) => (
+              <li
+                key={`risk-${index}`}
+                className="flex items-start gap-2 text-sm"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500/80" />
+                <span className="min-w-0 break-words">{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Recommendations */}
+      <div className="border border-black/10 dark:border-white/10 p-4 sm:p-5">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted font-semibold">
+          Recommendations
+        </p>
+
+        {recommendations.length === 0 ? (
+          <p className="mt-3 text-sm text-gray dark:text-muted">
+            No recommendations available.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {recommendations.map((item, index) => (
+              <li
+                key={`rec-${index}`}
+                className="flex items-start gap-2 text-sm"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                <span className="min-w-0 break-words">{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -3230,22 +3374,29 @@ function HealthPredictionResult({
 function HealthInfo({
   label,
   value,
+  highlight = false,
 }) {
   return (
-    <div className="border border-black/10 dark:border-white/10 bg-cream dark:bg-black p-4">
-
+    <div
+      className={`border p-4 ${
+        highlight
+          ? 'border-red-500/40 bg-red-500/5'
+          : 'border-black/10 dark:border-white/10 bg-cream dark:bg-black'
+      }`}
+    >
       <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted">
         {label}
       </p>
-
-      <p className="mt-2 text-sm font-semibold">
+      <p
+        className={`mt-2 text-sm font-semibold ${
+          highlight ? 'text-red-500' : ''
+        }`}
+      >
         {String(value)}
       </p>
-
     </div>
   );
 }
-
 
 /* ============================================================
    DETAIL STAT

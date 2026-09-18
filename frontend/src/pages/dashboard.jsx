@@ -99,25 +99,49 @@ function isHealthMlAlert(alert) {
   const type = String(alert.type || '').toLowerCase();
   return type === 'health_ml';
 }
-function isCriticalHealthMlAlert(alert) {
+/**
+ * health_ml should only appear in Active Alerts when
+ * health status is Warning or Critical (not Healthy).
+ *
+ * Backend maps:
+ *   Critical → severity: "high"
+ *   Warning  → severity: "medium"
+ *   Healthy  → severity: "low"
+ *
+ * Message usually contains "(Critical)" / "(Warning)" / "(Healthy)".
+ */
+function isWarningOrCriticalHealthMlAlert(alert) {
   if (!isHealthMlAlert(alert)) return false;
 
   const severity = String(alert.severity || '').toLowerCase();
-  if (severity === 'high') return true;
 
-  // Fallback: check message / any nested health_status field
-  const healthStatus = String(
+  // Warning or Critical from severity
+  if (severity === 'high' || severity === 'medium') {
+    return true;
+  }
+
+  // Fallback: inspect message / any health_status field
+  const text = String(
     alert.health_status ||
-    alert.healthStatus ||
-    alert.message ||
-    ''
+      alert.healthStatus ||
+      alert.message ||
+      '',
   ).toLowerCase();
 
-  return healthStatus.includes('critical');
+  if (text.includes('critical') || text.includes('warning')) {
+    return true;
+  }
+
+  // Explicitly exclude Healthy
+  if (text.includes('healthy')) {
+    return false;
+  }
+
+  return false;
 }
 // Used for Active Alerts + Alert History
 function isAllowedAlert(alert) {
-  return isVarroaAlert(alert) || isCriticalHealthMlAlert(alert);
+  return isVarroaAlert(alert) || isWarningOrCriticalHealthMlAlert(alert);
 }
 
 /* ============================================================
