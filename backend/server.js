@@ -19,7 +19,7 @@ import kvicRoutes from "./src/routes/kvicRoutes.js";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
 app.use(morgan("dev"));
 
 app.get("/", (_req, res) => {
