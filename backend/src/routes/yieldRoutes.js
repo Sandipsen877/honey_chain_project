@@ -10,13 +10,25 @@ import { predictYield, predictHoneyYield, predictDiseaseRisk } from "../services
 router.post("/predict", async (req, res) => {
   const { hive_id, current_weight_kg, days } = req.body;
 
+  // Basic payload validation
+  if (!hive_id) {
+    return res.status(400).json({
+      error: "hive_id is required",
+    });
+  }
+
   if (
-    !hive_id ||
     typeof current_weight_kg !== "number" ||
-    !Array.isArray(days)
+    !Number.isFinite(current_weight_kg)
   ) {
     return res.status(400).json({
-      error: "Payload must contain hive_id, current_weight_kg and days",
+      error: "current_weight_kg must be a valid number",
+    });
+  }
+
+  if (!Array.isArray(days)) {
+    return res.status(400).json({
+      error: "days must be an array",
     });
   }
 
@@ -26,10 +38,18 @@ router.post("/predict", async (req, res) => {
     });
   }
 
-  if (days.some((day) => !Array.isArray(day.readings) || day.readings.length !== 144)) {
-    return res.status(400).json({
-      error: "Each forecast day must contain exactly 144 readings",
-    });
+  for (const day of days) {
+    if (!Array.isArray(day.readings)) {
+      return res.status(400).json({
+        error: `Day ${day.day} readings must be an array`,
+      });
+    }
+
+    if (day.readings.length !== 144) {
+      return res.status(400).json({
+        error: `Day ${day.day} must contain exactly 144 readings`,
+      });
+    }
   }
 
   try {
@@ -39,10 +59,12 @@ router.post("/predict", async (req, res) => {
       days,
     });
 
-    res.json(result);
+    return res.json(result);
   } catch (err) {
-    res.status(err.statusCode || 500).json({
-      error: err.message,
+    console.error("[yield route] prediction failed:", err);
+
+    return res.status(err.statusCode || 502).json({
+      error: err.message || "Yield prediction failed",
     });
   }
 });

@@ -28,19 +28,68 @@ async function predictDiseaseRisk(readings) {
   return heuristicDiseaseRisk(readings);
 }
 
-async function predictYield(params) {
-  const mlServiceUrl = getMlServiceUrl();
-  if (mlServiceUrl) {
-    try {
-      const { data } = await axios.post(`${mlServiceUrl}/predict/yield`, params, {
-        timeout: 4000,
-      });
-      return { ...data, source: "ml_service" };
-    } catch (err) {
-      console.warn("[mlService] yield call failed, falling back:", err.message);
-    }
+async function predictHoneyYield(payload) {
+  const yieldMlServiceUrl =
+    getYieldMlServiceUrl() || getMlServiceUrl();
+
+  if (!yieldMlServiceUrl) {
+    const error = new Error(
+      "YIELD_ML_SERVICE_URL or ML_SERVICE_URL is not configured",
+    );
+
+    error.statusCode = 503;
+    throw error;
   }
-  return heuristicYield(params);
+
+  try {
+    const { data } = await axios.post(
+      `${yieldMlServiceUrl}/predict/yield`,
+      payload,
+      {
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    /*
+     * FastAPI currently returns:
+     * predicted_7_day_weight_change_kg
+     * predicted_weight_after_7_days_kg
+     */
+
+    const estimatedYieldKg =
+      data.predicted_7_day_weight_change_kg ??
+      data.predicted_weight_after_7_days_kg ??
+      data.predicted_honey_weight_7_days_kg ??
+      data.estimatedYieldKg ??
+      data.predictedYield ??
+      0;
+
+    return {
+      ...data,
+      estimatedYieldKg: Number(estimatedYieldKg),
+      source: "ml_service",
+    };
+  } catch (err) {
+    const detail =
+      err.response?.data?.detail ||
+      err.response?.data?.error ||
+      err.message;
+
+    console.error("[mlService] yield prediction failed:", {
+      url: `${yieldMlServiceUrl}/predict/yield`,
+      status: err.response?.status,
+      detail,
+    });
+
+    const error = new Error(detail || "Yield ML service is unavailable");
+
+    error.statusCode = err.response?.status || 502;
+
+    throw error;
+  }
 }
 
 /**
