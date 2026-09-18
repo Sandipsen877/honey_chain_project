@@ -9,8 +9,8 @@ import { predictYield, predictHoneyYield, predictDiseaseRisk } from "../services
 // The history is passed directly to the dedicated yield ML API.
 router.post("/predict", async (req, res) => {
   const { history } = req.body;
-  if (!Array.isArray(history) || history.length < 15) {
-    return res.status(400).json({ error: "history must contain at least 15 chronological observations" });
+  if (!Array.isArray(history) || history.length < 144*7) { // 144 readings per week * 7 weeks = 1008 readings
+    return res.status(400).json({ error: "history must contain at least 1008 chronological observations" });
   }
 
   try {
