@@ -97,60 +97,6 @@ async function predictHoneyYield(payload) {
  * intentionally differs from the existing estimate proxy: it requires real,
  * chronological honey-yield observations rather than total hive weight.
  */
-async function predictHoneyYield(payload) {
-  const yieldMlServiceUrl =
-    getYieldMlServiceUrl() || getMlServiceUrl();
-
-  if (!yieldMlServiceUrl) {
-    const error = new Error(
-      "YIELD_ML_SERVICE_URL (or ML_SERVICE_URL) is not configured",
-    );
-
-    error.statusCode = 503;
-    throw error;
-  }
-
-  try {
-    const { data } = await axios.post(
-      `${yieldMlServiceUrl}/predict/yield`,
-      payload,
-      {
-        timeout: 15000,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    return {
-      ...data,
-      estimatedYieldKg:
-        data.predicted_7_day_weight_change_kg ??
-        data.predicted_weight_after_7_days_kg ??
-        data.predicted_honey_weight_7_days_kg ??
-        data.estimatedYieldKg ??
-        data.predictedYield ??
-        0,
-      source: "ml_service",
-    };
-  } catch (err) {
-    const detail =
-      err.response?.data?.detail ||
-      err.response?.data?.error;
-
-    console.warn(
-      "[mlService] yield prediction call failed:",
-      detail || err.message,
-    );
-
-    const error = new Error(
-      detail || "Yield ML service is unavailable",
-    );
-
-    error.statusCode = err.response?.status || 502;
-    throw error;
-  }
-}
 
 /**
  * Runs the health/alert model. Unlike yield and disease-risk, this model has
@@ -244,4 +190,37 @@ function heuristicYield({ hiveCount = 0, environmentType = "mixed", avgWeightTre
   return { estimatedYieldKg: Math.round(estimatedYieldKg * 10) / 10, confidence: 0.4, source: "heuristic" };
 }
 
-export { predictDiseaseRisk, predictYield, predictHoneyYield, predictAlert, predictVarroa };
+async function predictYield(payload) {
+  const mlServiceUrl = getMlServiceUrl();
+
+  if (!mlServiceUrl) {
+    return heuristicYield(payload);
+  }
+
+  try {
+    const { data } = await axios.post(
+      `${mlServiceUrl}/predict/yield`,
+      payload,
+      {
+        timeout: 15000,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      ...data,
+      source: "ml_service",
+    };
+  } catch (err) {
+    console.warn(
+      "[mlService] Legacy yield prediction failed, using heuristic:",
+      err.message
+    );
+
+    return heuristicYield(payload);
+  }
+}
+
+export { predictDiseaseRisk, predictHoneyYield, predictAlert, predictVarroa, predictYield };
