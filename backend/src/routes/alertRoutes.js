@@ -142,7 +142,7 @@ router.post(
           severity: "high",
           message: `Varroa detected: ${count} mite${count === 1 ? "" : "s"} found.${confidenceText}`,
           suggestedAction:
-            "Inspect this hive immediately and start Varroa treatment protocol if confirmed.",
+            "Inspect this hive immediately and start Varroa treatment protocol.",
           ...(uploaded
             ? { imageUrl: uploaded.url, imagePublicId: uploaded.publicId }
             : {}),
