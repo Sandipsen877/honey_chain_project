@@ -160,24 +160,11 @@ function isAllowedAlert(alert) {
    YIELD CACHE (per login session)
    ============================================================ */
 
-const YIELD_CACHE_KEY = 'honeychain_yield_cache';
 
-function getYieldCache() {
-  try {
-    const raw = localStorage.getItem(YIELD_CACHE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
 
-function setYieldCache(cache) {
-  try {
-    localStorage.setItem(YIELD_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // ignore
-  }
-}
+
+
+
 
 /* ============================================================
    MAIN DASHBOARD
@@ -418,9 +405,12 @@ export default function Dashboard() {
    New format:
    7 days × 144 readings per day
    ============================================================ */
+    /* ============================================================
+   YIELD — predict every hive and aggregate by farm
+   ============================================================ */
 
 const yieldMap = {};
-const cache = getYieldCache();
+
 const keeperId = getId(currentKeeper);
 
 await Promise.all(
@@ -429,21 +419,16 @@ await Promise.all(
 
     if (!farmId) return;
 
-    const cacheKey = `${keeperId}_${farmId}`;
+    
 
-    // Already predicted during this login session
-    if (cache[cacheKey] !== undefined) {
-      yieldMap[farmId] = cache[cacheKey];
-      return;
-    }
+    
 
     try {
       /* --------------------------------------------------------
-         Find a hive belonging to this farm.
-         The new yield API requires hive_id.
-      -------------------------------------------------------- */
+         Get ALL hives belonging to this farm
+         -------------------------------------------------------- */
 
-      const farmHive = loadedHives.find((hive) => {
+      const farmHives = loadedHives.filter((hive) => {
         const hiveFarmId =
           getId(hive?.farm) ||
           hive?.farmId ||
@@ -452,55 +437,80 @@ await Promise.all(
         return String(hiveFarmId) === String(farmId);
       });
 
-      if (!farmHive) {
+      if (!farmHives.length) {
         console.warn(
-          `No hive found for farm ${farmId}. Skipping yield prediction.`,
+          `No hives found for farm ${farmId}. Skipping yield prediction.`,
         );
 
         yieldMap[farmId] = null;
-        cache[cacheKey] = null;
+       
         return;
       }
 
-      const hiveId = getId(farmHive);
-
       /* --------------------------------------------------------
-         Current hive weight
+         Predict yield for every hive in this farm
+         -------------------------------------------------------- */
 
-         If your hive object already contains weightKg, use it.
-         Otherwise use the test value 42.50 kg.
-      -------------------------------------------------------- */
+      const hiveYieldResults = await Promise.all(
+        farmHives.map(async (hive) => {
+          const hiveId = getId(hive);
 
-      const currentWeightKg =
-        Number(
-          farmHive?.weightKg ??
-          farmHive?.currentWeightKg ??
-          farmHive?.weight ??
-          42.5,
-        ) || 42.5;
+          if (!hiveId) return 0;
 
-      /* --------------------------------------------------------
-         Generate:
-         7 days
-         × 144 readings
-         = 1008 readings total
-      -------------------------------------------------------- */
+          const currentWeightKg =
+            Number(
+              hive?.weightKg ??
+              hive?.currentWeightKg ??
+              hive?.weight ??
+              42.5,
+            ) || 42.5;
 
-      const payload = generateYieldPayload(
-        hiveId,
-        currentWeightKg,
+          const payload = generateYieldPayload(
+            hiveId,
+            currentWeightKg,
+          );
+
+          console.log(
+            `Yield prediction payload for hive ${hiveId}:`,
+            payload,
+          );
+
+          const response = await apiRequest('/api/yield/predict', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+
+          console.log(
+            `Yield prediction response for hive ${hiveId}:`,
+            response,
+          );
+
+          return extractYieldKg(response);
+        }),
       );
 
-      console.log(`Yield prediction payload for farm `, payload);
-      
+      /* --------------------------------------------------------
+         Add all hive predictions to get farm total
+         -------------------------------------------------------- */
 
-      const response = await apiRequest('/api/yield/predict', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      console.log(`Yield prediction response for farm ${farmId}:`, response);
-      yieldMap[farmId] = response;
-      cache[cacheKey] = response;
+      const farmTotalYield = hiveYieldResults.reduce(
+        (sum, hiveYield) => sum + hiveYield,
+        0,
+      );
+
+      const farmYieldData = {
+        estimatedYieldKg:
+          Math.round(farmTotalYield * 10) / 10,
+        hiveCount: farmHives.length,
+      };
+
+      console.log(
+        `Total predicted yield for farm ${farmId}:`,
+        farmYieldData,
+      );
+
+      yieldMap[farmId] = farmYieldData;
+
     } catch (err) {
       console.error(
         `Yield prediction failed for farm ${farmId}:`,
@@ -508,17 +518,21 @@ await Promise.all(
       );
 
       yieldMap[farmId] = null;
-      cache[cacheKey] = null;
+      
     }
   }),
 );
 
 /* ------------------------------------------------------------
-   Save cache for the rest of the login session
------------------------------------------------------------- */
+   Save farm-level yield totals
+   ------------------------------------------------------------ */
 
-setYieldCache(cache);
+
 setYields(yieldMap);
+
+/* ------------------------------------------------------------
+   Calculate total yield across all farms
+   ------------------------------------------------------------ */
 
 const totalKg = Object.values(yieldMap).reduce(
   (sum, item) => sum + extractYieldKg(item),
