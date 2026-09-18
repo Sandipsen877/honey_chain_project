@@ -110,7 +110,7 @@ class YieldPredictionRequest(BaseModel):
 
     history: List[YieldObservation]
 
-
+'''
 @app.post("/predict/health")
 def predict(data: SensorData):
 
@@ -129,6 +129,43 @@ def predict(data: SensorData):
         "health_status": status,
         "bee_activity": bee_activity,
         "inspection_required": status != "Healthy"
+    }
+'''
+
+@app.post("/predict/health")
+def predict(data: SensorData):
+
+    result = calculate_health_score(
+        temperature=data.temperature,
+        humidity=data.humidity,
+        co2=data.co2,
+        tvoc=data.tvoc,
+        bee_in=data.bee_in,
+        bee_out=data.bee_out,
+        outside_temperature=data.outside_temperature,
+        outside_humidity=data.outside_humidity,
+        pressure=data.pressure,
+        light=data.light,
+    )
+
+    return {
+        "hive_id": data.hive_id,
+
+        "health_score": result["score"],
+        "health_status": result["status"],
+
+        "bee_activity": result["bee_activity"],
+        "bee_in": result["bee_in"],
+        "bee_out": result["bee_out"],
+        "bee_flow": result["bee_flow"],
+
+        "components": result["components"],
+
+        "risk_factors": result["risk_factors"],
+        "recommendations": result["recommendations"],
+
+        "inspection_required":
+            result["inspection_required"],
     }
 
 @app.post(
