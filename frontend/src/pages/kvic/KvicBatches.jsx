@@ -119,6 +119,26 @@ function getStatusLabel(status) {
     return 'Unknown';
   }
 
+  // Friendlier labels for real backend values
+  const map = {
+    created: 'Created',
+    submitted_for_testing: 'Submitted for Testing',
+    tested: 'Tested',
+    qr_generated: 'QR Generated',
+    completed: 'Completed',
+    complete: 'Completed',
+    processing: 'Processing',
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    failed: 'Failed',
+    rejected: 'Rejected',
+    fail: 'Failed',
+  };
+
+  if (map[status]) {
+    return map[status];
+  }
+
   return status
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) =>
@@ -132,7 +152,10 @@ function getStatusClass(status) {
     status || ''
   ).toLowerCase();
 
+  // Completed
   if (
+    normalized === 'tested' ||
+    normalized === 'qr_generated' ||
     normalized === 'completed' ||
     normalized === 'complete' ||
     normalized === 'approved' ||
@@ -142,6 +165,7 @@ function getStatusClass(status) {
     return 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400';
   }
 
+  // Failed
   if (
     normalized === 'failed' ||
     normalized === 'rejected' ||
@@ -150,7 +174,10 @@ function getStatusClass(status) {
     return 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400';
   }
 
+  // Processing / In progress
   if (
+    normalized === 'created' ||
+    normalized === 'submitted_for_testing' ||
     normalized === 'processing' ||
     normalized === 'in_progress' ||
     normalized === 'pending'
@@ -593,298 +620,173 @@ function LabReportSubmissionForm({
           </h3>
 
           <p className="mt-1 text-xs text-zinc-500">
-            KVIC administrator can submit
-            the laboratory verification
-            results for this batch.
+            {existingReport
+              ? 'A laboratory report already exists for this batch.'
+              : 'Fill the form below to submit a new laboratory report.'}
           </p>
         </div>
 
       </div>
 
 
-      {/* EXISTING REPORT */}
-
       {existingReport ? (
-        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-600 dark:text-green-400">
-          A laboratory report already
-          exists for this batch. A new
-          report cannot be submitted here.
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+          This batch already has a laboratory report. You can view the report details above.
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="space-y-6"
+          className="space-y-4"
         >
 
-          {/* BASIC INFORMATION */}
+          <div className="grid gap-4 sm:grid-cols-2">
 
-          <div>
+            <FormField
+              label="Lab Name"
+              value={form.labName}
+              onChange={(value) =>
+                updateField('labName', value)
+              }
+              placeholder="KVIC Regional Testing Lab"
+              required
+            />
 
-            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
-              Report Information
-            </p>
+            <FormField
+              label="Sample ID"
+              value={form.sampleId}
+              onChange={(value) =>
+                updateField('sampleId', value)
+              }
+              placeholder="SAMPLE-001"
+              required
+            />
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Tested Date"
+              value={form.testedDate}
+              onChange={(value) =>
+                updateField('testedDate', value)
+              }
+              type="date"
+            />
 
-              <FormField
-                label="Laboratory Name"
-                value={form.labName}
-                onChange={(value) =>
+            <FormField
+              label="Moisture %"
+              value={form.moisturePct}
+              onChange={(value) =>
+                updateField('moisturePct', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="18.5"
+            />
+
+            <FormField
+              label="HMF (mg/kg)"
+              value={form.hmfMgPerKg}
+              onChange={(value) =>
+                updateField('hmfMgPerKg', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="12.4"
+            />
+
+            <FormField
+              label="Reducing Sugar %"
+              value={form.reducingSugarPct}
+              onChange={(value) =>
+                updateField('reducingSugarPct', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="72.5"
+            />
+
+            <FormField
+              label="Sucrose %"
+              value={form.sucrosePct}
+              onChange={(value) =>
+                updateField('sucrosePct', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="3.2"
+            />
+
+            <FormField
+              label="Fructose/Glucose Ratio"
+              value={form.fructoseGlucoseRatio}
+              onChange={(value) =>
+                updateField('fructoseGlucoseRatio', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="1.15"
+            />
+
+            <FormField
+              label="Diastase Activity"
+              value={form.diastaseActivity}
+              onChange={(value) =>
+                updateField('diastaseActivity', value)
+              }
+              type="number"
+              step="0.01"
+              placeholder="12.0"
+            />
+
+            <FormField
+              label="Pollen / Floral Source"
+              value={form.pollenFloralSource}
+              onChange={(value) =>
+                updateField('pollenFloralSource', value)
+              }
+              placeholder="Mustard / Multifloral"
+            />
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                C4 Sugar Test Result
+              </label>
+              <select
+                value={form.c4SugarTestResult}
+                onChange={(event) =>
                   updateField(
-                    'labName',
-                    value
+                    'c4SugarTestResult',
+                    event.target.value
                   )
                 }
-                placeholder="KVIC Regional Testing Lab"
-                required
-              />
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+              >
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="not_tested">Not Tested</option>
+              </select>
+            </div>
 
-              <FormField
-                label="Sample ID"
-                value={form.sampleId}
-                onChange={(value) =>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                Overall Result
+              </label>
+              <select
+                value={form.overallResult}
+                onChange={(event) =>
                   updateField(
-                    'sampleId',
-                    value
+                    'overallResult',
+                    event.target.value
                   )
                 }
-                placeholder="SMPL-A1B2C3D4"
-                required
-              />
-
-              <FormField
-                label="Tested Date"
-                type="datetime-local"
-                value={form.testedDate}
-                onChange={(value) =>
-                  updateField(
-                    'testedDate',
-                    value
-                  )
-                }
-                required
-              />
-
-              <FormField
-                label="Pollen / Floral Source"
-                value={
-                  form.pollenFloralSource
-                }
-                onChange={(value) =>
-                  updateField(
-                    'pollenFloralSource',
-                    value
-                  )
-                }
-                placeholder="Mixed floral"
-                required
-              />
-
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+              >
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="pending">Pending</option>
+              </select>
             </div>
 
           </div>
 
-
-          {/* LABORATORY MEASUREMENTS */}
-
-          <div>
-
-            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
-              Laboratory Measurements
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-              <FormField
-                label="Moisture (%)"
-                type="number"
-                step="0.01"
-                value={
-                  form.moisturePct
-                }
-                onChange={(value) =>
-                  updateField(
-                    'moisturePct',
-                    value
-                  )
-                }
-                placeholder="18.4"
-                required
-              />
-
-              <FormField
-                label="HMF (mg/kg)"
-                type="number"
-                step="0.01"
-                value={
-                  form.hmfMgPerKg
-                }
-                onChange={(value) =>
-                  updateField(
-                    'hmfMgPerKg',
-                    value
-                  )
-                }
-                placeholder="14.2"
-                required
-              />
-
-              <FormField
-                label="Reducing Sugar (%)"
-                type="number"
-                step="0.01"
-                value={
-                  form.reducingSugarPct
-                }
-                onChange={(value) =>
-                  updateField(
-                    'reducingSugarPct',
-                    value
-                  )
-                }
-                placeholder="69.8"
-                required
-              />
-
-              <FormField
-                label="Sucrose (%)"
-                type="number"
-                step="0.01"
-                value={
-                  form.sucrosePct
-                }
-                onChange={(value) =>
-                  updateField(
-                    'sucrosePct',
-                    value
-                  )
-                }
-                placeholder="4.1"
-                required
-              />
-
-              <FormField
-                label="Fructose / Glucose Ratio"
-                type="number"
-                step="0.01"
-                value={
-                  form.fructoseGlucoseRatio
-                }
-                onChange={(value) =>
-                  updateField(
-                    'fructoseGlucoseRatio',
-                    value
-                  )
-                }
-                placeholder="1.19"
-                required
-              />
-
-              <FormField
-                label="Diastase Activity"
-                type="number"
-                step="0.01"
-                value={
-                  form.diastaseActivity
-                }
-                onChange={(value) =>
-                  updateField(
-                    'diastaseActivity',
-                    value
-                  )
-                }
-                placeholder="11.9"
-                required
-              />
-
-            </div>
-
-          </div>
-
-
-          {/* TEST RESULTS */}
-
-          <div>
-
-            <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
-              Test Results
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-
-              {/* C4 TEST */}
-
-              <div>
-
-                <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  C4 Sugar Test
-                </label>
-
-                <select
-                  value={
-                    form.c4SugarTestResult
-                  }
-                  onChange={(event) =>
-                    updateField(
-                      'c4SugarTestResult',
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                >
-
-                  <option value="pass">
-                    Pass
-                  </option>
-
-                  <option value="fail">
-                    Fail
-                  </option>
-
-                </select>
-
-              </div>
-
-
-              {/* OVERALL RESULT */}
-
-              <div>
-
-                <label className="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  Overall Result
-                </label>
-
-                <select
-                  value={
-                    form.overallResult
-                  }
-                  onChange={(event) =>
-                    updateField(
-                      'overallResult',
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                >
-
-                  <option value="pass">
-                    Pass
-                  </option>
-
-                  <option value="fail">
-                    Fail
-                  </option>
-
-                </select>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          {/* ERRORS */}
 
           {submitError && (
             <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400">
@@ -892,8 +794,6 @@ function LabReportSubmissionForm({
             </div>
           )}
 
-
-          {/* SUCCESS */}
 
           {submitSuccess && (
             <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-600 dark:text-green-400">
@@ -1383,13 +1283,12 @@ export default function KvicBatches() {
       setLoading(true);
       setError('');
 
+      // Always load ALL batches so statistics stay correct
       const [
         batchesResponse,
         reportsResponse,
       ] = await Promise.all([
-        getKvicBatches(
-          statusFilter
-        ),
+        getKvicBatches(),          // no status filter
         getKvicReports(),
       ]);
 
@@ -1436,62 +1335,115 @@ export default function KvicBatches() {
 
   /*
   |--------------------------------------------------------------------------
-  | INITIAL LOAD / FILTER
+  | INITIAL LOAD
   |--------------------------------------------------------------------------
   */
 
   useEffect(() => {
     loadData();
-  }, [statusFilter]);
+  }, []);
 
 
   /*
   |--------------------------------------------------------------------------
-  | SEARCH
+  | FILTERED BATCHES (search + status) — client side
   |--------------------------------------------------------------------------
   */
 
   const filteredBatches =
     useMemo(() => {
 
+      let result = batches;
+
+      // Status filter (client-side)
+      if (statusFilter) {
+        const filter = statusFilter.toLowerCase();
+
+        result = result.filter((batch) => {
+          const status = getStatus(batch);
+
+          if (filter === 'processing') {
+            return [
+              'created',
+              'submitted_for_testing',
+              'processing',
+              'pending',
+              'in_progress',
+            ].includes(status);
+          }
+
+          if (filter === 'completed') {
+            return [
+              'tested',
+              'qr_generated',
+              'completed',
+              'complete',
+            ].includes(status);
+          }
+
+          if (filter === 'failed') {
+            // also check lab report below
+            const report = getReportForBatch(reports, batch);
+            const resultValue = String(
+              report?.overallResult ||
+              report?.overall_result ||
+              report?.result ||
+              ''
+            ).toLowerCase();
+
+            return (
+              ['failed', 'rejected', 'fail'].includes(status) ||
+              resultValue === 'fail' ||
+              resultValue === 'failed'
+            );
+          }
+
+          // exact match for raw backend values
+          return status === filter;
+        });
+      }
+
+      // Search
       const query =
         search
           .trim()
           .toLowerCase();
 
-      if (!query) {
-        return batches;
+      if (query) {
+        result = result.filter(
+          (batch) => {
+
+            const values = [
+              getBatchCode(batch),
+              getFarmName(batch),
+              getKeeperName(batch),
+              batch?.status,
+            ];
+
+            return values.some(
+              (value) =>
+                displayValue(value)
+                  .toLowerCase()
+                  .includes(query)
+            );
+
+          }
+        );
       }
 
-      return batches.filter(
-        (batch) => {
-
-          const values = [
-            getBatchCode(batch),
-            getFarmName(batch),
-            getKeeperName(batch),
-            batch?.status,
-          ];
-
-          return values.some(
-            (value) =>
-              displayValue(value)
-                .toLowerCase()
-                .includes(query)
-          );
-
-        }
-      );
+      return result;
 
     }, [
       batches,
       search,
+      statusFilter,
+      reports,
     ]);
 
 
   /*
   |--------------------------------------------------------------------------
-  | STATISTICS
+  | STATISTICS (always from full batches list)
   |--------------------------------------------------------------------------
   */
 
@@ -1505,6 +1457,8 @@ export default function KvicBatches() {
         batches.filter(
           (batch) =>
             [
+              'tested',
+              'qr_generated',
               'completed',
               'complete',
             ].includes(
@@ -1516,6 +1470,8 @@ export default function KvicBatches() {
         batches.filter(
           (batch) =>
             [
+              'created',
+              'submitted_for_testing',
               'processing',
               'pending',
               'in_progress',
@@ -1524,15 +1480,22 @@ export default function KvicBatches() {
             )
         ).length;
 
+      // Failed = has a lab report with overallResult = fail
       const failed =
         batches.filter(
-          (batch) =>
-            [
-              'failed',
-              'rejected',
-            ].includes(
-              getStatus(batch)
-            )
+          (batch) => {
+            const report = getReportForBatch(reports, batch);
+            if (!report) return false;
+
+            const result = String(
+              report?.overallResult ||
+              report?.overall_result ||
+              report?.result ||
+              ''
+            ).toLowerCase();
+
+            return result === 'fail' || result === 'failed';
+          }
         ).length;
 
       return {
@@ -1542,7 +1505,7 @@ export default function KvicBatches() {
         failed,
       };
 
-    }, [batches]);
+    }, [batches, reports]);
 
 
   /*
@@ -1935,10 +1898,6 @@ export default function KvicBatches() {
               All Statuses
             </option>
 
-            <option value="pending">
-              Pending
-            </option>
-
             <option value="processing">
               Processing
             </option>
@@ -1949,6 +1908,22 @@ export default function KvicBatches() {
 
             <option value="failed">
               Failed
+            </option>
+
+            <option value="created">
+              Created
+            </option>
+
+            <option value="submitted_for_testing">
+              Submitted for Testing
+            </option>
+
+            <option value="tested">
+              Tested
+            </option>
+
+            <option value="qr_generated">
+              QR Generated
             </option>
 
           </select>
