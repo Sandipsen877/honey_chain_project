@@ -8,16 +8,42 @@ import { predictYield, predictHoneyYield, predictDiseaseRisk } from "../services
 // POST /api/yield/predict  body: { history: [at least 15 yield observations] }
 // The history is passed directly to the dedicated yield ML API.
 router.post("/predict", async (req, res) => {
-  const { history } = req.body;
-  if (!Array.isArray(history) || history.length < 144*7) { // 144 readings per week * 7 weeks = 1008 readings
-    return res.status(400).json({ error: "history must contain at least 1008 chronological observations" });
+  const { hive_id, current_weight_kg, days } = req.body;
+
+  if (
+    !hive_id ||
+    typeof current_weight_kg !== "number" ||
+    !Array.isArray(days)
+  ) {
+    return res.status(400).json({
+      error: "Payload must contain hive_id, current_weight_kg and days",
+    });
+  }
+
+  if (days.length !== 7) {
+    return res.status(400).json({
+      error: "Exactly 7 forecast days are required",
+    });
+  }
+
+  if (days.some((day) => !Array.isArray(day.readings) || day.readings.length !== 144)) {
+    return res.status(400).json({
+      error: "Each forecast day must contain exactly 144 readings",
+    });
   }
 
   try {
-    const result = await predictHoneyYield(history);
+    const result = await predictHoneyYield({
+      hive_id,
+      current_weight_kg,
+      days,
+    });
+
     res.json(result);
   } catch (err) {
-    res.status(err.statusCode || 500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({
+      error: err.message,
+    });
   }
 });
 
