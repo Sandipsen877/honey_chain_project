@@ -21,7 +21,7 @@ import {
   getErrorMessage,
 } from '../services/dashboardApi';
 
-import { getRandomHistorySample } from '../data/honeyHistory';
+
 
 import { SidebarButton } from '../components/dashboard/DashboardUI';
 
@@ -85,6 +85,57 @@ function extractYieldKg(item) {
 }
 
 /* ============================================================
+   YIELD PREDICTION DATA GENERATOR
+   144 readings per day × 7 forecast days
+   ============================================================ */
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function generateYieldReading() {
+  return {
+    temperature: randomBetween(33.0, 38.0),
+    temperature_gradient: randomBetween(-0.5, 0.5),
+    outside_temperature: randomBetween(27.0, 34.0),
+    outside_temperature_feels_like: randomBetween(28.0, 36.0),
+    temperature_difference: randomBetween(0.0, 8.0),
+    humidity: randomBetween(50.0, 70.0),
+    outside_humidity: randomBetween(60.0, 80.0),
+    wind: randomBetween(0.0, 10.0),
+    rain: randomBetween(0.0, 5.0),
+    co2: randomBetween(400.0, 800.0),
+    pressure: randomBetween(1000.0, 1025.0),
+  };
+}
+
+function generateYieldPayload(hiveId, currentWeightKg = 42.5) {
+  const days = [];
+
+  for (let day = 1; day <= 7; day += 1) {
+    // NEW array every day — do not reuse one history array
+    const readings = [];
+
+    for (let i = 0; i < 144; i += 1) {  // exactly 144
+      readings.push(generateYieldReading());
+    }
+
+    days.push({
+      day,
+      week_sin: randomBetween(-1.0, 1.0),
+      week_cos: randomBetween(-1.0, 1.0),
+      readings,   // key must be "readings"
+    });
+  }
+
+  return {
+    hive_id: String(hiveId),
+    current_weight_kg: Number(currentWeightKg) || 42.5,
+    days,
+  };
+}
+
+/* ============================================================
    ALERT TYPE HELPERS
    ============================================================ */
 
@@ -99,49 +150,10 @@ function isHealthMlAlert(alert) {
   const type = String(alert.type || '').toLowerCase();
   return type === 'health_ml';
 }
-/**
- * health_ml should only appear in Active Alerts when
- * health status is Warning or Critical (not Healthy).
- *
- * Backend maps:
- *   Critical → severity: "high"
- *   Warning  → severity: "medium"
- *   Healthy  → severity: "low"
- *
- * Message usually contains "(Critical)" / "(Warning)" / "(Healthy)".
- */
-function isWarningOrCriticalHealthMlAlert(alert) {
-  if (!isHealthMlAlert(alert)) return false;
 
-  const severity = String(alert.severity || '').toLowerCase();
-
-  // Warning or Critical from severity
-  if (severity === 'high' || severity === 'medium') {
-    return true;
-  }
-
-  // Fallback: inspect message / any health_status field
-  const text = String(
-    alert.health_status ||
-      alert.healthStatus ||
-      alert.message ||
-      '',
-  ).toLowerCase();
-
-  if (text.includes('critical') || text.includes('warning')) {
-    return true;
-  }
-
-  // Explicitly exclude Healthy
-  if (text.includes('healthy')) {
-    return false;
-  }
-
-  return false;
-}
 // Used for Active Alerts + Alert History
 function isAllowedAlert(alert) {
-  return isVarroaAlert(alert) || isWarningOrCriticalHealthMlAlert(alert);
+  return isVarroaAlert(alert) || isHealthMlAlert(alert);
 }
 
 /* ============================================================
@@ -401,9 +413,12 @@ export default function Dashboard() {
       resolvedFarm: allResolvedAlerts.filter(isFarmAlert),
     });
 
-    /* ============================================================
-   YIELD — call API only once per farm per login session
+   /* ============================================================
+   YIELD — call API once per farm per login session
+   New format:
+   7 days × 144 readings per day
    ============================================================ */
+
 const yieldMap = {};
 const cache = getYieldCache();
 const keeperId = getId(currentKeeper);
@@ -411,34 +426,97 @@ const keeperId = getId(currentKeeper);
 await Promise.all(
   loadedFarms.map(async (farm) => {
     const farmId = getId(farm);
+
     if (!farmId) return;
 
     const cacheKey = `${keeperId}_${farmId}`;
 
-    // Already cached in this session → reuse
+    // Already predicted during this login session
     if (cache[cacheKey] !== undefined) {
       yieldMap[farmId] = cache[cacheKey];
       return;
     }
 
-    // First time → call API with random sample
     try {
-      const history = getRandomHistorySample(16);
-      const response = await apiRequest('/api/yield/predict', {
-        method: 'POST',
-        body: JSON.stringify({ history }),
+      /* --------------------------------------------------------
+         Find a hive belonging to this farm.
+         The new yield API requires hive_id.
+      -------------------------------------------------------- */
+
+      const farmHive = loadedHives.find((hive) => {
+        const hiveFarmId =
+          getId(hive?.farm) ||
+          hive?.farmId ||
+          hive?.farm;
+
+        return String(hiveFarmId) === String(farmId);
       });
 
+      if (!farmHive) {
+        console.warn(
+          `No hive found for farm ${farmId}. Skipping yield prediction.`,
+        );
+
+        yieldMap[farmId] = null;
+        cache[cacheKey] = null;
+        return;
+      }
+
+      const hiveId = getId(farmHive);
+
+      /* --------------------------------------------------------
+         Current hive weight
+
+         If your hive object already contains weightKg, use it.
+         Otherwise use the test value 42.50 kg.
+      -------------------------------------------------------- */
+
+      const currentWeightKg =
+        Number(
+          farmHive?.weightKg ??
+          farmHive?.currentWeightKg ??
+          farmHive?.weight ??
+          42.5,
+        ) || 42.5;
+
+      /* --------------------------------------------------------
+         Generate:
+         7 days
+         × 144 readings
+         = 1008 readings total
+      -------------------------------------------------------- */
+
+      const payload = generateYieldPayload(
+        hiveId,
+        currentWeightKg,
+      );
+
+      console.log(`Yield prediction payload for farm `, payload);
+      
+
+      const response = await apiRequest('/api/yield/predict', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      console.log(`Yield prediction response for farm ${farmId}:`, response);
       yieldMap[farmId] = response;
       cache[cacheKey] = response;
-    } catch {
+    } catch (err) {
+      console.error(
+        `Yield prediction failed for farm ${farmId}:`,
+        err,
+      );
+
       yieldMap[farmId] = null;
       cache[cacheKey] = null;
     }
   }),
 );
 
-// Save cache for the rest of the session
+/* ------------------------------------------------------------
+   Save cache for the rest of the login session
+------------------------------------------------------------ */
+
 setYieldCache(cache);
 setYields(yieldMap);
 
