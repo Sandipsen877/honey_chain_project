@@ -170,6 +170,17 @@ export const submitSensorReading = (payload) => {
 /* ---------------------------------------------------------
    Alert APIs
 --------------------------------------------------------- */
+/* ---------------------------------------------------------
+   Alert APIs
+--------------------------------------------------------- */
+export const predictHealthAlert = (payload) => {
+  return request('/api/alerts/predict', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+
 
 export const getAlerts = (params = {}) => {
   const searchParams = new URLSearchParams();

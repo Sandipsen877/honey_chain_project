@@ -32,7 +32,7 @@ import {
 import {
   submitSensorReading,
   getLatestReading,
-  // predictHealthAlert,   // ← uncomment later when you want health prediction
+  predictHealthAlert,   // ← uncomment later when you want health prediction
 } from '../../services/platformService';
 
 const VARROA_SCAN_INTERVAL_MS = 1800;
@@ -831,6 +831,10 @@ const [latestReading, setLatestReading] = useState(null);
 const [sensorLoading, setSensorLoading] = useState(false);
 const [sensorError, setSensorError] = useState('');
 
+const [healthPrediction, setHealthPrediction] = useState(null);
+const [healthLoading, setHealthLoading] = useState(false);
+const [healthError, setHealthError] = useState('');
+
 // For later use (health prediction)
 // const [healthPrediction, setHealthPrediction] = useState(null);  
   /* ==========================================================
@@ -908,83 +912,193 @@ function isOlderThan5Minutes(recordedAt) {
   return now - readingTime > fiveMinutes;
 }
 
+async function runHealthPrediction(reading, cancelled = false) {
+  if (!reading || !hiveId) {
+    return;
+  }
+
+  setHealthLoading(true);
+  setHealthError('');
+  setHealthPrediction(null);
+
+  try {
+    const healthPayload = {
+      hive_id: String(hiveId),
+
+      temperature: Number(reading.temperatureC),
+      humidity: Number(reading.humidityPct),
+
+      outside_temperature: Number(
+        reading.outsideTemperatureC,
+      ),
+
+      outside_humidity: Number(
+        reading.outsideHumidityPct,
+      ),
+
+      pressure: Number(
+        reading.pressureHPa,
+      ),
+
+      co2: Number(
+        reading.co2Ppm,
+      ),
+
+      tvoc: Number(
+        reading.tvocPpb,
+      ),
+
+      light: Number(
+        reading.light,
+      ),
+
+      bee_in: Number(
+        reading.beeIn,
+      ),
+
+      bee_out: Number(
+        reading.beeOut,
+      ),
+    };
+
+    const result = await predictHealthAlert(
+      healthPayload,
+    );
+
+    if (cancelled) {
+      return;
+    }
+
+    setHealthPrediction(
+      result?.data ||
+        result?.result ||
+        result,
+    );
+
+  } catch (err) {
+    if (cancelled) {
+      return;
+    }
+
+    console.error(
+      'Health prediction failed:',
+      err,
+    );
+
+    setHealthError(
+      err?.message ||
+        'Unable to calculate hive health.',
+    );
+
+  } finally {
+    if (!cancelled) {
+      setHealthLoading(false);
+    }
+  }
+}
+
 useEffect(() => {
-  if (!hiveId || !hiveFarmId) return;
+  if (!hiveId || !hiveFarmId) {
+    return;
+  }
 
   let cancelled = false;
 
   async function loadOrCaptureReading() {
     setSensorLoading(true);
     setSensorError('');
+
     setLatestReading(null);
-    // setHealthPrediction(null); // for later
+
+    setHealthPrediction(null);
+    setHealthError('');
+    setHealthLoading(false);
 
     try {
-      // 1. Try to get the latest reading first
+      /* ========================================================
+         1. GET LATEST SENSOR READING
+      ======================================================== */
+
       let existingReading = null;
 
       try {
-        existingReading = await getLatestReading(hiveId);
+        existingReading =
+          await getLatestReading(hiveId);
       } catch (err) {
         existingReading = null;
       }
 
-      // 2. If we have a recent reading (< 5 minutes), just show it
+      /* ========================================================
+         2. USE RECENT READING
+      ======================================================== */
+
       if (
         existingReading &&
-        !isOlderThan5Minutes(existingReading.recordedAt)
+        !isOlderThan5Minutes(
+          existingReading.recordedAt,
+        )
       ) {
         if (!cancelled) {
-          setLatestReading(existingReading);
+          setLatestReading(
+            existingReading,
+          );
         }
+
+        // Run health prediction using the
+        // latest reading returned by backend.
+        await runHealthPrediction(
+          existingReading,
+          cancelled,
+        );
+
         return;
       }
 
-      // 3. Otherwise generate + send a new reading
-      const payload = generateRealisticReading(hiveId, hiveFarmId);
-      const result = await submitSensorReading(payload);
+      /* ========================================================
+         3. NO RECENT READING
+         Generate + save a fresh reading
+      ======================================================== */
 
-      const backendReading = result?.reading;
+      const payload =
+        generateRealisticReading(
+          hiveId,
+          hiveFarmId,
+        );
 
-      if (!cancelled && backendReading) {
-        setLatestReading(backendReading);
+      const result =
+        await submitSensorReading(
+          payload,
+        );
+
+      const backendReading =
+        result?.reading;
+
+      if (
+        !cancelled &&
+        backendReading
+      ) {
+        setLatestReading(
+          backendReading,
+        );
+
+        // Predict using the reading
+        // returned from the backend.
+        await runHealthPrediction(
+          backendReading,
+          cancelled,
+        );
+
       } else if (!cancelled) {
-        setSensorError('Backend did not return a reading.');
+        setSensorError(
+          'Backend did not return a reading.',
+        );
       }
-
-      /* ============================================================
-         HEALTH PREDICTION (commented for later use)
-         ============================================================ */
-      /*
-      try {
-        const healthPayload = {
-          hive_id: String(hiveId),
-          temperature: backendReading?.temperatureC ?? payload.temperatureC,
-          humidity: backendReading?.humidityPct ?? payload.humidityPct,
-          outside_temperature: backendReading?.outsideTemperatureC ?? payload.outsideTemperatureC,
-          outside_humidity: backendReading?.outsideHumidityPct ?? payload.outsideHumidityPct,
-          pressure: backendReading?.pressureHPa ?? payload.pressureHPa,
-          co2: backendReading?.co2Ppm ?? payload.co2Ppm,
-          tvoc: backendReading?.tvocPpb ?? payload.tvocPpb,
-          light: backendReading?.light ?? payload.light,
-          bee_in: backendReading?.beeIn ?? payload.beeIn,
-          bee_out: backendReading?.beeOut ?? payload.beeOut,
-        };
-
-        const healthResult = await predictHealthAlert(healthPayload);
-
-        if (!cancelled) {
-          setHealthPrediction(healthResult);
-        }
-      } catch (healthErr) {
-        console.warn('Health prediction failed:', healthErr.message);
-      }
-      */
 
     } catch (err) {
       if (!cancelled) {
         setSensorError(
-          err?.message || 'Failed to capture sensor reading.',
+          err?.message ||
+            'Failed to capture sensor reading.',
         );
       }
     } finally {
@@ -1894,6 +2008,120 @@ useEffect(() => {
       </p>
     </div>
   )}
+</div>
+
+{/* ==================================================
+    OVERALL HIVE HEALTH
+================================================== */}
+
+<div className="mt-5 sm:mt-6 border border-black/10 dark:border-white/10 p-5 sm:p-6">
+
+  <div className="flex items-start gap-3">
+
+    <div className="w-10 h-10 border border-gold/40 flex items-center justify-center shrink-0">
+      <CheckCircle2
+        size={18}
+        className="text-gold"
+      />
+    </div>
+
+    <div className="min-w-0">
+
+      <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">
+        AI Health Analysis
+      </p>
+
+      <h3 className="mt-1 font-semibold">
+        Overall Hive Health
+      </h3>
+
+      <p className="mt-1 text-xs text-gray dark:text-muted">
+        Health assessment based on the latest sensor reading.
+      </p>
+
+    </div>
+
+  </div>
+
+  {/* Loading */}
+
+  {healthLoading && (
+    <div className="mt-5 border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-5">
+
+      <div className="flex items-center gap-3">
+
+        <LoaderCircle
+          size={18}
+          className="animate-spin text-gold"
+        />
+
+        <div>
+          <p className="text-sm font-semibold">
+            Analyzing hive health...
+          </p>
+
+          <p className="mt-1 text-xs text-gray dark:text-muted">
+            Sending the latest sensor reading to the health model.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  )}
+
+  {/* Error */}
+
+  {!healthLoading && healthError && (
+    <div className="mt-5 border border-red-500/30 bg-red-500/5 p-4">
+
+      <div className="flex items-start gap-3">
+
+        <AlertTriangle
+          size={18}
+          className="text-red-500 shrink-0"
+        />
+
+        <div>
+          <p className="text-sm font-semibold">
+            Health analysis unavailable
+          </p>
+
+          <p className="mt-1 text-xs text-red-500">
+            {healthError}
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  )}
+
+  {/* Result */}
+
+  {!healthLoading &&
+    !healthError &&
+    healthPrediction && (
+      <HealthPredictionResult
+        prediction={healthPrediction}
+      />
+    )}
+
+  {/* No result */}
+
+  {!healthLoading &&
+    !healthError &&
+    !healthPrediction &&
+    latestReading && (
+      <div className="mt-5 border border-dashed border-black/10 dark:border-white/10 p-5 text-center">
+
+        <p className="text-xs text-gray dark:text-muted">
+          Health prediction is not available for this reading.
+        </p>
+
+      </div>
+    )}
+
 </div>
 
 {/* ==================================================
@@ -2881,6 +3109,137 @@ function SensorValue({
 
       <p className="mt-1 text-xs font-semibold break-words">
         {value ?? '—'}
+      </p>
+
+    </div>
+  );
+}
+
+
+function HealthPredictionResult({
+  prediction,
+}) {
+  const status = String(
+    prediction?.health_status ||
+      prediction?.healthStatus ||
+      'Unknown',
+  );
+
+  const normalizedStatus =
+    status.toLowerCase();
+
+  const score = Number(
+    prediction?.health_score ??
+      prediction?.healthScore,
+  );
+
+  const hasScore =
+    Number.isFinite(score);
+
+  const activity =
+    prediction?.bee_activity ??
+    prediction?.beeActivity ??
+    '—';
+
+  const inspectionRequired =
+    prediction?.inspection_required ??
+    prediction?.inspectionRequired;
+
+  const isHealthy =
+    normalizedStatus === 'healthy' ||
+    normalizedStatus === 'good' ||
+    normalizedStatus === 'normal';
+
+  const isCritical =
+    normalizedStatus === 'critical' ||
+    normalizedStatus === 'critical risk';
+
+  const statusClass = isHealthy
+    ? 'border-green-500/40 text-green-600 dark:text-green-400 bg-green-500/5'
+    : isCritical
+      ? 'border-red-500/40 text-red-500 bg-red-500/5'
+      : 'border-gold/40 text-gold bg-gold/5';
+
+  return (
+    <div className="mt-5">
+
+      {/* Main Health Status */}
+
+      <div
+        className={`border p-5 ${statusClass}`}
+      >
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+          <div>
+
+            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold opacity-80">
+              Health Status
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {status}
+            </p>
+
+          </div>
+
+          {hasScore && (
+            <div className="text-left sm:text-right">
+
+              <p className="text-[10px] uppercase tracking-[0.18em] opacity-80">
+                Health Score
+              </p>
+
+              <p className="mt-1 text-2xl font-semibold">
+                {score}
+              </p>
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+      {/* Additional AI Results */}
+
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+        <HealthInfo
+          label="Bee Activity"
+          value={activity}
+        />
+
+        <HealthInfo
+          label="Inspection Required"
+          value={
+            inspectionRequired === true
+              ? 'Yes'
+              : inspectionRequired === false
+                ? 'No'
+                : '—'
+          }
+        />
+
+      </div>
+
+    </div>
+  );
+}
+
+function HealthInfo({
+  label,
+  value,
+}) {
+  return (
+    <div className="border border-black/10 dark:border-white/10 bg-cream dark:bg-black p-4">
+
+      <p className="text-[10px] uppercase tracking-[0.16em] text-gray dark:text-muted">
+        {label}
+      </p>
+
+      <p className="mt-2 text-sm font-semibold">
+        {String(value)}
       </p>
 
     </div>
