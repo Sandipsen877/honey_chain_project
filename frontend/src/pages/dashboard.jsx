@@ -99,10 +99,25 @@ function isHealthMlAlert(alert) {
   const type = String(alert.type || '').toLowerCase();
   return type === 'health_ml';
 }
+function isCriticalHealthMlAlert(alert) {
+  if (!isHealthMlAlert(alert)) return false;
 
+  const severity = String(alert.severity || '').toLowerCase();
+  if (severity === 'high') return true;
+
+  // Fallback: check message / any nested health_status field
+  const healthStatus = String(
+    alert.health_status ||
+    alert.healthStatus ||
+    alert.message ||
+    ''
+  ).toLowerCase();
+
+  return healthStatus.includes('critical');
+}
 // Used for Active Alerts + Alert History
 function isAllowedAlert(alert) {
-  return isVarroaAlert(alert) || isHealthMlAlert(alert);
+  return isVarroaAlert(alert) || isCriticalHealthMlAlert(alert);
 }
 
 /* ============================================================
