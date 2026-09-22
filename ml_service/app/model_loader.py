@@ -26,6 +26,5 @@ def load_models():
     yield_model = joblib.load(MODEL_DIR / "BeeHave_Environmental_Pipeline.pkl")
     return {
         "VARROA": varroa_model,
-        "YIELD": yield_bundle,
-        "BEEHAVE": beehave_pipeline
+        "BEEHAVE": yield_model
     }

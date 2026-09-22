@@ -1,15 +1,13 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import pandas as pd
-import numpy as np
-from fastapi import UploadFile, File, HTTPException
-from PIL import Image
-import io
 from typing import List
-from datetime import date
-from .yield_engine import build_yield_features
-from .model_loader import load_models
+import io
+
+import numpy as np
+from PIL import Image
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from pydantic import BaseModel
+
 from .health_engine import calculate_health_score
+from .model_loader import load_models
 
 
 app = FastAPI(
@@ -89,26 +87,7 @@ def root():
         "models_loaded": list(models.keys())
     }
 
-class YieldObservation(BaseModel):
 
-    date: str
-
-    honey_weight_kg: float
-
-    environmental_temperature_c: float
-    relative_humidity_pct: float
-
-    hive_temperature_c: float
-    hive_humidity_pct: float
-
-    wind_speed_kmh: float
-
-    extract_honey: bool = False
-
-
-class YieldPredictionRequest(BaseModel):
-
-    history: List[YieldObservation]
 
 
 
