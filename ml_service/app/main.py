@@ -110,27 +110,7 @@ class YieldPredictionRequest(BaseModel):
 
     history: List[YieldObservation]
 
-'''
-@app.post("/predict/health")
-def predict(data: SensorData):
 
-    bee_activity = data.bee_in + data.bee_out
-
-    health_score, status = calculate_health_score(
-        temperature=data.temperature,
-        humidity=data.humidity,
-        co2=data.co2,
-        tvoc=data.tvoc
-    )
-
-    return {
-        "hive_id": data.hive_id,
-        "health_score": health_score,
-        "health_status": status,
-        "bee_activity": bee_activity,
-        "inspection_required": status != "Healthy"
-    }
-'''
 
 @app.post("/predict/health")
 def predict(data: SensorData):
@@ -269,86 +249,7 @@ def varroa_health():
         "classes": model.names
     }
 
-"""@app.post("/predict/yield")
-def predict_yield(data: YieldPredictionRequest):
 
-    if len(data.history) < 15:
-
-        raise HTTPException(
-            status_code=400,
-            detail="At least 15 historical observations are required."
-        )
-
-    try:
-
-        rows = []
-
-        for item in data.history:
-
-            rows.append({
-                "Date": item.date,
-
-                "Honey Weight (kg)":
-                    item.honey_weight_kg,
-
-                "Environmental Temperature (°C)":
-                    item.environmental_temperature_c,
-
-                "Relative Humidity (%)":
-                    item.relative_humidity_pct,
-
-                "Hive Temperature (°C)":
-                    item.hive_temperature_c,
-
-                "Hive Humidity (%)":
-                    item.hive_humidity_pct,
-
-                "Wind Speed (km/h)":
-                    item.wind_speed_kmh,
-
-                "Extract Honey":
-                    item.extract_honey
-            })
-
-        history = pd.DataFrame(rows)
-
-        bundle = models["YIELD"]
-
-        X = build_yield_features(
-            history,
-            bundle["features"],
-            bundle["target"]
-        )
-
-        prediction = float(
-            bundle["model"].predict(X)[0]
-        )
-
-        return {
-            "status": "ok",
-            "predicted_honey_weight_7_days_kg":
-                round(prediction, 3),
-            "prediction_horizon_days": 7,
-            "model": bundle.get(
-                "model_name",
-                "random_forest"
-            )
-        }
-
-    except ValueError as e:
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-
-    except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Yield prediction failed: {e}"
-        )
-"""
 @app.post("/predict/yield",
     summary="7-day hive weight forecast",
     description=(
