@@ -892,7 +892,7 @@ The rule-based hive-health screen is intentionally shown last in the product gal
   <img src="assets/05_hive_health.png" alt="Hive health assessment screen showing health insights and recommendations." width="80%"/>
 </p>
 
-> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context. citeturn0search1turn0search3
+> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context. 
 
 # 🔐 Security & Production Considerations
 
