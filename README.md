@@ -137,97 +137,24 @@ For demonstration purposes, the repository includes a **sensor simulator** that 
 
 # 🧠 Machine Learning & Intelligence Layer
 
-HoneyChain separates ML workloads into an independent **FastAPI microservice**.
-
-## A. 🩺 Hive Health Assessment
-
-Endpoint:
-
-```http
-POST /predict/health
-```
-
-The current implementation uses a transparent **rule-based health engine**, not a trained neural network.
-
-It considers signals including:
-
-- Temperature
-- Humidity
-- CO₂
-- TVOC
-- Bee activity
-- Outside environmental conditions
-- Pressure
-- Light
-
-The engine returns:
+HoneyChain keeps its ML workloads behind an independent **FastAPI service**, allowing the web application to call specialized inference APIs without coupling the frontend to model execution.
 
 ```text
-Health Score
-Health Status
-Bee Activity
-Bee Flow
-Risk Factors
-Recommendations
-Inspection Required
+                    ML SERVICE
+                        │
+          ┌─────────────┼─────────────┐
+          │             │             │
+          ▼             ▼             ▼
+     🕷️ Varroa     🍯 Yield      🩺 Hive Health
+       YOLO        Forecast       Rule Engine
+          │             │             │
+          └─────────────┴─────────────┘
+                        │
+                        ▼
+                  FastAPI REST API
 ```
 
-### Why a rule-based engine?
-
-For the current prototype, interpretability is important. A beekeeper/judge can trace an alert back to measurable observations rather than receiving an unexplained black-box prediction.
-
----
-
-## B. 🕷️ Varroa Mite Detection
-
-Endpoint:
-
-```http
-POST /predict/varroa
-```
-
-Model:
-
-```text
-ml_service/models/best.pt
-```
-
-The service accepts an image and runs the trained YOLO detector.
-
-### Output
-
-```json
-{
-  "status": "ok",
-  "model_loaded": true,
-  "detected": true,
-  "count": 2,
-  "detections": [
-    {
-      "class_id": 0,
-      "class_name": "Varroa_mite",
-      "confidence": 0.91,
-      "bbox": {
-        "x1": 120,
-        "y1": 80,
-        "x2": 165,
-        "y2": 125
-      }
-    }
-  ]
-}
-```
-
-The response is intentionally structured so the frontend can visualize:
-
-- Detection count
-- Confidence
-- Bounding boxes
-- Detected class
-
----
-
-## C. 🍯 Honey Yield Forecasting
+## 🍯 Honey Yield Forecasting
 
 Endpoint:
 
@@ -241,9 +168,7 @@ Model:
 ml_service/models/BeeHave_Environmental_Pipeline.pkl
 ```
 
-The deployed pipeline uses environmental observations inspired by the **BeeHave** dataset and a trained Random Forest pipeline.
-
-The forecasting flow is:
+The forecasting pipeline uses environmental observations inspired by the **BeeHave** dataset and a trained Random Forest pipeline.
 
 ```text
 Environmental Observations
@@ -268,9 +193,122 @@ The current API expects **7 forecast days**, with **144 observations per day**.
 = 1,008 environmental observations
 ```
 
-This contract is validated by the FastAPI service before prediction.
+## 🕷️ Varroa Mite Detection
+
+Endpoint:
+
+```http
+POST /predict/varroa
+```
+
+Model:
+
+```text
+ml_service/models/best.pt
+```
+
+The service accepts an image and runs the trained YOLO detector. The response is structured for the frontend to display detection count, confidence and bounding boxes.
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "model_loaded": true,
+  "detected": true,
+  "count": 2,
+  "detections": [
+    {
+      "class_id": 0,
+      "class_name": "Varroa_mite",
+      "confidence": 0.91,
+      "bbox": {
+        "x1": 120,
+        "y1": 80,
+        "x2": 165,
+        "y2": 125
+      }
+    }
+  ]
+}
+```
+
+### Detection workflow
+
+```text
+Bee Image
+   │
+   ▼
+YOLO Inference
+   │
+   ├── Class
+   ├── Confidence
+   └── Bounding Box
+   │
+   ▼
+Frontend Visualization
+```
 
 ---
+
+## 🩺 Hive Health Assessment — Final ML Component
+
+> **This section intentionally appears last in the ML chapter because the current hive-health implementation is a transparent rule-based engine rather than a trained ML model.**
+
+Endpoint:
+
+```http
+POST /predict/health
+```
+
+The health engine evaluates measurable hive and environmental signals such as:
+
+- Temperature
+- Humidity
+- CO₂
+- TVOC
+- Bee activity
+- Outside temperature and humidity
+- Pressure
+- Light
+
+It returns:
+
+```text
+Health Score
+Health Status
+Bee Activity
+Bee Flow
+Risk Factors
+Recommendations
+Inspection Required
+```
+
+### Why rule-based?
+
+For the current prototype, the priority is **interpretability and predictable behaviour**. A beekeeper or judge can trace a recommendation back to measurable sensor conditions instead of receiving an unexplained black-box score.
+
+```text
+Sensor Observations
+        │
+        ▼
+Threshold / Risk Rules
+        │
+        ├── Temperature Risk
+        ├── Humidity Risk
+        ├── Gas / Air Risk
+        ├── Activity Risk
+        └── Environmental Risk
+        │
+        ▼
+Health Score + Status
+        │
+        ├── Risk Factors
+        ├── Recommendations
+        └── Inspection Flag
+```
+
+**Important:** this component should not be described as a trained predictive ML model in presentations or documentation. It is the project's explainable **rule-based health engine**.
 
 # 🍯 Honey Traceability
 
@@ -777,50 +815,84 @@ It is intentionally transparent and does not require a trained model artifact.
 
 ---
 
-# 🖼️ Product Screens
+# 🖼️ Product Experience
 
-The repository includes a curated screenshot set in `assets/`.
+The repository contains a large screenshot set. The README uses the screenshots as a visual product tour so visitors can understand the platform before reading the implementation details. GitHub supports repository-relative image paths, making these images portable when the repository is cloned. citeturn0search2turn0search8
 
-### Public experience
-
-<p align="center">
-  <img src="assets/01_landing_page.png" width="430"/>
-  <img src="assets/02_login_page.png" width="430"/>
-</p>
-
-### Beekeeper dashboard
+## 🌐 Public & Authentication
 
 <p align="center">
-  <img src="assets/04_beekeeper_dashboard.png" width="860"/>
+  <img src="assets/01_landing_page.png" alt="HoneyChain landing page." width="48%"/>
+  <img src="assets/02_login_page.png" alt="HoneyChain login page." width="48%"/>
 </p>
-
-### Hive intelligence
 
 <p align="center">
-  <img src="assets/05_hive_health.png" width="430"/>
-  <img src="assets/07_varroa_detection.png" width="430"/>
+  <img src="assets/03_create_account.png" alt="HoneyChain account creation page." width="48%"/>
+  <img src="assets/11_learn_beekeeping.png" alt="HoneyChain beekeeping learning page." width="48%"/>
 </p>
 
-### Traceability
+## 🐝 Beekeeper Workspace
 
 <p align="center">
-  <img src="assets/08_honey_batches.png" width="430"/>
-  <img src="assets/09_digital_passport.png" width="430"/>
+  <img src="assets/04_beekeeper_dashboard.png" alt="Beekeeper dashboard showing hive and farm information." width="80%"/>
 </p>
-
-### Public verification
 
 <p align="center">
-  <img src="assets/10_batch_verification.png" width="860"/>
+  <img src="assets/06_active_alerts.png" alt="Active alerts available to the beekeeper." width="48%"/>
+  <img src="assets/12_beekeeper_dashboard_dark.png" alt="Beekeeper dashboard in dark theme." width="48%"/>
 </p>
 
-### Administration
+## 🍯 Honey & Traceability
 
 <p align="center">
-  <img src="assets/18_admin_dashboard.png" width="860"/>
+  <img src="assets/08_honey_batches.png" alt="Honey batch management interface." width="48%"/>
+  <img src="assets/13_honey_batches_dark.png" alt="Honey batch management in dark theme." width="48%"/>
 </p>
 
----
+<p align="center">
+  <img src="assets/09_digital_passport.png" alt="Digital Honey Passport interface." width="48%"/>
+  <img src="assets/14_digital_passport_dark.png" alt="Digital Honey Passport in dark theme." width="48%"/>
+</p>
+
+<p align="center">
+  <img src="assets/15_honey_passport_details.png" alt="Detailed Honey Passport information for a batch." width="80%"/>
+</p>
+
+## 🔳 Consumer Verification
+
+<p align="center">
+  <img src="assets/10_batch_verification.png" alt="Public honey batch verification page." width="80%"/>
+</p>
+
+## 🏛️ KVIC Administration
+
+<p align="center">
+  <img src="assets/16_admin_registration.png" alt="KVIC administrator registration interface." width="48%"/>
+  <img src="assets/17_admin_login.png" alt="KVIC administrator login interface." width="48%"/>
+</p>
+
+<p align="center">
+  <img src="assets/18_admin_dashboard.png" alt="KVIC administration dashboard." width="80%"/>
+</p>
+
+<p align="center">
+  <img src="assets/19_batch_management.png" alt="KVIC batch management interface." width="48%"/>
+  <img src="assets/20_batch_details.png" alt="KVIC batch details interface." width="48%"/>
+</p>
+
+<p align="center">
+  <img src="assets/21_farm_management.png" alt="KVIC farm management interface." width="80%"/>
+</p>
+
+## 🩺 Hive Health — Final ML Screen
+
+The rule-based hive-health screen is intentionally shown last in the product gallery, matching its position at the end of the ML section.
+
+<p align="center">
+  <img src="assets/05_hive_health.png" alt="Hive health assessment screen showing health insights and recommendations." width="80%"/>
+</p>
+
+> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context. citeturn0search1turn0search3
 
 # 🔐 Security & Production Considerations
 
@@ -931,12 +1003,6 @@ For academic/hackathon submission, also consider adding:
 - Third-party attribution
 
 ---
-
-# 👥 Team
-
-**HoneyChain — Smart Beekeeping & Honey Traceability**
-
-> Built as a modular prototype combining web engineering, machine learning, computer vision, data-driven hive monitoring, and digital provenance.
 
 ---
 
