@@ -151,11 +151,29 @@ function isHealthMlAlert(alert) {
   return type === 'health_ml';
 }
 
-// Used for Active Alerts + Alert History
-function isAllowedAlert(alert) {
-  return isVarroaAlert(alert) || isHealthMlAlert(alert);
+/**
+ * Health ML alerts should only appear when status is Warning or Critical.
+ * Backend maps:
+ *   Critical → severity "high"
+ *   Warning  → severity "medium"
+ *   Healthy  → severity "low"
+ *
+ * We keep only medium / high for health_ml.
+ * Varroa alerts are always allowed.
+ */
+function isActionableHealthMlAlert(alert) {
+  if (!isHealthMlAlert(alert)) return false;
+
+  const severity = String(alert.severity || '').toLowerCase();
+
+  // Only show Warning (medium) and Critical (high)
+  return severity === 'medium' || severity === 'high';
 }
 
+// Used for Active Alerts + Alert History
+function isAllowedAlert(alert) {
+  return isVarroaAlert(alert) || isActionableHealthMlAlert(alert);
+}
 /* ============================================================
    YIELD CACHE (per login session)
    ============================================================ */
