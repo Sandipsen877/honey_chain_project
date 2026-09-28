@@ -14,14 +14,24 @@ async function sendOtp(phone, purpose = "login", registrationData) {
   await OtpCode.create({ phone, code, purpose, registrationData, expiresAt });
 
   // --- MOCK DELIVERY: replace this with a real SMS API call later ---
-  console.log(`[otpService] MOCK SMS to ${phone}: your OTP is ${code} (expires in ${minutes} min)`);
+  console.log(
+    `[otpService] MOCK SMS to ${phone}: your OTP is ${code} (expires in ${minutes} min)`,
+  );
   // --------------------------------------------------------------------
 
-  return { expiresInMinutes: minutes };
+  return {
+    expiresInMinutes: minutes,
+    otp: code, // for testing only; remove in production
+  };
 }
 
 async function verifyOtp(phone, code, purpose = "login") {
-  const record = await OtpCode.findOne({ phone, code, purpose, consumed: false }).sort({ expiresAt: -1 });
+  const record = await OtpCode.findOne({
+    phone,
+    code,
+    purpose,
+    consumed: false,
+  }).sort({ expiresAt: -1 });
   if (!record || record.expiresAt < new Date()) return null;
 
   record.consumed = true;
