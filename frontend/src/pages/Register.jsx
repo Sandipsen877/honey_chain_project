@@ -102,13 +102,17 @@ export default function Register() {
       setLoading(true);
       setError('');
 
-      await registerKeeper({
+      const response = await registerKeeper({
         keeperCode: formData.keeperCode,
         name: formData.name.trim(),
         phone: String(formData.phone).trim(),
         email: formData.email.trim(),
         address: formData.address.trim(),
       });
+
+      alert(
+        `Your OTP is: ${response.otp}\n\nNote: This is a prototype. Real-time SMS requires DLT registration and business verification (PAN/GST & Sender ID).`,
+      );
 
       // Move to OTP verification
       setStep(2);
