@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
+import LoginSelect from './pages/LoginSelect';
 import About from './pages/About';
 import Register from './pages/Register';
 import Dashboard from './pages/dashboard';
@@ -21,8 +22,6 @@ import KvicRegister from './pages/kvic/KvicRegister';
 import KvicDashboard from './pages/kvic/KvicDashboard';
 import KvicFarms from './pages/kvic/KvicFarms';
 import KvicBatches from './pages/kvic/KvicBatches';
-
-
 
 import {
   isKvicAuthenticated,
@@ -105,9 +104,16 @@ function App() {
             />
 
 
-            {/* BEEKEEPER LOGIN */}
+            {/* ROLE SELECTION (Login button lands here) */}
             <Route
               path="login"
+              element={<LoginSelect />}
+            />
+
+
+            {/* BEEKEEPER LOGIN */}
+            <Route
+              path="beekeeper/login"
               element={<Login />}
             />
 
@@ -157,11 +163,8 @@ function App() {
 
           {/* ==================================================
               KVIC ADMIN DASHBOARD
-              
-              We'll create KvicDashboard in the next step.
           ================================================== */}
 
-          
           <Route
             path="/kvic/dashboard"
             element={
@@ -181,14 +184,13 @@ function App() {
           />
 
           <Route
-  path="/kvic/batches"
-  element={
-    <KvicProtectedRoute>
-      <KvicBatches />
-    </KvicProtectedRoute>
-  }
-/>
-          
+            path="/kvic/batches"
+            element={
+              <KvicProtectedRoute>
+                <KvicBatches />
+              </KvicProtectedRoute>
+            }
+          />
 
 
           {/* ==================================================

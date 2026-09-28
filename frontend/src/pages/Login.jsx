@@ -400,6 +400,13 @@ export default function Login() {
               >
                 Create Account
               </Link>
+              <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 text-sm text-gray dark:text-muted hover:text-gold transition-colors"
+            >
+              <ArrowLeft size={14} />
+              Choose a different role
+            </Link>
             </p>
           </div>
         </div>

@@ -202,6 +202,15 @@ const KvicLogin = () => {
               Create KVIC Admin Account
             </Link>
 
+            <div className="mt-4 text-center">
+            <Link
+              to="/login"
+              className="text-sm text-white/40 hover:text-[#D4AF37] transition-colors"
+            >
+              ← Choose a different role
+            </Link>
+          </div>
+
           </div>
 
         </div>
