@@ -3,12 +3,87 @@
 > **A digital honey traceability and smart beekeeping platform that connects hive intelligence, AI-assisted monitoring, honey-batch provenance, QR verification, and an administrative ecosystem in one workflow.**
 
 <p align="center">
-  <img src="assets/01_landing_page.png" alt="HoneyChain Landing Page" width="900"/>
+  <a href="https://honey-chain-project-82lu.vercel.app/">
+    <img src="assets/01_landing_page.png" alt="HoneyChain Landing Page" width="900"/>
+  </a>
 </p>
 
 <p align="center">
   <strong>From hive → harvest → quality → digital passport → consumer verification.</strong>
 </p>
+
+<p align="center">
+  <a href="https://honey-chain-project-82lu.vercel.app/"><strong>🌐 Live Demo</strong></a> •
+  <a href="https://github.com/codePIP404/honey_chain_project"><strong>📂 GitHub Repository</strong></a> •
+  <a href="https://honey-chain-project-dm1t.onrender.com/"><strong>⚙️ Backend API</strong></a> •
+  <a href="https://honey-chain-project-npw5.onrender.com/docs"><strong>🧠 ML API Docs</strong></a>
+</p>
+
+---
+
+# 🌐 Live Deployment
+
+HoneyChain is deployed as a full-stack application with separate frontend, backend, and machine learning services.
+
+| Component | Technology | Deployment | Live URL |
+|---|---|---|---|
+| Frontend | React + Vite | Vercel | [Open Application](https://honey-chain-project-82lu.vercel.app/) |
+| Backend API | Node.js + Express | Render | [Backend Service](https://honey-chain-project-dm1t.onrender.com/) |
+| ML Service | Python + FastAPI | Render | [ML Service](https://honey-chain-project-npw5.onrender.com/) |
+| ML API Documentation | FastAPI Swagger UI | Render | [View API Docs](https://honey-chain-project-npw5.onrender.com/docs) |
+
+### Deployment Architecture
+
+```text
+                     HONEYCHAIN LIVE SYSTEM
+
+                ┌──────────────────────────┐
+                │       USER / BROWSER     │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │      FRONTEND            │
+                │      React + Vite        │
+                │                          │
+                │       Vercel             │
+                └────────────┬─────────────┘
+                             │
+                             │ HTTPS / REST API
+                             ▼
+                ┌──────────────────────────┐
+                │       BACKEND            │
+                │    Node.js + Express     │
+                │                          │
+                │        Render            │
+                └────────────┬─────────────┘
+                             │
+                ┌────────────┴─────────────┐
+                │                          │
+                ▼                          ▼
+       ┌────────────────┐       ┌────────────────────┐
+       │    MongoDB     │       │    ML SERVICE      │
+       │                │       │                    │
+       │ Platform Data  │       │     FastAPI        │
+       │                │       │      Render        │
+       └────────────────┘       └─────────┬──────────┘
+                                          │
+                             ┌────────────┼────────────┐
+                             │            │            │
+                             ▼            ▼            ▼
+                         Hive Health   Varroa YOLO   Yield Model
+                         Rule Engine   Detection     Forecasting
+```
+
+**Deployment notes:**
+
+- The frontend is hosted on Vercel and communicates with the backend through REST APIs.
+- The backend is hosted on Render and handles authentication, farm and hive management, honey batches, QR verification, and other application workflows.
+- The ML service is deployed separately on Render and exposes FastAPI endpoints for hive-health assessment, Varroa detection, and honey-yield forecasting.
+- MongoDB stores application data, including user, farm, hive, and honey-batch information.
+- Render free-tier services may experience cold starts after periods of inactivity. The first request after inactivity may take longer than subsequent requests.
+
+> **Note:** These are the production deployment URLs. The local development instructions later in this README use localhost URLs and separate environment variables.
 
 ---
 
@@ -60,7 +135,7 @@ Instead of treating beekeeping analytics and honey traceability as separate syst
 
 ---
 
-## 🏆 Why the architecture matters
+# 🏆 Why the Architecture Matters
 
 HoneyChain is deliberately structured as a **modular system**, rather than a single monolithic application.
 
@@ -138,6 +213,12 @@ For demonstration purposes, the repository includes a **sensor simulator** that 
 # 🧠 Machine Learning & Intelligence Layer
 
 HoneyChain keeps its ML workloads behind an independent **FastAPI service**, allowing the web application to call specialized inference APIs without coupling the frontend to model execution.
+
+The deployed ML service is available at:
+
+**ML Service:** https://honey-chain-project-npw5.onrender.com/
+
+**Interactive API Documentation:** https://honey-chain-project-npw5.onrender.com/docs
 
 ```text
                     ML SERVICE
@@ -309,6 +390,8 @@ Health Score + Status
 ```
 
 **Important:** this component should not be described as a trained predictive ML model in presentations or documentation. It is the project's explainable **rule-based health engine**.
+
+---
 
 # 🍯 Honey Traceability
 
@@ -509,7 +592,7 @@ honey_chain_project-main/
 │   ├── server.js
 │   └── package.json
 │
-├── ml_service/                    # FastAPI ML microservice
+├── ml_service/                     # FastAPI ML microservice
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── health_engine.py
@@ -549,18 +632,30 @@ honey_chain_project-main/
 ## ML Service
 
 | Endpoint | Method | Purpose |
-|---|---:|---|
+|---|---|---|
 | `/` | GET | ML service status |
 | `/predict/health` | POST | Hive health assessment |
 | `/predict/varroa` | POST | Varroa image detection |
 | `/health/varroa` | GET | Varroa model status |
 | `/predict/yield` | POST | 7-day yield/weight forecast |
 
+### Deployed API URLs
+
+| Service | URL |
+|---|---|
+| Backend | https://honey-chain-project-dm1t.onrender.com/ |
+| ML Service | https://honey-chain-project-npw5.onrender.com/ |
+| ML Swagger Documentation | https://honey-chain-project-npw5.onrender.com/docs |
+
 Interactive FastAPI documentation is available at:
 
 ```text
 http://localhost:8000/docs
 ```
+
+For the deployed ML service, use:
+
+https://honey-chain-project-npw5.onrender.com/docs
 
 ---
 
@@ -582,8 +677,8 @@ A CUDA-capable GPU is useful for faster YOLO inference, but the API architecture
 ## 1. Clone the project
 
 ```bash
-git clone <your-repository-url>
-cd honey_chain_project-main
+git clone https://github.com/codePIP404/honey_chain_project.git
+cd honey_chain_project
 ```
 
 ---
@@ -719,11 +814,19 @@ Vite will provide the local frontend URL, normally:
 http://localhost:5173
 ```
 
-If required, configure:
+For local development, configure:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000
 ```
+
+For the deployed frontend, configure the Vercel environment variable to point to the deployed backend:
+
+```env
+VITE_API_BASE_URL=https://honey-chain-project-dm1t.onrender.com
+```
+
+> **Important:** Use the environment variable name and API URL format expected by your frontend's existing API configuration. If your application uses separate environment variables for backend and ML service URLs, configure those separately. Redeploy the Vercel frontend after changing its environment variables.
 
 ---
 
@@ -817,7 +920,7 @@ It is intentionally transparent and does not require a trained model artifact.
 
 # 🖼️ Product Experience
 
-The repository contains a large screenshot set. The README uses the screenshots as a visual product tour so visitors can understand the platform before reading the implementation details. GitHub supports repository-relative image paths, making these images portable when the repository is cloned. citeturn0search2turn0search8
+The repository contains a large screenshot set. The README uses the screenshots as a visual product tour so visitors can understand the platform before reading the implementation details.
 
 ## 🌐 Public & Authentication
 
@@ -892,7 +995,9 @@ The rule-based hive-health screen is intentionally shown last in the product gal
   <img src="assets/05_hive_health.png" alt="Hive health assessment screen showing health insights and recommendations." width="80%"/>
 </p>
 
-> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context. 
+> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context.
+
+---
 
 # 🔐 Security & Production Considerations
 
@@ -936,6 +1041,7 @@ This distinction is important: **the prototype demonstrates the complete product
 # 🗺️ Roadmap
 
 ### Phase 1 — Prototype
+
 - [x] React beekeeper interface
 - [x] Node/Express backend
 - [x] MongoDB data layer
@@ -949,8 +1055,12 @@ This distinction is important: **the prototype demonstrates the complete product
 - [x] QR verification
 - [x] Digital Honey Passport
 - [x] KVIC/admin portal
+- [x] Frontend deployment on Vercel
+- [x] Backend deployment on Render
+- [x] ML service deployment on Render
 
 ### Phase 2 — Real-world integration
+
 - [ ] Real IoT ingestion
 - [ ] MQTT/LoRaWAN gateway
 - [ ] Real SMS OTP
@@ -960,6 +1070,7 @@ This distinction is important: **the prototype demonstrates the complete product
 - [ ] Automated model retraining
 
 ### Phase 3 — Trust infrastructure
+
 - [ ] Cryptographic batch identity
 - [ ] Tamper-evident provenance
 - [ ] Smart-contract/ledger integration
@@ -989,20 +1100,30 @@ For meaningful changes, include:
 
 ---
 
+# 👥 Team
+
+| Role | Name |
+|---|---|
+| Team Leader | Sovan Kar |
+| Team Member | Manish Shaw |
+| Team Member | Bikash Pradhan |
+| Team Member | Sandip Sen |
+| Team Member | Tirthes Samantha |
+| Team Member | Salmali Chattopadhyay |
+
+---
+
 # 📄 License
 
 Add the project's intended license here before public distribution.
 
 For academic/hackathon submission, also consider adding:
 
-- Team members
 - Institution
 - Problem statement
 - Dataset acknowledgements
 - Model/dataset licenses
 - Third-party attribution
-
----
 
 ---
 
@@ -1018,6 +1139,10 @@ Yield Model     → Random Forest
 Health Engine   → Explainable rule-based scoring
 Traceability    → Batch + Lab + QR + Digital Passport
 Admin           → KVIC Portal
+
+Frontend        → Vercel
+Backend         → Render
+ML Service      → Render
 ```
 
 ### The core idea
@@ -1029,4 +1154,6 @@ Admin           → KVIC Portal
 <p align="center">
   <strong>HoneyChain</strong><br/>
   <sub>Smart Beekeeping • AI-Assisted Hive Intelligence • Honey Traceability • Consumer Trust</sub>
+  <br/><br/>
+  <a href="https://honey-chain-project-82lu.vercel.app/"><strong>Visit the Live Application</strong></a>
 </p>
