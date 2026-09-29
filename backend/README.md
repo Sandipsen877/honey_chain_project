@@ -24,6 +24,10 @@ later without touching the rest of the app.
 
 ## Setup
 
+Live deployed backend URL:
+
+- https://honey-chain-project-dm1t.onrender.com
+
 ```bash
 npm install
 cp .env.example .env   # edit MONGO_URI etc. as needed
