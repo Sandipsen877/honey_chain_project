@@ -12,9 +12,23 @@ A smart beekeeping and honey traceability platform combining computer vision, ma
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-16a34a?style=for-the-badge&logo=vercel&logoColor=white)](https://honey-chain-project-82lu.vercel.app/)
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/codePIP404/honey_chain_project)
-[![Demo Video](https://img.shields.io/badge/YouTube-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/Aoa2Drj_07)
+[![Demo Video](https://img.shields.io/badge/YouTube-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/Aoa2Drj_07U)
 
 </div>
+
+---
+
+## 🖥️ Project Landing Page
+
+<div align="center">
+
+![Honey Chain Landing Page](assets/01_landing_page.png)
+
+*Honey Chain — Smart Beekeeping and Honey Traceability Platform*
+
+</div>
+
+---
 
 ---
 
@@ -24,23 +38,25 @@ A smart beekeeping and honey traceability platform combining computer vision, ma
 - [Problem Statement](#-problem-statement)
 - [Our Solution](#-our-solution)
 - [Key Features](#-key-features)
+- [Application Screenshots](#-application-screenshots)
 - [Live Deployment](#-live-deployment)
 - [System Architecture](#-system-architecture)
-- [Technology Stack](#-technology-stack)
+- [Technology Stack](#️-technology-stack)
 - [Machine Learning Components](#-machine-learning-components)
 - [Honey Traceability Workflow](#-honey-traceability-workflow)
 - [API Documentation](#-api-documentation)
 - [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
+- [Environment Variables](#️-environment-variables)
 - [Project Structure](#-project-structure)
 - [Testing the Application](#-testing-the-application)
 - [Model Evaluation](#-model-evaluation)
 - [Security and Data Integrity](#-security-and-data-integrity)
-- [Current Limitations](#-current-limitations)
-- [Future Roadmap](#-future-roadmap)
+- [Current Limitations](#️-current-limitations)
+- [Future Roadmap](#️-future-roadmap)
 - [Team](#-team)
 - [Acknowledgements](#-acknowledgements)
 - [License](#-license)
+
 
 ---
 
@@ -244,6 +260,68 @@ The administrative workflow supports access to relevant farm, hive, and traceabi
 The design is intended to demonstrate how a digital platform could support beekeeping initiatives and organized honey production.
 
 ---
+
+## 📸 Application Screenshots
+
+Explore the Honey Chain platform through the following screenshots.
+
+### 1. Landing Page and Authentication
+
+| Landing Page | Login |
+|---|---|
+| ![Landing Page](assets/01_landing_page.png) | ![Login Page](assets/02_login_page.png) |
+
+![Create Account](assets/03_create_account.png)
+
+### 2. Beekeeper Dashboard and Hive Monitoring
+
+![Beekeeper Dashboard](assets/04_beekeeper_dashboard.png)
+
+![Hive Health Assessment](assets/05_hive_health.png)
+
+![Active Alerts](assets/06_active_alerts.png)
+
+### 3. AI-Powered Varroa Detection
+
+![Varroa Mite Detection](assets/07_varroa_detection.png)
+
+### 4. Honey Batch Management and Digital Passport
+
+![Honey Batches](assets/08_honey_batches.png)
+
+![Digital Honey Passport](assets/09_digital_passport.png)
+
+![Batch Verification](assets/10_batch_verification.png)
+
+![Honey Passport Details](assets/15_honey_passport_details.png)
+
+### 5. Beekeeping Education
+
+![Learn Beekeeping](assets/11_learn_beekeeping.png)
+
+### 6. Dark Mode Interface
+
+| Beekeeper Dashboard | Honey Batches |
+|---|---|
+| ![Dark Dashboard](assets/12_beekeeper_dashboard_dark.png) | ![Dark Honey Batches](assets/13_honey_batches_dark.png) |
+
+![Digital Passport Dark Mode](assets/14_digital_passport_dark.png)
+
+### 7. Administration and Batch Management
+
+![Admin Registration](assets/16_admin_registration.png)
+
+![Admin Login](assets/17_admin_login.png)
+
+![Admin Dashboard](assets/18_admin_dashboard.png)
+
+![Batch Management](assets/19_batch_management.png)
+
+![Batch Details](assets/20_batch_details.png)
+
+![Farm Management](assets/21_farm_management.png)
+
+
 
 ## 🌐 Live Deployment
 
