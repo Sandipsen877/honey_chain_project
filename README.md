@@ -1078,6 +1078,7 @@ The following are proposed enhancements and are not represented as completed fea
 Honey Chain was developed as a collaborative project.
 
 | Name |
+|---|
 | Manish Shaw |
 | Bikash Pradhan |
 | Sandip Sen |
