@@ -3,6 +3,7 @@ import FormData from "form-data";
 
 const getMlServiceUrl = () => process.env.ML_SERVICE_URL?.replace(/\/$/, "");
 const getYieldMlServiceUrl = () => process.env.YIELD_ML_SERVICE_URL?.replace(/\/$/, "");
+const getVarroaMlServiceUrl = () =>process.env.ML_SERVICE_URL?.replace(/\/$/, "") || process.env.VARROA_PREDICT_URL?.replace(/\/$/, "");
 
 /**
  * Wraps calls to an external ML microservice (intended to be FastAPI).
@@ -143,7 +144,7 @@ async function predictVarroa(file) {
   });
 
   try {
-    const { data } = await axios.post(`${process.env.VARROA_PREDICT_URL}/predict/varroa`, form, {
+    const { data } = await axios.post(`${getVarroaMlServiceUrl()}/predict/varroa`, form, {
       headers: form.getHeaders(),
       timeout: 15000,
       maxBodyLength: 10 * 1024 * 1024,
