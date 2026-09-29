@@ -1,1159 +1,1046 @@
-# 🍯 HoneyChain
 
-> **A digital honey traceability and smart beekeeping platform that connects hive intelligence, AI-assisted monitoring, honey-batch provenance, QR verification, and an administrative ecosystem in one workflow.**
+<div align="center">
 
-<p align="center">
-  <a href="https://honey-chain-project-82lu.vercel.app/">
-    <img src="assets/01_landing_page.png" alt="HoneyChain Landing Page" width="900"/>
-  </a>
-</p>
+# 🍯 Honey Chain
+### Blockchain-Inspired Honey Traceability & Smart Beekeeping Management System
 
-<p align="center">
-  <strong>From hive → harvest → quality → digital passport → consumer verification.</strong>
-</p>
+**From hive to honey jar — transparent, traceable, and data-driven.**
 
-<p align="center">
-  <a href="https://honey-chain-project-82lu.vercel.app/"><strong>🌐 Live Demo</strong></a> •
-  <a href="https://github.com/codePIP404/honey_chain_project"><strong>📂 GitHub Repository</strong></a> •
-  <a href="https://honey-chain-project-dm1t.onrender.com/"><strong>⚙️ Backend API</strong></a> •
-  <a href="https://honey-chain-project-npw5.onrender.com/docs"><strong>🧠 ML API Docs</strong></a>
-</p>
+A smart beekeeping and honey traceability platform combining computer vision, machine learning, QR-based digital honey passports, and hive management to improve transparency, support beekeepers, and strengthen consumer trust.
+
+<br/>
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-16a34a?style=for-the-badge&logo=vercel&logoColor=white)](https://honey-chain-project-82lu.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/codePIP404/honey_chain_project)
+[![Demo Video](https://img.shields.io/badge/YouTube-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/Aoa2Drj_07)
+
+</div>
 
 ---
 
-# 🌐 Live Deployment
+## 📌 Table of Contents
 
-HoneyChain is deployed as a full-stack application with separate frontend, backend, and machine learning services.
-
-| Component | Technology | Deployment | Live URL |
-|---|---|---|---|
-| Frontend | React + Vite | Vercel | [Open Application](https://honey-chain-project-82lu.vercel.app/) |
-| Backend API | Node.js + Express | Render | [Backend Service](https://honey-chain-project-dm1t.onrender.com/) |
-| ML Service | Python + FastAPI | Render | [ML Service](https://honey-chain-project-npw5.onrender.com/) |
-| ML API Documentation | FastAPI Swagger UI | Render | [View API Docs](https://honey-chain-project-npw5.onrender.com/docs) |
-
-### Deployment Architecture
-
-```text
-                     HONEYCHAIN LIVE SYSTEM
-
-                ┌──────────────────────────┐
-                │       USER / BROWSER     │
-                └────────────┬─────────────┘
-                             │
-                             ▼
-                ┌──────────────────────────┐
-                │      FRONTEND            │
-                │      React + Vite        │
-                │                          │
-                │       Vercel             │
-                └────────────┬─────────────┘
-                             │
-                             │ HTTPS / REST API
-                             ▼
-                ┌──────────────────────────┐
-                │       BACKEND            │
-                │    Node.js + Express     │
-                │                          │
-                │        Render            │
-                └────────────┬─────────────┘
-                             │
-                ┌────────────┴─────────────┐
-                │                          │
-                ▼                          ▼
-       ┌────────────────┐       ┌────────────────────┐
-       │    MongoDB     │       │    ML SERVICE      │
-       │                │       │                    │
-       │ Platform Data  │       │     FastAPI        │
-       │                │       │      Render        │
-       └────────────────┘       └─────────┬──────────┘
-                                          │
-                             ┌────────────┼────────────┐
-                             │            │            │
-                             ▼            ▼            ▼
-                         Hive Health   Varroa YOLO   Yield Model
-                         Rule Engine   Detection     Forecasting
-```
-
-**Deployment notes:**
-
-- The frontend is hosted on Vercel and communicates with the backend through REST APIs.
-- The backend is hosted on Render and handles authentication, farm and hive management, honey batches, QR verification, and other application workflows.
-- The ML service is deployed separately on Render and exposes FastAPI endpoints for hive-health assessment, Varroa detection, and honey-yield forecasting.
-- MongoDB stores application data, including user, farm, hive, and honey-batch information.
-- Render free-tier services may experience cold starts after periods of inactivity. The first request after inactivity may take longer than subsequent requests.
-
-> **Note:** These are the production deployment URLs. The local development instructions later in this README use localhost URLs and separate environment variables.
+- [Overview](#-overview)
+- [Problem Statement](#-problem-statement)
+- [Our Solution](#-our-solution)
+- [Key Features](#-key-features)
+- [Live Deployment](#-live-deployment)
+- [System Architecture](#-system-architecture)
+- [Technology Stack](#-technology-stack)
+- [Machine Learning Components](#-machine-learning-components)
+- [Honey Traceability Workflow](#-honey-traceability-workflow)
+- [API Documentation](#-api-documentation)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [Project Structure](#-project-structure)
+- [Testing the Application](#-testing-the-application)
+- [Model Evaluation](#-model-evaluation)
+- [Security and Data Integrity](#-security-and-data-integrity)
+- [Current Limitations](#-current-limitations)
+- [Future Roadmap](#-future-roadmap)
+- [Team](#-team)
+- [Acknowledgements](#-acknowledgements)
+- [License](#-license)
 
 ---
 
-## ✨ What is HoneyChain?
+## 🌍 Overview
 
-HoneyChain is an end-to-end prototype designed around two connected problems in modern beekeeping:
+Honey Chain is a technology-driven platform designed to improve honey traceability and beekeeping management.
 
-1. **Hive productivity and colony monitoring** — helping beekeepers understand hive conditions, receive alerts, inspect possible Varroa infestations, and estimate near-term honey yield.
-2. **Honey provenance and consumer trust** — connecting a harvested batch to its farm, laboratory report, QR code, and public-facing digital passport.
+Honey production involves multiple stages, including hive management, honey extraction, quality assessment, processing, packaging, and distribution. However, limited visibility across these stages can make it difficult for consumers to verify a product's origin and for beekeepers to manage colony health and productivity.
 
-Instead of treating beekeeping analytics and honey traceability as separate systems, HoneyChain creates a single digital workflow:
+Honey Chain connects these activities through a unified digital platform.
 
-```text
-                         HONEYCHAIN
-                             │
-             ┌───────────────┴───────────────┐
-             │                               │
-      🐝 SMART BEEKEEPING              🍯 TRACEABILITY
-             │                               │
-       Farm / Hive Data                 Honey Batch
-             │                               │
-      Sensor Observations               Lab Report
-             │                               │
-       ┌─────┼─────┐                     QR Code
-       │     │     │                       │
-     Health Varroa Yield              Digital Passport
-       │     │     │                       │
-       └─────┴─────┘                       │
-             │                             │
-             └──────────────┬──────────────┘
-                            ▼
-                   TRUSTED HONEY JOURNEY
-```
+The system provides:
 
-### Core capabilities
+- Digital farm and hive management.
+- Sensor-data-based hive health assessment.
+- AI-assisted Varroa mite detection from images.
+- Machine learning-based honey yield forecasting.
+- Honey batch creation and QR-code generation.
+- Digital honey passports for consumers.
+- Administrative and beekeeping management interfaces.
 
-| Area | Capability |
+The project is developed as a prototype demonstrating how machine learning, digital traceability, and smart beekeeping workflows can work together.
+
+> **Project status:** Deployed academic/hackathon prototype. The current implementation uses a database-backed traceability workflow and QR-linked digital passports. It does not claim to implement a production blockchain network or live IoT infrastructure.
+
+---
+
+## 🎯 Problem Statement
+
+The project addresses challenges faced by beekeepers, honey producers, and consumers.
+
+| Challenge | Impact |
 |---|---|
-| 🐝 Beekeeping | Keeper, farm and hive management |
-| 📡 Monitoring | Sensor readings and hive observations |
-| 🧠 AI/ML | Hive-health assessment, Varroa detection, yield forecasting |
-| 🚨 Alerts | Health/inspection alerts and resolution workflow |
-| 🍯 Production | Honey-batch creation and management |
-| 🧪 Quality | Laboratory-report workflow |
-| 🔳 Verification | QR generation and public batch scanning |
-| 🪪 Provenance | Digital Honey Passport |
-| 🏛️ Administration | Dedicated KVIC/admin portal |
-| 🎨 UX | Responsive React dashboard with light/dark themes |
+| Limited honey origin transparency | Consumers may struggle to verify where honey originated. |
+| Weak traceability across production stages | Connecting a packaged product to its farm, hive, and harvest records can be difficult. |
+| Delayed identification of colony health issues | Beekeepers may not identify potential problems early enough. |
+| Varroa mite infestation | Varroa mites can negatively affect honeybee colony health and productivity. |
+| Uncertain honey production | Honey yield varies with environmental conditions and colony status. |
+| Fragmented management systems | Farm, hive, inspection, and harvest records may be maintained separately. |
+
+### Our objective
+
+To develop an integrated digital system that supports:
+
+1. Transparent honey batch records.
+2. Digital verification of honey product information.
+3. Data-assisted hive monitoring.
+4. AI-assisted pest detection.
+5. Predictive insights for honey production.
+6. Accessible management tools for beekeepers and administrators.
 
 ---
 
-# 🏆 Why the Architecture Matters
+## 💡 Our Solution
 
-HoneyChain is deliberately structured as a **modular system**, rather than a single monolithic application.
+Honey Chain provides a connected workflow that brings together beekeeping management, machine learning, and product traceability.
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                         FRONTEND                             │
-│                React + Vite + Tailwind CSS                  │
-│                                                              │
-│  Keeper Portal │ Honey Passport │ Public QR │ KVIC Portal   │
-└─────────────────────────────┬────────────────────────────────┘
-                              │ REST API
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                         BACKEND                              │
-│                    Node.js + Express                         │
-│                                                              │
-│ Auth │ Farms │ Hives │ Sensors │ Alerts │ Batches │ Lab │ QR│
-└───────────────┬──────────────────────────────┬───────────────┘
-                │                              │
-                ▼                              ▼
-        ┌───────────────┐              ┌─────────────────┐
-        │   MongoDB     │              │   ML SERVICE    │
-        │               │              │     FastAPI     │
-        │ Platform data │              │                 │
-        └───────────────┘              │ Health Engine   │
-                                       │ Varroa YOLO     │
-                                       │ Yield Forecast  │
-                                       └─────────────────┘
-```
+<div align="center">
 
-This separation makes the system easier to demonstrate, test, replace, and extend with real IoT devices, laboratory APIs, or a production blockchain layer.
+**Farm & Hive Management**  
+↓  
+**Hive Monitoring & Health Assessment**  
+↓  
+**Varroa Detection & Yield Forecasting**  
+↓  
+**Honey Harvest & Batch Creation**  
+↓  
+**Quality Information & QR Generation**  
+↓  
+**Consumer Scans QR Code**  
+↓  
+**Digital Honey Passport**
+
+</div>
+
+Each stage contributes information to the overall honey production record.
+
+The platform is designed to demonstrate how a consumer-facing QR code can connect a honey product with its associated digital records, while giving beekeepers tools to manage their operations.
 
 ---
 
-# 🚀 Feature Overview
+## ✨ Key Features
 
-## 1. 🐝 Smart Beekeeping Dashboard
+### 1. 🐝 Farm and Hive Management
 
-The beekeeper portal provides a centralized view of farms, hives, sensor information, alerts, batches, and productivity information.
+Manage beekeeping operations through a centralized interface.
 
-### Farm management
+Features include:
 
-- Create and view farms
-- Associate farms with keepers
-- View farm-level information
-- Track associated hives
+- Farm and apiary management.
+- Hive registration and identification.
+- Hive-level records and monitoring information.
+- Environmental sensor-data simulation.
+- Centralized access to hive-related information.
 
-### Hive management
+The management interface is designed to help users organize hive data and access monitoring and production features.
 
-- Create and view hives
-- Associate hives with farms
-- Track hive observations
-- Retrieve recent sensor readings
+### 2. 🩺 Hive Health Assessment
 
-### Sensor monitoring
+The hive health module evaluates environmental and colony-related inputs to generate a health assessment.
 
-The backend supports sensor observations such as:
+Features include:
 
-- Hive temperature
-- Hive humidity
-- Outside temperature
-- Outside humidity
-- Pressure
-- CO₂
-- TVOC
-- Light
-- Bee-in / bee-out activity
+- Rule-based hive health assessment.
+- Environmental parameter analysis.
+- Explainable health indicators.
+- Health status and recommendations based on configured rules.
+- Integration with the hive monitoring interface.
 
-For demonstration purposes, the repository includes a **sensor simulator** that can generate synthetic readings and occasional anomalies.
+**Implementation note:** The current hive health engine is rule-based. It is not a trained machine learning classifier, and its output should be treated as decision support rather than a veterinary diagnosis.
 
-> **Prototype note:** the simulator represents the IoT integration boundary. It can later be replaced by MQTT, LoRaWAN, a device gateway, or another real sensor ingestion layer.
+### 3. 🔬 AI-Powered Varroa Mite Detection
 
----
+Honey Chain integrates a YOLO-based computer vision model to detect Varroa mites in uploaded images.
 
-# 🧠 Machine Learning & Intelligence Layer
+<details>
+<summary><strong>Varroa detection capabilities</strong></summary>
 
-HoneyChain keeps its ML workloads behind an independent **FastAPI service**, allowing the web application to call specialized inference APIs without coupling the frontend to model execution.
+- Accepts images for model inference.
+- Detects visible Varroa mite instances.
+- Returns detected bounding boxes and confidence information.
+- Supports visualization of detection results.
+- Integrates with the FastAPI machine learning service.
 
-The deployed ML service is available at:
+The current model is intended to assist with identifying visible mites in images. Its performance depends on image quality, lighting, mite visibility, image scale, and the similarity between real-world images and the evaluation data.
 
-**ML Service:** https://honey-chain-project-npw5.onrender.com/
+It should not be interpreted as a complete diagnostic system for an entire bee colony.
 
-**Interactive API Documentation:** https://honey-chain-project-npw5.onrender.com/docs
+</details>
 
-```text
-                    ML SERVICE
-                        │
-          ┌─────────────┼─────────────┐
-          │             │             │
-          ▼             ▼             ▼
-     🕷️ Varroa     🍯 Yield      🩺 Hive Health
-       YOLO        Forecast       Rule Engine
-          │             │             │
-          └─────────────┴─────────────┘
-                        │
-                        ▼
-                  FastAPI REST API
-```
+### 4. 📈 Honey Yield Forecasting
 
-## 🍯 Honey Yield Forecasting
+The platform integrates a Random Forest-based honey yield forecasting pipeline.
 
-Endpoint:
+The forecasting module uses historical hive and environmental observations to estimate future honey production.
 
-```http
-POST /predict/yield
-```
+Features include:
 
-Model:
+- Historical data-based forecasting.
+- Environmental and hive-related input processing.
+- Integration through the FastAPI prediction service.
+- Forecast results accessible from the application.
 
-```text
-ml_service/models/BeeHave_Environmental_Pipeline.pkl
-```
+The current yield prediction pipeline requires a history of at least 15 days of observations.
 
-The forecasting pipeline uses environmental observations inspired by the **BeeHave** dataset and a trained Random Forest pipeline.
+For the configured input format, the model expects seven days of data with 144 observations per day, giving a total of 1,008 observations.
 
-```text
-Environmental Observations
-          │
-          ▼
-Feature Engineering
-          │
-          ▼
-Feature Selection
-          │
-          ▼
-Random Forest Pipeline
-          │
-          ▼
-7-Day Forecast
-```
+Forecasts are estimates and should not be treated as guaranteed production quantities.
 
-The current API expects **7 forecast days**, with **144 observations per day**.
+### 5. 📦 Honey Batch Creation
 
-```text
-7 days × 144 readings/day
-= 1,008 environmental observations
-```
+Create digital records for honey production batches.
 
-## 🕷️ Varroa Mite Detection
+A batch can be associated with relevant farm, hive, harvest, and quality information.
 
-Endpoint:
+Features include:
 
-```http
-POST /predict/varroa
-```
+- Honey batch registration.
+- Batch identification.
+- Storage of production-related records.
+- Association of batches with QR codes.
+- Access to batch information through the traceability workflow.
 
-Model:
+This feature establishes the connection between beekeeping operations and the consumer-facing product passport.
 
-```text
-ml_service/models/best.pt
-```
+### 6. 🧪 Quality and Lab Workflow
 
-The service accepts an image and runs the trained YOLO detector. The response is structured for the frontend to display detection count, confidence and bounding boxes.
+The platform includes a simulated quality assessment workflow to demonstrate how honey quality information can be associated with a batch.
 
-Example response:
+Features include:
 
-```json
-{
-  "status": "ok",
-  "model_loaded": true,
-  "detected": true,
-  "count": 2,
-  "detections": [
-    {
-      "class_id": 0,
-      "class_name": "Varroa_mite",
-      "confidence": 0.91,
-      "bbox": {
-        "x1": 120,
-        "y1": 80,
-        "x2": 165,
-        "y2": 125
-      }
-    }
-  ]
-}
-```
+- Lab workflow representation.
+- Storage of quality-related information.
+- Association of quality records with honey batches.
+- Display of relevant information through the digital passport.
 
-### Detection workflow
+**Important:** The current workflow does not independently perform physical laboratory tests. Quality information must be supplied or entered into the system; simulated lab records are not equivalent to verified laboratory certification.
 
-```text
-Bee Image
-   │
-   ▼
-YOLO Inference
-   │
-   ├── Class
-   ├── Confidence
-   └── Bounding Box
-   │
-   ▼
-Frontend Visualization
-```
+### 7. 📱 QR Code and Digital Honey Passport
+
+Every supported honey batch can be linked to a QR code.
+
+Consumers can scan the QR code to access the associated digital honey passport.
+
+The passport is designed to display relevant product information, including:
+
+- Batch identification.
+- Honey origin and farm-related information.
+- Harvest and production records.
+- Available quality information.
+- Traceability information associated with the batch.
+
+This enables a consumer-facing verification experience without requiring users to navigate the beekeeper's management dashboard.
+
+### 8. 🏛️ Administrative and KVIC-Oriented Dashboard
+
+The project includes administrative interfaces intended to demonstrate how an organization can oversee beekeeping operations and associated records.
+
+The administrative workflow supports access to relevant farm, hive, and traceability information.
+
+The design is intended to demonstrate how a digital platform could support beekeeping initiatives and organized honey production.
 
 ---
 
-## 🩺 Hive Health Assessment — Final ML Component
+## 🌐 Live Deployment
 
-> **This section intentionally appears last in the ML chapter because the current hive-health implementation is a transparent rule-based engine rather than a trained ML model.**
+The following services are deployed and can be accessed independently.
 
-Endpoint:
-
-```http
-POST /predict/health
-```
-
-The health engine evaluates measurable hive and environmental signals such as:
-
-- Temperature
-- Humidity
-- CO₂
-- TVOC
-- Bee activity
-- Outside temperature and humidity
-- Pressure
-- Light
-
-It returns:
-
-```text
-Health Score
-Health Status
-Bee Activity
-Bee Flow
-Risk Factors
-Recommendations
-Inspection Required
-```
-
-### Why rule-based?
-
-For the current prototype, the priority is **interpretability and predictable behaviour**. A beekeeper or judge can trace a recommendation back to measurable sensor conditions instead of receiving an unexplained black-box score.
-
-```text
-Sensor Observations
-        │
-        ▼
-Threshold / Risk Rules
-        │
-        ├── Temperature Risk
-        ├── Humidity Risk
-        ├── Gas / Air Risk
-        ├── Activity Risk
-        └── Environmental Risk
-        │
-        ▼
-Health Score + Status
-        │
-        ├── Risk Factors
-        ├── Recommendations
-        └── Inspection Flag
-```
-
-**Important:** this component should not be described as a trained predictive ML model in presentations or documentation. It is the project's explainable **rule-based health engine**.
-
----
-
-# 🍯 Honey Traceability
-
-HoneyChain models a honey batch as a digital object that can move through a traceability workflow.
-
-```text
-Farm
-  │
-  ▼
-Harvest Batch
-  │
-  ▼
-Laboratory Submission
-  │
-  ▼
-Lab Report
-  │
-  ▼
-QR Generation
-  │
-  ▼
-Public Verification
-  │
-  ▼
-Digital Honey Passport
-```
-
-## Batch management
-
-The platform supports:
-
-- Batch creation
-- Farm association
-- Batch details
-- Batch updates
-- Batch listing and filtering
-
-## Laboratory workflow
-
-The current prototype includes a lab-service abstraction.
-
-For demonstrations, laboratory processing is simulated so the complete workflow can run without external laboratory infrastructure.
-
-> The service boundary is intentionally replaceable: a production deployment can connect the same workflow to a real laboratory API.
-
----
-
-# 🔳 QR Verification
-
-Each eligible honey batch can receive a QR code.
-
-The QR workflow is designed around a simple consumer journey:
-
-```text
-Consumer scans QR
-       │
-       ▼
-Public batch page
-       │
-       ├── Batch identity
-       ├── Origin / farm information
-       ├── Quality information
-       ├── Laboratory information
-       └── Traceability / passport details
-```
-
-Public scanning is exposed through:
-
-```http
-GET /api/qr/scan/:batchId
-```
-
-This allows consumers to verify a batch without needing beekeeper credentials.
-
----
-
-# 🪪 Digital Honey Passport
-
-The Honey Passport provides a structured representation of a honey batch's provenance.
-
-The frontend includes dedicated passport screens for:
-
-- Batch identity
-- Origin
-- Traceability information
-- Quality-related records
-- Public verification
-
-The architecture is also suitable for extending the passport with cryptographic proofs or a production blockchain ledger.
-
-> **Important:** the current repository should be understood as a blockchain-oriented traceability prototype; the inspected codebase does not contain a full production blockchain network/smart-contract implementation. The QR/database provenance layer is the current working traceability mechanism.
-
----
-
-# 🏛️ KVIC / Administration Portal
-
-HoneyChain includes a separate administrative portal with its own authentication flow.
-
-The administrative interface includes:
-
-- Admin registration
-- Admin login
-- Dashboard
-- Batch management
-- Batch details
-- Farm management
-- Reports
-
-This creates a clear separation between:
-
-```text
-Beekeeper / Producer
-        │
-        ▼
-Productivity + Hive Management
-
-KVIC / Administrator
-        │
-        ▼
-Oversight + Batch / Farm Management
-
-Consumer
-        │
-        ▼
-Public QR Verification
-```
-
----
-
-# 🛠️ Technology Stack
-
-### Frontend
-
-- React 19
-- Vite
-- Tailwind CSS
-- React Router
-- Lucide React
-- Three.js
-- React Three Fiber
-- React Three Drei
-
-### Backend
-
-- Node.js
-- Express
-- MongoDB
-- Mongoose
-- JWT
-- bcryptjs
-- Axios
-- Multer
-- QRCode
-- Cloudinary integration
-- node-cron
-
-### ML Service
-
-- Python
-- FastAPI
-- Pydantic
-- NumPy
-- Pandas
-- Scikit-learn
-- Joblib
-- Ultralytics YOLO
-- Pillow
-
----
-
-# 📁 Repository Structure
-
-```text
-honey_chain_project-main/
-│
-├── assets/                         # Product screenshots
-│
-├── frontend/                       # React application
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── context/
-│   │   ├── data/
-│   │   ├── pages/
-│   │   │   └── kvic/
-│   │   └── services/
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/                        # Node/Express API
-│   ├── src/
-│   │   ├── config/
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   └── utils/
-│   ├── server.js
-│   └── package.json
-│
-├── ml_service/                     # FastAPI ML microservice
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── health_engine.py
-│   │   ├── model_loader.py
-│   │   └── beehave_features.py
-│   ├── models/
-│   │   ├── best.pt
-│   │   └── BeeHave_Environmental_Pipeline.pkl
-│   ├── notebooks/
-│   │   ├── hive_yield.ipynb
-│   │   └── varroa_training.ipynb
-│   └── requirements.txt
-│
-└── README.md
-```
-
----
-
-# 🔌 API Surface
-
-## Backend
-
-| Module | Endpoint examples | Purpose |
-|---|---|---|
-| Auth | `/api/auth/*` | OTP/JWT authentication |
-| Keepers | `/api/keepers/*` | Keeper management |
-| Farms | `/api/farms/*` | Farm management |
-| Hives | `/api/hives/*` | Hive management |
-| Sensors | `/api/sensors/*` | Sensor observations |
-| Alerts | `/api/alerts/*` | Health/inspection alerts |
-| Yield | `/api/yield/*` | Yield and disease-risk workflows |
-| Batches | `/api/batches/*` | Honey batch management |
-| Lab | `/api/lab/*` | Laboratory workflow |
-| QR | `/api/qr/*` | QR generation/scanning |
-| KVIC | `/api/kvic/*` | Administrative portal |
-
-## ML Service
-
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/` | GET | ML service status |
-| `/predict/health` | POST | Hive health assessment |
-| `/predict/varroa` | POST | Varroa image detection |
-| `/health/varroa` | GET | Varroa model status |
-| `/predict/yield` | POST | 7-day yield/weight forecast |
-
-### Deployed API URLs
-
-| Service | URL |
+| Component | URL |
 |---|---|
-| Backend | https://honey-chain-project-dm1t.onrender.com/ |
-| ML Service | https://honey-chain-project-npw5.onrender.com/ |
-| ML Swagger Documentation | https://honey-chain-project-npw5.onrender.com/docs |
+| Frontend Application | [Open Honey Chain](https://honey-chain-project-82lu.vercel.app/) |
+| GitHub Repository | [View Source Code](https://github.com/codePIP404/honey_chain_project) |
+| Backend API | [Open Backend](https://honey-chain-project-dm1t.onrender.com/) |
+| ML Service | [Open ML Service](https://honey-chain-project-npw5.onrender.com/) |
+| ML API Documentation | [Swagger UI](https://honey-chain-project-npw5.onrender.com/docs) |
+| Project Demonstration | [Watch on YouTube](https://youtu.be/Aoa2Drj_07) |
 
-Interactive FastAPI documentation is available at:
+> Hosted services may take time to start after periods of inactivity, depending on the deployment configuration and hosting provider.
 
-```text
-http://localhost:8000/docs
+---
+
+## 🏗️ System Architecture
+
+Honey Chain follows a modular architecture that separates the frontend, application backend, database, and machine learning services.
+
+```mermaid
+flowchart TB
+    U["Beekeeper / Administrator / Consumer"]
+
+    subgraph Frontend["Frontend Layer"]
+        FE["React + Vite + Tailwind CSS"]
+        UI["Farm Dashboard · Hive Monitoring · Batch Management · QR Passport"]
+        FE --> UI
+    end
+
+    subgraph Backend["Application Backend"]
+        API["Node.js + Express REST API"]
+        AUTH["Application Routes and Business Logic"]
+    end
+
+    DB[("MongoDB Database")]
+
+    subgraph ML["Machine Learning Service"]
+        FAST["FastAPI"]
+        HEALTH["Rule-Based Hive Health Engine"]
+        VARROA["YOLO Varroa Detection"]
+        YIELD["Random Forest Yield Forecasting"]
+        FAST --> HEALTH
+        FAST --> VARROA
+        FAST --> YIELD
+    end
+
+    U --> FE
+    UI --> API
+    API --> AUTH
+    AUTH <--> DB
+    API --> FAST
+    FAST --> API
+    API --> FE
 ```
 
-For the deployed ML service, use:
+### Architecture components
 
-https://honey-chain-project-npw5.onrender.com/docs
+| Layer | Responsibility |
+|---|---|
+| Frontend | User interface, dashboards, forms, batch workflows, and QR passport views. |
+| Backend | Application APIs, business logic, data handling, and integration with the ML service. |
+| Database | Storage of application records, including relevant farm, hive, and batch information. |
+| ML service | Hive health assessment, Varroa image inference, and yield forecasting. |
+| QR passport | Consumer-facing access to the digital information associated with a honey batch. |
+
+### Design considerations
+
+- The frontend and backend are maintained as separate application components.
+- ML inference is separated from the main application backend.
+- The ML service exposes HTTP APIs through FastAPI.
+- MongoDB is used for application data storage.
+- QR codes connect batch records to the consumer-facing traceability interface.
+
+The current architecture demonstrates a modular prototype. A production deployment would require additional infrastructure, security controls, monitoring, and data-integrity mechanisms.
 
 ---
 
-# ⚙️ Local Development
+## 🛠️ Technology Stack
 
-## Prerequisites
+<details open>
+<summary><strong>Frontend</strong></summary>
 
-Install:
+| Technology | Purpose |
+|---|---|
+| React | Component-based user interface |
+| Vite | Development server and build tooling |
+| Tailwind CSS | Styling and responsive layouts |
+| JavaScript | Frontend application logic |
+| REST APIs | Communication with backend and ML services |
 
-- Node.js 18+
-- Python 3.10+
-- MongoDB 6+ or MongoDB Atlas
-- Git
+</details>
 
-A CUDA-capable GPU is useful for faster YOLO inference, but the API architecture itself does not require one.
+<details open>
+<summary><strong>Backend and Database</strong></summary>
+
+| Technology | Purpose |
+|---|---|
+| Node.js | JavaScript runtime |
+| Express.js | Backend API framework |
+| MongoDB | Application data storage |
+| REST API | Application communication |
+
+</details>
+
+<details open>
+<summary><strong>Machine Learning and Computer Vision</strong></summary>
+
+| Technology | Purpose |
+|---|---|
+| Python | ML service and inference logic |
+| FastAPI | ML API framework |
+| YOLO | Varroa mite object detection |
+| Random Forest | Honey yield forecasting |
+| Scikit-learn | ML pipeline and model processing |
+| PyTorch / Ultralytics | Deep learning inference |
+
+</details>
+
+<details open>
+<summary><strong>Deployment and Integration</strong></summary>
+
+| Technology | Purpose |
+|---|---|
+| Vercel | Frontend deployment |
+| Render | Backend and ML service hosting |
+| GitHub | Source control and collaboration |
+| QR Code | Product identification and digital passport access |
+
+</details>
 
 ---
 
-## 1. Clone the project
+## 🤖 Machine Learning Components
+
+Honey Chain integrates two ML models and one rule-based assessment engine.
+
+### Model 1: Varroa Mite Detection
+
+<badge color="success">Computer Vision</badge> <badge>YOLO</badge>
+
+The Varroa detection model identifies visible mite instances in submitted images.
+
+**Model location in the project:**
+
+`ml_service/models/best.pt`
+
+**Inference endpoint:**
+
+`POST /predict/varroa`
+
+The model returns detection information that can be used by the frontend to present detected mites and their confidence values.
+
+The model is intended for image-based assistance and does not establish the overall infestation level of a colony from a single image.
+
+### Model 2: Honey Yield Forecasting
+
+<badge color="success">Regression / Forecasting</badge> <badge>Random Forest</badge>
+
+The honey yield pipeline estimates production from historical hive and environmental observations.
+
+**Model location:**
+
+`ml_service/models/BeeHave_Environmental_Pipeline.pkl`
+
+**Inference endpoint:**
+
+`POST /predict/yield`
+
+The input data must follow the feature structure and observation requirements expected by the trained pipeline.
+
+For the current configured workflow:
+
+- Minimum historical duration: 15 days.
+- Forecast input format: seven days of observations.
+- Expected observations: 144 per day.
+- Total expected observations for the seven-day format: 1,008.
+
+The pipeline's preprocessing and feature ordering must be preserved when making predictions.
+
+### Model 3: Hive Health Assessment
+
+<badge color="info">Rule-Based Engine</badge>
+
+The hive health module evaluates configured conditions from the supplied hive and environmental data.
+
+**Implementation location:**
+
+`ml_service/app/health_engine.py`
+
+**Inference endpoint:**
+
+`POST /predict/health`
+
+This module is not a trained ML model. Its output depends on the assessment rules and the quality of the supplied inputs.
+
+The purpose is to provide interpretable health indicators and support beekeeper decision-making.
+
+---
+
+## 🔄 Honey Traceability Workflow
+
+The traceability workflow connects honey production records with a consumer-accessible digital passport.
+
+### Step 1: Register a Farm and Hive
+
+The beekeeper registers the farm and associated hive information through the management dashboard.
+
+The records provide the foundation for subsequent monitoring and harvest information.
+
+### Step 2: Monitor Hive Conditions
+
+Environmental or simulated sensor observations are associated with hive records.
+
+The health engine can process supported inputs to generate a rule-based health assessment.
+
+### Step 3: Assess Colony and Production Information
+
+The beekeeper can use the Varroa detection and yield forecasting modules to obtain additional information about mite visibility and estimated honey production.
+
+These predictions are intended to supplement, not replace, practical hive inspections.
+
+### Step 4: Create a Honey Batch
+
+Following harvest, a batch is created in the application.
+
+The batch record can be associated with relevant farm, hive, harvest, and quality information.
+
+### Step 5: Add Quality Information
+
+The prototype allows quality-related information to be associated with a batch through the simulated lab workflow.
+
+Actual laboratory verification requires testing by an appropriate laboratory and accurate recording of the results.
+
+### Step 6: Generate a QR Code
+
+A QR code is generated and associated with the batch or its digital passport URL.
+
+The QR code serves as a convenient access point for the batch's available records.
+
+### Step 7: Consumer Verification
+
+The consumer scans the QR code using a mobile device.
+
+The linked digital honey passport displays the information recorded for that batch.
+
+```mermaid
+flowchart TD
+    A["Register Farm and Hive"] --> B["Monitor Hive"]
+    B --> C["Assess Health and Production"]
+    C --> D["Harvest Honey"]
+    D --> E["Create Batch"]
+    E --> F["Add Available Quality Records"]
+    F --> G["Generate QR Code"]
+    G --> H["Consumer Scans QR"]
+    H --> I["View Digital Honey Passport"]
+```
+
+**Traceability note:** The current prototype stores traceability records using MongoDB and QR-linked application pages. It does not currently provide decentralized consensus, on-chain transactions, smart-contract execution, or independently tamper-proof blockchain records.
+
+---
+
+## 🔌 API Documentation
+
+The machine learning service is built with FastAPI.
+
+### Base URLs
+
+| Service | Base URL |
+|---|---|
+| Backend | `https://honey-chain-project-dm1t.onrender.com` |
+| ML Service | `https://honey-chain-project-npw5.onrender.com` |
+
+### Interactive API Documentation
+
+Use the deployed Swagger interface to inspect endpoints, request schemas, and available API operations:
+
+**[Open ML Service Swagger UI](https://honey-chain-project-npw5.onrender.com/docs)**
+
+### ML Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/predict/health` | Performs rule-based hive health assessment. |
+| POST | `/predict/varroa` | Performs Varroa mite detection on an image. |
+| POST | `/predict/yield` | Generates a honey yield prediction from historical observations. |
+| GET | `/health/varroa` | Checks the Varroa model service status. |
+
+### Check ML Service Status
+
+```bash
+curl https://honey-chain-project-npw5.onrender.com/health/varroa
+```
+
+The response indicates whether the Varroa model is loaded and provides the service's available status information.
+
+### Varroa Detection Request
+
+The Varroa endpoint accepts image input. The exact request format depends on the deployed FastAPI schema.
+
+For the deployed service, use the Swagger UI to upload an image and execute the request:
+
+[Open `/predict/varroa` documentation](https://honey-chain-project-npw5.onrender.com/docs)
+
+The response contains detection information such as predicted classes, confidence values, and bounding boxes, depending on the configured endpoint response.
+
+### Hive Health Request
+
+```bash
+curl -X POST \
+  "https://honey-chain-project-npw5.onrender.com/predict/health" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "temperature": 34.5,
+    "humidity": 65
+  }'
+```
+
+**Note:** This is an illustrative request format, not a guaranteed complete schema. Use the deployed Swagger documentation for the exact required fields and expected JSON structure.
+
+### Honey Yield Request
+
+The yield endpoint accepts historical hive observations in the format required by the configured model.
+
+```bash
+curl -X POST \
+  "https://honey-chain-project-npw5.onrender.com/predict/yield" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "history": []
+  }'
+```
+
+The empty history above is a placeholder only and will not produce a valid prediction. Supply the required historical observations and all required features according to the deployed API schema.
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to run the project locally.
+
+### Prerequisites
+
+Install the following software before starting:
+
+- Node.js and npm.
+- Python 3.10 or another version compatible with the ML dependencies.
+- Git.
+- MongoDB local installation or a MongoDB Atlas connection.
+- A compatible Python environment for the trained ML models.
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/codePIP404/honey_chain_project.git
+
 cd honey_chain_project
 ```
 
----
+### 2. Inspect the Project Structure
 
-## 2. Start MongoDB
+The repository contains the frontend, backend, and ML service components.
 
-Use either:
+Check the project directories and locate the relevant package and requirements files before installing dependencies.
 
-- Local MongoDB
-- MongoDB Atlas
+### 3. Configure the Backend
 
-The backend defaults to:
-
-```text
-mongodb://127.0.0.1:27017/beekeeping_prototype
-```
-
-For production-like usage, provide a MongoDB connection string through `MONGO_URI`.
-
----
-
-## 3. Start the ML service
+Navigate to the backend directory. The exact directory name should match the current repository structure.
 
 ```bash
-cd ml_service
-
-python -m venv venv
-```
-
-### Windows
-
-```bash
-venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
-source venv/bin/activate
+cd backend
 ```
 
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
-```
-
-Start FastAPI:
-
-```bash
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-Verify:
-
-```text
-http://localhost:8000/
-```
-
-Swagger:
-
-```text
-http://localhost:8000/docs
-```
-
----
-
-## 4. Start the backend
-
-Open a second terminal:
-
-```bash
-cd backend
 npm install
 ```
 
-Create:
+Create a `.env` file using the variables required by the backend configuration.
 
-```text
-backend/.env
-```
-
-Example:
+For example:
 
 ```env
 PORT=5000
-
-MONGO_URI=mongodb://127.0.0.1:27017/beekeeping_prototype
-
-JWT_SECRET=replace-with-a-long-random-secret
-JWT_EXPIRES_IN=30d
-
-ML_SERVICE_URL=http://127.0.0.1:8000
-YIELD_ML_SERVICE_URL=http://127.0.0.1:8000
-
-SIMULATOR_ENABLED=true
-SIMULATOR_INTERVAL_CRON=*/2 * * * *
+MONGODB_URI=your_mongodb_connection_string
 ```
 
-Start:
+Add any additional environment variables required by the backend, such as the ML service URL or authentication configuration.
+
+Start the backend using the start script defined in its `package.json`:
+
+```bash
+npm start
+```
+
+If the project uses a development script, use:
 
 ```bash
 npm run dev
 ```
 
-Backend:
+Return to the repository root before proceeding.
 
-```text
-http://localhost:5000
+### 4. Configure the ML Service
+
+Navigate to the ML service directory:
+
+```bash
+cd ml_service
 ```
 
-Health check:
+Create a Python virtual environment:
 
-```text
-http://localhost:5000/
+```bash
+python -m venv venv
 ```
 
----
+Activate the environment.
 
-## 5. Start the frontend
+**Windows:**
 
-Open a third terminal:
+```bash
+venv\Scripts\activate
+```
+
+**Linux / macOS:**
+
+```bash
+source venv/bin/activate
+```
+
+Install the dependencies specified in the ML service requirements file:
+
+```bash
+pip install -r requirements.txt
+```
+
+Verify that the model files required by the application are present:
+
+```text
+ml_service/
+├── models/
+│   ├── best.pt
+│   └── BeeHave_Environmental_Pipeline.pkl
+└── app/
+    └── health_engine.py
+```
+
+Start the FastAPI application using the actual Python entry point configured in the repository.
+
+For example, if the application instance is named `app` in `main.py`:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+If the entry point is in a package or a different file, adjust the command accordingly.
+
+The interactive documentation should then be available at:
+
+`http://localhost:8000/docs`
+
+Return to the repository root before starting the frontend.
+
+### 5. Configure the Frontend
+
+Navigate to the frontend directory:
 
 ```bash
 cd frontend
+```
+
+Install the dependencies:
+
+```bash
 npm install
+```
+
+Configure the frontend API base URLs using the environment variable names expected by the application.
+
+For a Vite application, the configuration may use variables such as:
+
+```env
+VITE_API_URL=http://localhost:5000
+VITE_ML_API_URL=http://localhost:8000
+```
+
+These names are examples; use the exact variable names referenced in the frontend source code.
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-Vite will provide the local frontend URL, normally:
+Vite will display the local development URL in the terminal.
 
-```text
-http://localhost:5173
-```
-
-For local development, configure:
-
-```env
-VITE_API_BASE_URL=http://localhost:5000
-```
-
-For the deployed frontend, configure the Vercel environment variable to point to the deployed backend:
-
-```env
-VITE_API_BASE_URL=https://honey-chain-project-dm1t.onrender.com
-```
-
-> **Important:** Use the environment variable name and API URL format expected by your frontend's existing API configuration. If your application uses separate environment variables for backend and ML service URLs, configure those separately. Redeploy the Vercel frontend after changing its environment variables.
+Open that URL in your browser to access Honey Chain.
 
 ---
 
-# 🔄 End-to-End Demo Flow
+## ⚙️ Environment Variables
 
-For a strong project demonstration, follow this sequence:
+The following table illustrates the configuration values commonly required for the application. Verify the exact names in the current repository before deploying.
 
-```text
-1. Register beekeeper
-          ↓
-2. Verify OTP
-          ↓
-3. Create farm
-          ↓
-4. Create hive(s)
-          ↓
-5. Generate / ingest sensor readings
-          ↓
-6. Run hive-health assessment
-          ↓
-7. Demonstrate alert / inspection recommendation
-          ↓
-8. Upload bee image for Varroa detection
-          ↓
-9. Run 7-day honey-yield forecast
-          ↓
-10. Create honey batch
-          ↓
-11. Submit batch for laboratory workflow
-          ↓
-12. Generate QR
-          ↓
-13. Scan QR as a public consumer
-          ↓
-14. Open Digital Honey Passport
-          ↓
-15. Review batch/farm data in KVIC portal
-```
-
-This sequence demonstrates the project's **full vertical integration**, rather than showing isolated screens.
-
----
-
-# 🧪 Model & Data Notes
-
-## Honey Yield
-
-Required contract:
-
-```text
-7 forecast days
-×
-144 readings per day
-```
-
-The serialized model:
-
-```text
-ml_service/models/BeeHave_Environmental_Pipeline.pkl
-```
-
-depends on the custom feature-engineering implementation:
-
-```text
-ml_service/app/beehave_features.py
-```
-
-Keep both available when loading the model.
-
-## Varroa
-
-The deployed detector is:
-
-```text
-ml_service/models/best.pt
-```
-
-Class mapping is exposed by the model API.
-
-## Hive Health
-
-The health engine is:
-
-```text
-ml_service/app/health_engine.py
-```
-
-It is intentionally transparent and does not require a trained model artifact.
-
----
-
-# 🖼️ Product Experience
-
-The repository contains a large screenshot set. The README uses the screenshots as a visual product tour so visitors can understand the platform before reading the implementation details.
-
-## 🌐 Public & Authentication
-
-<p align="center">
-  <img src="assets/01_landing_page.png" alt="HoneyChain landing page." width="48%"/>
-  <img src="assets/02_login_page.png" alt="HoneyChain login page." width="48%"/>
-</p>
-
-<p align="center">
-  <img src="assets/03_create_account.png" alt="HoneyChain account creation page." width="48%"/>
-  <img src="assets/11_learn_beekeeping.png" alt="HoneyChain beekeeping learning page." width="48%"/>
-</p>
-
-## 🐝 Beekeeper Workspace
-
-<p align="center">
-  <img src="assets/04_beekeeper_dashboard.png" alt="Beekeeper dashboard showing hive and farm information." width="80%"/>
-</p>
-
-<p align="center">
-  <img src="assets/06_active_alerts.png" alt="Active alerts available to the beekeeper." width="48%"/>
-  <img src="assets/12_beekeeper_dashboard_dark.png" alt="Beekeeper dashboard in dark theme." width="48%"/>
-</p>
-
-## 🍯 Honey & Traceability
-
-<p align="center">
-  <img src="assets/08_honey_batches.png" alt="Honey batch management interface." width="48%"/>
-  <img src="assets/13_honey_batches_dark.png" alt="Honey batch management in dark theme." width="48%"/>
-</p>
-
-<p align="center">
-  <img src="assets/09_digital_passport.png" alt="Digital Honey Passport interface." width="48%"/>
-  <img src="assets/14_digital_passport_dark.png" alt="Digital Honey Passport in dark theme." width="48%"/>
-</p>
-
-<p align="center">
-  <img src="assets/15_honey_passport_details.png" alt="Detailed Honey Passport information for a batch." width="80%"/>
-</p>
-
-## 🔳 Consumer Verification
-
-<p align="center">
-  <img src="assets/10_batch_verification.png" alt="Public honey batch verification page." width="80%"/>
-</p>
-
-## 🏛️ KVIC Administration
-
-<p align="center">
-  <img src="assets/16_admin_registration.png" alt="KVIC administrator registration interface." width="48%"/>
-  <img src="assets/17_admin_login.png" alt="KVIC administrator login interface." width="48%"/>
-</p>
-
-<p align="center">
-  <img src="assets/18_admin_dashboard.png" alt="KVIC administration dashboard." width="80%"/>
-</p>
-
-<p align="center">
-  <img src="assets/19_batch_management.png" alt="KVIC batch management interface." width="48%"/>
-  <img src="assets/20_batch_details.png" alt="KVIC batch details interface." width="48%"/>
-</p>
-
-<p align="center">
-  <img src="assets/21_farm_management.png" alt="KVIC farm management interface." width="80%"/>
-</p>
-
-## 🩺 Hive Health — Final ML Screen
-
-The rule-based hive-health screen is intentionally shown last in the product gallery, matching its position at the end of the ML section.
-
-<p align="center">
-  <img src="assets/05_hive_health.png" alt="Hive health assessment screen showing health insights and recommendations." width="80%"/>
-</p>
-
-> **Documentation note:** screenshots are used to make the repository visually scannable while the surrounding text provides the corresponding technical context.
-
----
-
-# 🔐 Security & Production Considerations
-
-This repository is a prototype/demo system. Before production deployment:
-
-- Move all secrets to a secure secret manager.
-- Use HTTPS/TLS for every externally accessible service.
-- Rotate JWT secrets and avoid weak development credentials.
-- Add rate limiting to authentication and public endpoints.
-- Replace console-based OTP delivery with a verified SMS provider.
-- Add stronger role-based access control and audit logging.
-- Validate and sanitize all uploaded images and user-provided data.
-- Restrict CORS to trusted origins.
-- Add MongoDB authentication and network controls.
-- Add structured application logging and monitoring.
-- Store uploaded assets securely.
-- Add model versioning and model-performance monitoring.
-- Replace simulated IoT and lab integrations with authenticated production services.
-- If a blockchain ledger is deployed, define transaction identity, immutability, key management, and on-chain/off-chain data boundaries explicitly.
-
----
-
-# 🧭 Current Prototype Boundaries
-
-HoneyChain intentionally uses simulation at several integration points so that the complete product can be demonstrated without physical infrastructure.
-
-| Component | Current implementation | Production evolution |
+| Variable | Component | Description |
 |---|---|---|
-| Hive sensors | Synthetic sensor simulator | MQTT / LoRaWAN / gateway |
-| OTP | Console/mock delivery | SMS provider |
-| Laboratory | Simulated workflow | Real lab API |
-| Hive health | Rule-based engine | Validated ML/clinical-style risk model |
-| Varroa | YOLO inference | Edge/mobile/stream inference |
-| Honey yield | Random Forest pipeline | Continuous retraining + real farm data |
-| Traceability | MongoDB + QR + digital passport | Blockchain/ledger integration where required |
+| `PORT` | Backend | Port on which the backend listens. |
+| `MONGODB_URI` | Backend | MongoDB connection string. |
+| `VITE_API_URL` | Frontend | Backend API base URL, if used by the frontend. |
+| `VITE_ML_API_URL` | Frontend | ML service URL, if called directly by the frontend. |
 
-This distinction is important: **the prototype demonstrates the complete product workflow without pretending that simulated infrastructure is already a production integration.**
+### Configuration Notes
 
----
-
-# 🗺️ Roadmap
-
-### Phase 1 — Prototype
-
-- [x] React beekeeper interface
-- [x] Node/Express backend
-- [x] MongoDB data layer
-- [x] Hive/farm management
-- [x] Sensor simulation
-- [x] Hive health engine
-- [x] Varroa YOLO service
-- [x] Honey-yield forecasting service
-- [x] Honey batches
-- [x] Lab workflow
-- [x] QR verification
-- [x] Digital Honey Passport
-- [x] KVIC/admin portal
-- [x] Frontend deployment on Vercel
-- [x] Backend deployment on Render
-- [x] ML service deployment on Render
-
-### Phase 2 — Real-world integration
-
-- [ ] Real IoT ingestion
-- [ ] MQTT/LoRaWAN gateway
-- [ ] Real SMS OTP
-- [ ] Real laboratory integration
-- [ ] Production object storage
-- [ ] Model monitoring
-- [ ] Automated model retraining
-
-### Phase 3 — Trust infrastructure
-
-- [ ] Cryptographic batch identity
-- [ ] Tamper-evident provenance
-- [ ] Smart-contract/ledger integration
-- [ ] On-chain verification proofs
-- [ ] Consumer-facing authenticity analytics
+- Do not commit `.env` files containing credentials or private keys.
+- Keep database connection strings and secret keys on the server.
+- Use HTTPS for deployed API communication.
+- Ensure frontend CORS and backend API configuration allow the intended deployment origins.
+- Do not expose server-side secrets through Vite environment variables.
 
 ---
 
-# 🤝 Contributing
+## 📁 Project Structure
 
-Contributions are welcome.
-
-```bash
-git checkout -b feature/your-feature
-git add .
-git commit -m "feat: add your feature"
-git push origin feature/your-feature
-```
-
-For meaningful changes, include:
-
-- What changed
-- Why it changed
-- How it was tested
-- Any API/schema changes
-- Screenshots for UI changes
-
----
-
-# 👥 Team
-
-| Role | Name |
-|---|---|
-| Team Leader | Sovan Kar |
-| Team Member | Manish Shaw |
-| Team Member | Bikash Pradhan |
-| Team Member | Sandip Sen |
-| Team Member | Tirthes Samantha |
-| Team Member | Salmali Chattopadhyay |
-
----
-
-# 📄 License
-
-Add the project's intended license here before public distribution.
-
-For academic/hackathon submission, also consider adding:
-
-- Institution
-- Problem statement
-- Dataset acknowledgements
-- Model/dataset licenses
-- Third-party attribution
-
----
-
-## ⭐ Project at a Glance
+The following is a logical overview of the project's main components. Individual directory names and additional files may vary depending on the current repository version.
 
 ```text
-Frontend        → React / Vite / Tailwind
-Backend         → Node.js / Express
-Database        → MongoDB
-ML API          → FastAPI
-Computer Vision → YOLO
-Yield Model     → Random Forest
-Health Engine   → Explainable rule-based scoring
-Traceability    → Batch + Lab + QR + Digital Passport
-Admin           → KVIC Portal
-
-Frontend        → Vercel
-Backend         → Render
-ML Service      → Render
+honey_chain_project/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── assets/
+│   │   └── ...
+│   ├── public/
+│   ├── package.json
+│   └── ...
+│
+├── backend/
+│   ├── routes/
+│   ├── controllers/
+│   ├── models/
+│   ├── package.json
+│   └── ...
+│
+├── ml_service/
+│   ├── app/
+│   │   └── health_engine.py
+│   ├── models/
+│   │   ├── best.pt
+│   │   └── BeeHave_Environmental_Pipeline.pkl
+│   ├── requirements.txt
+│   └── ...
+│
+├── assets/
+│   └── ...
+│
+└── README.md
 ```
 
-### The core idea
+### Main Components
 
-> **Make the hive measurable, the honey traceable, and the journey verifiable.** 🍯🐝
+| Component | Responsibility |
+|---|---|
+| `frontend/` | User interface, dashboards, and consumer-facing pages. |
+| `backend/` | Application routes, business logic, and database interaction. |
+| `ml_service/` | Model inference, health assessment, and prediction APIs. |
+| `ml_service/models/` | Model artifacts used by the inference service. |
+| `assets/` | Project screenshots and other documentation assets. |
 
 ---
 
-<p align="center">
-  <strong>HoneyChain</strong><br/>
-  <sub>Smart Beekeeping • AI-Assisted Hive Intelligence • Honey Traceability • Consumer Trust</sub>
-  <br/><br/>
-  <a href="https://honey-chain-project-82lu.vercel.app/"><strong>Visit the Live Application</strong></a>
-</p>
+## 🧪 Testing the Application
+
+The following workflow can be used to demonstrate the main features of Honey Chain.
+
+### End-to-End Demo Checklist
+
+- [ ] Open the live application.
+- [ ] Navigate through the landing page and management dashboard.
+- [ ] Register or select a farm.
+- [ ] View or register a hive.
+- [ ] Access hive monitoring and health assessment.
+- [ ] Submit an image to the Varroa detection service.
+- [ ] View a honey yield forecast using valid historical observations.
+- [ ] Create a honey batch.
+- [ ] Add the available quality information.
+- [ ] Generate the batch QR code.
+- [ ] Open the QR-linked digital honey passport.
+- [ ] Verify the batch information displayed to the consumer.
+
+### ML Service Testing
+
+Use the deployed Swagger documentation to test the ML endpoints independently.
+
+[Open the ML API test interface](https://honey-chain-project-npw5.onrender.com/docs)
+
+For local testing, start the FastAPI service and use:
+
+`http://localhost:8000/docs`
+
+Use valid model inputs and the schemas exposed by the running service.
+
+### Suggested Test Scenarios
+
+| Test | Expected behavior |
+|---|---|
+| Valid Varroa image | The service processes the image and returns detection results. |
+| Invalid image input | The service should return an appropriate validation or error response. |
+| Valid health input | The rule-based engine returns an assessment according to its configured rules. |
+| Insufficient yield history | The service should reject or handle the request according to its input validation. |
+| Valid yield history | The yield pipeline processes the observations and returns a prediction. |
+| Valid batch QR code | The QR code opens the associated passport or batch page. |
+
+These are intended test scenarios, not claims that automated tests have already been executed for every case.
+
+---
+
+## 📊 Model Evaluation
+
+The following metrics were reported for the Varroa detection model in the project's development results.
+
+### Varroa Detection Results
+
+| Metric | Reported value |
+|---|---:|
+| Precision | 0.8056 |
+| Recall | 0.8030 |
+| mAP@50 | 0.8357 |
+| mAP@50–95 | 0.3134 |
+
+The reported mAP@50 is approximately 83.57%, while mAP@50–95 is approximately 31.34%.
+
+These are the previously reported evaluation results for the model, not independently verified benchmarks in this README.
+
+For reproducible evaluation, the project should document:
+
+- Dataset source and version.
+- Number of training, validation, and test images.
+- Annotation format and class definitions.
+- Train/validation/test split methodology.
+- Model architecture and training configuration.
+- Evaluation software and metric definitions.
+
+### Evaluation Considerations
+
+Object detection performance can vary based on:
+
+- Image resolution and camera quality.
+- Lighting, blur, and image compression.
+- Mite size and visibility.
+- Crowding and overlapping bees.
+- Differences between training images and real-world photographs.
+
+In particular, a high mAP@50 does not guarantee reliable mite detection in every real-world hive image. Testing with independent field images is necessary before making claims about real-world diagnostic performance.
+
+No independently verified yield forecasting accuracy or hive health classification accuracy is claimed here.
+
+---
+
+## 🔐 Security and Data Integrity
+
+Honey Chain is an academic and hackathon prototype. The following considerations are important for further development.
+
+### Application Security
+
+- Store sensitive credentials in environment variables.
+- Use appropriate authentication and authorization for administrative operations.
+- Restrict access to management and administrative endpoints.
+- Validate user input on both the frontend and backend.
+- Configure CORS to allow only intended origins.
+- Avoid exposing internal database or server error details to public users.
+
+### Data Integrity
+
+The current database-backed implementation associates batches with stored application records.
+
+A production traceability system should additionally consider:
+
+- Immutable audit logs.
+- Authentication of data contributors.
+- Digital signatures for critical records.
+- Verification of laboratory certificates.
+- Controlled updates to batch records.
+- Secure identity and access management.
+
+QR codes provide convenient access to digital records, but a QR code alone does not establish that the underlying data is authentic or tamper-proof.
+
+A future blockchain integration could introduce verifiable records and transaction history, subject to an appropriate network and smart-contract design.
+
+---
+
+## ⚠️ Current Limitations
+
+The following limitations are important when interpreting the current prototype.
+
+| Area | Current implementation / limitation |
+|---|---|
+| Blockchain | Database-backed traceability; no production blockchain consensus or smart-contract implementation is claimed. |
+| IoT | Sensor inputs and monitoring workflows include simulated data; live hardware integration is not claimed. |
+| Hive health | Uses a rule-based assessment engine rather than a trained ML diagnostic model. |
+| Varroa detection | Image-based detection; performance depends on visibility, image quality, and evaluation data. |
+| Honey yield | Forecasts depend on historical observations and the trained model's feature requirements. |
+| Lab verification | The lab workflow is simulated; it does not independently conduct physical tests. |
+| Product authenticity | QR-linked records provide traceability information but do not independently certify the authenticity or purity of honey. |
+| Production readiness | Further security hardening, field validation, monitoring, and operational testing are required. |
+
+The project demonstrates a working prototype of the proposed workflows. Actual deployment in commercial beekeeping operations would require field testing, validated datasets, reliable hardware integrations, and appropriate operational controls.
+
+---
+
+## 🛣️ Future Roadmap
+
+The following are proposed enhancements and are not represented as completed features.
+
+### Phase 1 — Smart Beekeeping
+
+- [ ] Integrate live temperature, humidity, and hive-weight sensors.
+- [ ] Add real-time monitoring and alerting.
+- [ ] Improve colony health indicators with field-validated data.
+- [ ] Expand Varroa detection evaluation using diverse real-world images.
+
+### Phase 2 — Predictive Intelligence
+
+- [ ] Evaluate alternative forecasting algorithms.
+- [ ] Improve prediction accuracy through additional validated datasets.
+- [ ] Add uncertainty estimates and prediction intervals.
+- [ ] Develop explainable hive and production analytics.
+
+### Phase 3 — Verifiable Traceability
+
+- [ ] Design a blockchain-based record architecture.
+- [ ] Evaluate smart contracts for batch lifecycle records.
+- [ ] Add cryptographic verification of critical records.
+- [ ] Integrate verified laboratory certificates.
+- [ ] Explore interoperable traceability standards.
+
+### Phase 4 — Production Deployment
+
+- [ ] Add comprehensive automated backend and frontend tests.
+- [ ] Introduce monitoring and structured logging.
+- [ ] Improve role-based access control.
+- [ ] Conduct security and performance testing.
+- [ ] Evaluate field deployment with beekeepers and relevant stakeholders.
+
+---
+
+## 👥 Team
+
+Honey Chain was developed as a collaborative project.
+
+| Name |
+| Manish Shaw |
+| Bikash Pradhan |
+| Sandip Sen |
+| Tirthes Samantha |
+| Sovan Kar |
+| Salmali Chattopadhyay |
+
+### Project Links
+
+- **GitHub:** [codePIP404/honey_chain_project](https://github.com/codePIP404/honey_chain_project)
+- **Live Application:** [Honey Chain](https://honey-chain-project-82lu.vercel.app/)
+- **Demo Video:** [Watch the project demonstration](https://youtu.be/Aoa2Drj_07)
+
+---
+
+## 🙏 Acknowledgements
+
+We acknowledge the open-source communities and tools that made this project possible, including the developers and maintainers of React, Vite, Tailwind CSS, Node.js, Express, MongoDB, FastAPI, Ultralytics, PyTorch, and Scikit-learn.
+
+We also acknowledge the researchers and dataset providers whose work supports the development of data-driven beekeeping and honey production systems.
+
+Dataset sources and model-specific references should be cited alongside the relevant training and evaluation documentation as the project evolves.
+
+---
+
+## 📄 License
+
+The project license has not been specified in this README.
+
+Before distributing or reusing the source code, add a `LICENSE` file to the repository and replace this section with the actual license name and terms.
+
+For example, if the team chooses the MIT License, include the official MIT license text and update this section accordingly. Do not assume the project is MIT-licensed unless the repository explicitly includes that license.
+
+---
+
+<div align="center">
+
+### 🍯 Honey Chain
+
+**Connecting beekeepers, technology, and consumers through digital traceability.**
+
+[Live Demo](https://honey-chain-project-82lu.vercel.app/) · [GitHub](https://github.com/codePIP404/honey_chain_project) · [YouTube Demo](https://youtu.be/Aoa2Drj_07)
+
+</div>
